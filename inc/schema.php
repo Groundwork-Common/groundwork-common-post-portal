@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── The shape ───────────────────────────────────────────────────────────────
+/*
+ * ── The shape ───────────────────────────────────────────────────────────────
  * One option, keyed by post type:
  *
  *   [ 'version' => 1,
@@ -45,7 +46,8 @@ defined( 'ABSPATH' ) || exit;
  * textarea, and saving that back through sanitize_textarea_field() would strip
  * every tag out of content the portal user never intended to touch. A field
  * that quietly destroys data is worse than a field that is not there yet.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 const GWCPP_SCHEMA_OPTION = 'gwcpp_schema';
 
@@ -65,10 +67,10 @@ function gwcpp_synthetic_fields(): array {
 			'type'     => 'text',
 			'label'    => __( 'Title', 'groundwork-common-post-portal' ),
 			'column'   => 'post_title',
-			/* The one field that is required whatever the schema says. A post
-			 * saved with an empty title shows as "(no title)" in every list on
-			 * the site, and the portal user who did it has no way to see that
-			 * happen. */
+			// The one field that is required whatever the schema says. A post
+			// saved with an empty title shows as "(no title)" in every list on
+			// the site, and the portal user who did it has no way to see that
+			// happen.
 			'required' => true,
 		),
 		'__excerpt' => array(
@@ -76,19 +78,19 @@ function gwcpp_synthetic_fields(): array {
 			'label'  => __( 'Short description', 'groundwork-common-post-portal' ),
 			'column' => 'post_excerpt',
 		),
-		/* Unlocked now that the rich text type exists. It was deliberately
-		 * absent while the only text types were plain, because rendering an
-		 * existing post body into a textarea and saving it back through
-		 * sanitize_textarea_field() strips every tag out of content the portal
-		 * user never meant to touch.
-		 *
-		 * Worth an admin knowing before they map it: the allow-list in
-		 * field-richtext.php applies to whatever comes back, so if staff wrote
-		 * the body using anything outside it — an embed, a shortcode-rendered
-		 * block, styling — a portal user saving this field will remove it. That
-		 * is the price of letting somebody else edit the body, and it is why
-		 * this is a field an admin adds on purpose rather than one that is
-		 * there by default. */
+		// Unlocked now that the rich text type exists. It was deliberately
+		// absent while the only text types were plain, because rendering an
+		// existing post body into a textarea and saving it back through
+		// sanitize_textarea_field() strips every tag out of content the portal
+		// user never meant to touch.
+		//
+		// Worth an admin knowing before they map it: the allow-list in
+		// field-richtext.php applies to whatever comes back, so if staff wrote
+		// the body using anything outside it — an embed, a shortcode-rendered
+		// block, styling — a portal user saving this field will remove it. That
+		// is the price of letting somebody else edit the body, and it is why
+		// this is a field an admin adds on purpose rather than one that is
+		// there by default.
 		'__content' => array(
 			'type'   => 'richtext',
 			'label'  => __( 'Main text', 'groundwork-common-post-portal' ),
@@ -234,7 +236,8 @@ function gwcpp_get_schema(): array {
 function gwcpp_save_schema( array $schema ): bool {
 	$schema['version'] = GWCPP_SCHEMA_VERSION;
 
-	/* Not autoloaded, unlike gwcpp_settings.
+	/*
+	 * Not autoloaded, unlike gwcpp_settings.
 	 *
 	 * The settings option is small and is read on every front-end request, by
 	 * gwcpp_is_portal(); autoloading it is right. This one is the whole field
@@ -247,7 +250,8 @@ function gwcpp_save_schema( array $schema ): bool {
 	 * WordPress updates the autoload flag when the value is written, so an
 	 * install upgraded from an earlier version keeps the old flag until its
 	 * schema is next saved — which is the first time anybody touches the Fields
-	 * screen. Costing what it already cost until then is not worth a migration. */
+	 * screen. Costing what it already cost until then is not worth a migration.
+	 */
 	$saved = update_option( GWCPP_SCHEMA_OPTION, $schema, false );
 	gwcpp_reset_schema_cache();
 
@@ -445,11 +449,13 @@ function gwcpp_sanitize_field( array $raw ): ?array {
 		// A synthetic key names a post column and passes through as-is.
 		$field['key'] = $key;
 	} elseif ( gwcpp_type_is_taxonomy( $type ) ) {
-		/* Not a meta key at all — it is a taxonomy slug, so the meta-key rules
+		/*
+		 * Not a meta key at all — it is a taxonomy slug, so the meta-key rules
 		 * do not apply to it. Dashes in particular are ordinary in a taxonomy
 		 * slug and are exactly what gwcpp_sanitize_field_key() would replace,
 		 * turning `service-type` into `service_type` and pointing the field at
-		 * a taxonomy that does not exist. */
+		 * a taxonomy that does not exist.
+		 */
 		$field['key'] = sanitize_key( $key );
 	} else {
 		$field['key'] = gwcpp_sanitize_field_key( $key );
@@ -465,9 +471,11 @@ function gwcpp_sanitize_field( array $raw ): ?array {
 
 	$settings = isset( $raw['settings'] ) && is_array( $raw['settings'] ) ? $raw['settings'] : array();
 
-	/* The choice editor submits a textarea, not an options array. Parsing it
+	/*
+	 * The choice editor submits a textarea, not an options array. Parsing it
 	 * here rather than on the screen that rendered it means a field defined
-	 * through WP-CLI or a migration gets the same treatment as one typed in. */
+	 * through WP-CLI or a migration gets the same treatment as one typed in.
+	 */
 	if ( isset( $settings['options_raw'] ) ) {
 		$settings['options'] = gwcpp_parse_options( (string) $settings['options_raw'] );
 		unset( $settings['options_raw'] );
@@ -500,9 +508,11 @@ function gwcpp_sanitize_field_settings( array $raw ): array {
 		}
 	}
 
-	/* Multi-line, so sanitize_textarea_field rather than sanitize_text_field —
+	/*
+	 * Multi-line, so sanitize_textarea_field rather than sanitize_text_field —
 	 * the latter collapses newlines to spaces, which for a definition that is
-	 * one column per line means every column merging into the first. */
+	 * one column per line means every column merging into the first.
+	 */
 	if ( isset( $raw['subfields_raw'] ) && is_scalar( $raw['subfields_raw'] ) ) {
 		$value = sanitize_textarea_field( (string) $raw['subfields_raw'] );
 		if ( '' !== trim( $value ) ) {
@@ -525,10 +535,12 @@ function gwcpp_sanitize_field_settings( array $raw ): array {
 		}
 	}
 
-	/* min, max and step are kept as strings and allowed to be negative or
+	/*
+	 * min, max and step are kept as strings and allowed to be negative or
 	 * fractional, which (int) would silently destroy — a rating field with a
 	 * step of 0.5 is ordinary, and (int) '0.5' is 0, which is a step no browser
-	 * accepts. */
+	 * accepts.
+	 */
 	foreach ( array( 'min', 'max', 'step' ) as $key ) {
 		if ( isset( $raw[ $key ] ) && is_numeric( $raw[ $key ] ) ) {
 			$out[ $key ] = (string) ( $raw[ $key ] + 0 );
@@ -587,9 +599,11 @@ function gwcpp_put_field( string $post_type, array $field ): bool {
 		$entry['order'][] = $key;
 	}
 
-	/* Re-adding a key that was retired takes it off the retired list. Leaving
+	/*
+	 * Re-adding a key that was retired takes it off the retired list. Leaving
 	 * it on both would mean an export listing the same field twice, and the
-	 * retired copy is by definition the stale one. */
+	 * retired copy is by definition the stale one.
+	 */
 	$entry['retired'] = array_values(
 		array_filter(
 			$entry['retired'],
@@ -683,7 +697,8 @@ function gwcpp_set_field_order( string $post_type, array $order ): bool {
 	return gwcpp_save_schema( $schema );
 }
 
-/* ── Migrations ──────────────────────────────────────────────────────────────
+/*
+ * ── Migrations ──────────────────────────────────────────────────────────────
  * Run on `init` rather than on activation, because a schema written by a newer
  * version can arrive on a site by means other than an upgrade: a restored
  * backup, a staging sync, a multisite clone. Activation would never fire for
@@ -693,7 +708,8 @@ function gwcpp_set_field_order( string $post_type, array $order ): bool {
  * the stored version, in order, and writes the new version. Nothing here rolls
  * back, because a rollback of a data migration is a second migration and
  * pretending otherwise is how a half-applied one happens.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 add_action( 'init', 'gwcpp_maybe_migrate_schema', 5 );
 
 /**

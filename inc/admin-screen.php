@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── Hand-rolled rather than the Settings API ────────────────────────────────
+/*
+ * ── Hand-rolled rather than the Settings API ────────────────────────────────
  * The Settings API is the right tool for a flat bag of independent values, and
  * this is not one. Half the settings on this screen are a nested array keyed by
  * post type, whose keys are discovered at render time from what the site has
@@ -18,7 +19,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * So: admin_post_ handlers, an explicit capability check and an explicit nonce
  * as the first two lines of each, and Post/Redirect/Get with a message code.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** The Settings screen's tabs, in order. */
 const GWCPP_TABS = array( 'general', 'signin', 'appearance' );
@@ -57,9 +59,11 @@ function gwcpp_admin_menu(): void {
 		58
 	);
 
-	/* WordPress makes the first submenu item a duplicate of the parent, labelled
+	/*
+	 * WordPress makes the first submenu item a duplicate of the parent, labelled
 	 * with the parent's name. Re-adding it with the label we want replaces that
-	 * rather than adding a second row. */
+	 * rather than adding a second row.
+	 */
 	$settings = add_submenu_page(
 		GWCPP_MENU_SLUG,
 		__( 'Portal Settings', 'groundwork-common-post-portal' ),
@@ -78,9 +82,11 @@ function gwcpp_admin_menu(): void {
 		'gwcpp_fields_screen'
 	);
 
-	/* The count in the menu label, in core's own bubble markup. Without it the
+	/*
+	 * The count in the menu label, in core's own bubble markup. Without it the
 	 * queue is a screen somebody has to remember to visit, and a submission
-	 * waits until a partner emails to ask why nothing happened. */
+	 * waits until a partner emails to ask why nothing happened.
+	 */
 	$waiting = gwcpp_pending_count();
 	$label   = __( 'Pending Changes', 'groundwork-common-post-portal' );
 
@@ -318,10 +324,12 @@ function gwcpp_render_type_flags( string $post_type ): void {
 
 	echo '<fieldset class="gwcpp-type-flags">';
 
-	/* A hidden marker so the handler can tell "every box unticked" from "this
+	/*
+	 * A hidden marker so the handler can tell "every box unticked" from "this
 	 * post type's row was not on the form". Without it a submission from a
 	 * screen rendered before a post type existed would write every flag on that
-	 * type to false. */
+	 * type to false.
+	 */
 	printf(
 		'<input type="hidden" name="gwcpp_settings[types][%s][_present]" value="1" />',
 		esc_attr( $post_type )
@@ -403,9 +411,12 @@ function gwcpp_candidate_post_types(): array {
 		if ( in_array( $object->name, $excluded, true ) ) {
 			continue;
 		}
-		/* show_ui rather than public: a post type staff cannot see in wp-admin
+
+		/*
+		 * show_ui rather than public: a post type staff cannot see in wp-admin
 		 * is one nobody can moderate, and the approval queue depends on staff
-		 * being able to open the thing they are approving. */
+		 * being able to open the thing they are approving.
+		 */
 		if ( ! $object->show_ui ) {
 			continue;
 		}
@@ -511,7 +522,7 @@ function gwcpp_tab_appearance(): void {
 
 	foreach ( $fields as $key => $spec ) {
 		list( $label, $type ) = $spec;
-		$value = (string) gwcpp_setting( $key );
+		$value                = (string) gwcpp_setting( $key );
 
 		echo '<tr><th scope="row">';
 		printf( '<label for="gwcpp-%1$s">%2$s</label>', esc_attr( $key ), esc_html( $label ) );
@@ -583,7 +594,7 @@ function gwcpp_sanitize_settings( array $raw, array $stored, string $tab ): arra
 	$out = $stored;
 
 	if ( 'general' === $tab ) {
-		$types = isset( $raw['post_types'] ) && is_array( $raw['post_types'] ) ? $raw['post_types'] : array();
+		$types             = isset( $raw['post_types'] ) && is_array( $raw['post_types'] ) ? $raw['post_types'] : array();
 		$out['post_types'] = array_values(
 			array_filter( array_map( 'sanitize_key', $types ), 'post_type_exists' )
 		);
@@ -692,12 +703,14 @@ function gwcpp_admin_messages(): array {
 	);
 }
 
-/* ── The colophon ────────────────────────────────────────────────────────────
+/*
+ * ── The colophon ────────────────────────────────────────────────────────────
  * On this plugin's own screens only, collapsible but never dismissible, and
  * snoozed for thirty days by storing WHEN it was collapsed rather than a
  * boolean. A boolean cannot expire, and "never show this again" on a support
  * ask is a decision somebody makes in one impatient second and cannot revisit.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * True when the colophon should be folded away.
@@ -713,10 +726,12 @@ function gwcpp_colophon_snoozed( int $collapsed_at, int $now ): bool {
 		return false;
 	}
 
-	/* A timestamp in the future means a clock changed, a database was moved
+	/*
+	 * A timestamp in the future means a clock changed, a database was moved
 	 * between servers, or somebody edited the row. Treating it as "snoozed
 	 * until then" could hide the panel for years, so an impossible value snoozes
-	 * for nothing. */
+	 * for nothing.
+	 */
 	if ( $collapsed_at > $now ) {
 		return false;
 	}

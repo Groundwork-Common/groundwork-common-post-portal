@@ -19,7 +19,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── What this plugin refuses to know ────────────────────────────────────────
+/*
+ * ── What this plugin refuses to know ────────────────────────────────────────
  * This grew out of a portal built for a diaper bank, where partner sites edited
  * their own listing from the front end. It worked, and it was unusable anywhere
  * else: one hardcoded post type, a field list copy-pasted across five functions
@@ -37,7 +38,8 @@ defined( 'ABSPATH' ) || exit;
  * through it. A registry of pluggable access strategies would be more elegant
  * and would mean the answer to that question lives in more than one place,
  * which is the one property an authorization check must never have.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 const GWCPP_VERSION        = '0.3.1';
 const GWCPP_SCHEMA_VERSION = 1;
@@ -49,7 +51,8 @@ const GWCPP_SCHEMA_VERSION = 1;
  */
 const GWCPP_SPONSOR_URL = 'https://www.groundworkcommon.com/support/';
 
-/* The company site. Named once because the colophon links it from three
+/*
+ * The company site. Named once because the colophon links it from three
  * places — the wordmark, the company name in the opening line, and the
  * "See what we do" link — and two of those agreeing while the third drifts
  * is the kind of thing nobody notices for a year.
@@ -57,14 +60,16 @@ const GWCPP_SPONSOR_URL = 'https://www.groundworkcommon.com/support/';
  * The Author URI in the header above is the fourth, and it had in fact drifted:
  * it was the bare domain with no www and no trailing slash while these two were
  * not. Exactly the failure this comment describes, in the one place the comment
- * could not reach. */
+ * could not reach.
+ */
 const GWCPP_GWC_URL = 'https://www.groundworkcommon.com/';
 
 define( 'GWCPP_FILE', __FILE__ );
 define( 'GWCPP_DIR', plugin_dir_path( __FILE__ ) );
 define( 'GWCPP_URL', plugin_dir_url( __FILE__ ) );
 
-/* ── Guarded requires ────────────────────────────────────────────────────────
+/*
+ * ── Guarded requires ────────────────────────────────────────────────────────
  * Each guard names a function the file declares. This costs one function_exists
  * per file and buys immunity to the double-load that happens when a plugin is
  * activated while an older copy is still on the include path — during the
@@ -84,7 +89,8 @@ define( 'GWCPP_URL', plugin_dir_url( __FILE__ ) );
  * so the saving is a few microseconds of include, and the cost is a class of bug
  * where a function exists on the screen you tested and is fatally undefined
  * under `wp eval`. That trade is not close.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 if ( ! function_exists( 'gwcpp_status_labels' ) ) {
 	require GWCPP_DIR . 'inc/i18n.php';
 }
@@ -95,10 +101,12 @@ if ( ! function_exists( 'gwcpp_field_types' ) ) {
 	require GWCPP_DIR . 'inc/field-types.php';
 }
 
-/* The richer types, each of which registers itself onto the filter in
+/*
+ * The richer types, each of which registers itself onto the filter in
  * field-types.php. They must be loaded before anything CALLS that registry —
  * which is every render and every save — but the registration itself is lazy,
- * so their order among themselves does not matter. */
+ * so their order among themselves does not matter.
+ */
 if ( ! function_exists( 'gwcpp_register_taxonomy_type' ) ) {
 	require GWCPP_DIR . 'inc/field-taxonomy.php';
 }
@@ -177,12 +185,15 @@ if ( ! function_exists( 'gwcpp_fields_screen' ) ) {
 	// Review state where staff look for it: the post list and the post itself.
 	require GWCPP_DIR . 'inc/admin-review.php';
 
-	/* Contextual help for the settings screens. Loaded after both because it
-	 * describes what they do. */
+	/*
+	 * Contextual help for the settings screens. Loaded after both because it
+	 * describes what they do.
+	 */
 	require GWCPP_DIR . 'inc/admin-help.php';
 }
 
-/* ── Activation and deactivation ─────────────────────────────────────────────
+/*
+ * ── Activation and deactivation ─────────────────────────────────────────────
  * There is deliberately no flush_rewrite_rules() in either, and no deferred
  * flush either. There used to be both, on the reasoning that the org post type
  * is registered after the activating request's `init` has already fired, so a
@@ -209,7 +220,8 @@ if ( ! function_exists( 'gwcpp_fields_screen' ) ) {
  * access. Deactivating is not uninstalling, and a plugin that locks out every
  * partner when you toggle it off to test something is a plugin nobody dares
  * toggle.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 register_deactivation_hook( __FILE__, 'gwcpp_deactivate' );
 
 /**

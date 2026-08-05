@@ -52,7 +52,8 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 function gwcpp_uninstall_site() {
 	global $wpdb;
 
-	/* Sign-in and handoff tokens are transients under a hashed key, so there is
+	/*
+	 * Sign-in and handoff tokens are transients under a hashed key, so there is
 	 * no way to name them individually — they have to be matched by prefix. A
 	 * direct query is the only way to do that, and it runs exactly once in the
 	 * life of an install.
@@ -60,7 +61,8 @@ function gwcpp_uninstall_site() {
 	 * On a site with an external object cache the transients may not be in this
 	 * table at all, in which case this deletes nothing and the tokens expire on
 	 * their own within fifteen minutes. That is an acceptable floor: the failure
-	 * mode is a token that was already going to expire expiring on schedule. */
+	 * mode is a token that was already going to expire expiring on schedule.
+	 */
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- One-time uninstall cleanup of prefix-matched transients; no caching layer applies and there is no API for wildcard transient deletion.
 	$wpdb->query(
 		$wpdb->prepare(
@@ -70,14 +72,16 @@ function gwcpp_uninstall_site() {
 		)
 	);
 
-	/* The bookkeeping options. None of these holds anything a site owner would
+	/*
+	 * The bookkeeping options. None of these holds anything a site owner would
 	 * miss, and every one of them is meaningless the moment the code that reads
 	 * it is gone.
 	 *
 	 * gwcpp_needs_rewrite_flush is no longer written by anything — the flush it
 	 * scheduled turned out to be a no-op, see the note in the main plugin file —
 	 * but installs upgraded from an earlier version still have the row, so it
-	 * stays on this list. */
+	 * stays on this list.
+	 */
 	foreach ( array(
 		'gwcpp_rate_limits',
 		'gwcpp_review_last_run',
@@ -89,13 +93,15 @@ function gwcpp_uninstall_site() {
 
 	delete_transient( 'gwcpp_pending_count' );
 
-	/* Two rows of interface state per user: when they last signed in, and
+	/*
+	 * Two rows of interface state per user: when they last signed in, and
 	 * whether they have collapsed the colophon. Deleted with the site-wide
 	 * helper rather than by iterating users, which on a large site would be a
 	 * query per account to remove something nobody will ever look at.
 	 *
 	 * Not covered by the destructive flag: these are not anybody's data, they
-	 * are this plugin's notes about its own screens. */
+	 * are this plugin's notes about its own screens.
+	 */
 	// Named as literals because uninstall.php runs standalone: the plugin's own
 	// files are never loaded here, so its constants do not exist.
 	foreach ( array( 'gwcpp_last_login', 'gwcpp_colophon_collapsed_at' ) as $gwcpp_user_meta ) {
@@ -111,12 +117,14 @@ function gwcpp_uninstall_site() {
 	delete_option( 'gwcpp_allow_destructive_uninstall' );
 }
 
-/* Multisite: options and transients are per site, so cleaning only the current
+/*
+ * Multisite: options and transients are per site, so cleaning only the current
  * one leaves every other site in the network holding rows nothing can read.
  * Bounded by a batch — a network with thousands of sites should not have its
  * uninstall time out halfway through, leaving the job part-done with no record
  * of where it stopped. The cap is generous enough that no realistic network
- * reaches it, and the failure mode if one does is leftover rows, not damage. */
+ * reaches it, and the failure mode if one does is leftover rows, not damage.
+ */
 if ( is_multisite() ) {
 	$gwcpp_sites = get_sites(
 		array(

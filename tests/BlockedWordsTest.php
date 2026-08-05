@@ -21,7 +21,8 @@ final class BlockedWordsTest extends TestCase {
 		 * puts the submitted post ID through gwcpp_user_can_edit_post() before
 		 * comparing against stored values, so a test that skipped this would be
 		 * testing the "cannot see the post, screen everything" path while
-		 * claiming to test the grandfathering rule. */
+		 * claiming to test the grandfathering rule.
+		 */
 		gwcpp_test_user( self::USER );
 		$GLOBALS['gwcpp_test']['current_user'] = self::USER;
 		gwcpp_add_post_editor( self::USER, self::POST );
@@ -107,7 +108,8 @@ final class BlockedWordsTest extends TestCase {
 
 	public function test_a_word_that_merely_contains_one_is_not_caught(): void {
 		/* The failure people actually notice. An unanchored str_contains blocks
-		 * "scampi" on a restaurant listing, and nobody can work out why. */
+		 * "scampi" on a restaurant listing, and nobody can work out why.
+		 */
 		$this->assertSame( '', gwcpp_blocked_word_in( 'we serve scampi on Fridays' ) );
 		$this->assertSame( '', gwcpp_blocked_word_in( 'Scandinavian food' ) );
 		$this->assertSame( '', gwcpp_blocked_word_in( 'a cheeky scamp' ) );
@@ -152,7 +154,8 @@ final class BlockedWordsTest extends TestCase {
 		/* The case the original portal hit: an organisation whose real name
 		 * matched a word somebody added to the list later. Without this rule
 		 * the owner cannot save a phone-number change, and the message blames
-		 * them for a field they never touched. */
+		 * them for a field they never touched.
+		 */
 		update_post_meta( self::POST, 'blurb', 'The Scam Prevention Trust' );
 		$_POST['gwcpp_post_id'] = self::POST;
 

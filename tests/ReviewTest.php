@@ -305,7 +305,8 @@ final class ReviewTest extends TestCase {
 	 * catch-up — and both can read gwcpp_review_last_run before either writes
 	 * it. Without a lock that is two walks over the same entries, each deciding
 	 * the same owners are due, each sending them the same email.
-	 * ─────────────────────────────────────────────────────────────────────── */
+	 * ───────────────────────────────────────────────────────────────────────
+	 */
 
 	public function test_the_first_run_takes_the_lock(): void {
 		$this->assertTrue( gwcpp_review_claim_lock() );

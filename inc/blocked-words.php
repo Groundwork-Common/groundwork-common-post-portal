@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── What this is and is not ─────────────────────────────────────────────────
+/*
+ * ── What this is and is not ─────────────────────────────────────────────────
  * It is a configurable list of words that stop a submission and tell the person
  * why, so a directory of family services does not publish something nobody
  * meant to send. It exists because the approval queue is not always on, and
@@ -34,7 +35,8 @@ defined( 'ABSPATH' ) || exit;
  * whose real name matched a blocked word.
  *
  * Screening what changed is the only version of this that a person can act on.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * The site's blocked words.
@@ -48,10 +50,12 @@ function gwcpp_blocked_words(): array {
 	foreach ( preg_split( '/[\r\n,]+/', $raw ) as $word ) {
 		$word = trim( (string) $word );
 
-		/* Anything under three characters is dropped. A two-letter entry
+		/*
+		 * Anything under three characters is dropped. A two-letter entry
 		 * matches inside far more than anybody intends even with word
 		 * boundaries, and the one time somebody adds "hi" to a list the whole
-		 * directory stops saving. */
+		 * directory stops saving.
+		 */
 		if ( mb_strlen( $word ) < 3 ) {
 			continue;
 		}
@@ -132,9 +136,11 @@ function gwcpp_blocked_word_pattern( string $word ): string {
 	return '/\b' . preg_quote( $word, '/' ) . '(?:' . $double . '(?:s|es|ed|ing|er|ers))?\b/iu';
 }
 
-/* Screening runs as part of validation, on the filter every other check goes
+/*
+ * Screening runs as part of validation, on the filter every other check goes
  * through, so a blocked word is reported beside its own field exactly like a
- * bad phone number rather than as a separate kind of failure. */
+ * bad phone number rather than as a separate kind of failure.
+ */
 add_filter( 'gwcpp_validation_errors', 'gwcpp_screen_submission', 20, 3 );
 
 /**

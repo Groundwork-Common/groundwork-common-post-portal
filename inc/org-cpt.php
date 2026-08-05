@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── Why an organisation is a post type ──────────────────────────────────────
+/*
+ * ── Why an organisation is a post type ──────────────────────────────────────
  * The alternative considered was a private taxonomy, which is lighter and is
  * what "group some posts together" usually wants. It was rejected because an
  * organisation is not a label, it is a record: it has a contact address, it has
@@ -20,15 +21,18 @@ defined( 'ABSPATH' ) || exit;
  * check. Both are cheap. The benefit is that Phase 2's approval queue and
  * Phase 3's review reminders have somewhere to hang per-organisation state
  * without inventing a second home for it.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 const GWCPP_ORG_TYPE = 'gwcpp_org';
 
 /** The plugin's top-level admin menu. Named here because the org post type is
- *  the first thing that has to sit under it. */
+ *  the first thing that has to sit under it.
+ */
 const GWCPP_MENU_SLUG = 'gwcpp-portal';
 
-/* ── The three meta keys the access model runs on ─────────────────────────────
+/*
+ * ── The three meta keys the access model runs on ─────────────────────────────
  * All three are REPEATING meta rows holding one integer each, never a
  * serialized array, and that shape is the whole reason the access check can be
  * a query rather than a scan.
@@ -41,7 +45,8 @@ const GWCPP_MENU_SLUG = 'gwcpp-portal';
  *
  * One row per relationship is indexed, exactly matched, and lets WP_Query do
  * the work.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** Post meta, single: the organisation that owns this post. */
 const GWCPP_POST_ORG_META = '_gwcpp_org';
@@ -73,26 +78,26 @@ function gwcpp_register_org_type(): void {
 	);
 
 	$args = array(
-		'labels'          => $labels,
-		/* Not public, and every one of these follows from that rather than
-		 * being an independent choice. An organisation record holds a contact
-		 * person's email; it has no front-end page, no archive, no feed, and no
-		 * business being in search results or in the REST API's public
-		 * responses. */
-		'public'          => false,
-		'publicly_queryable' => false,
+		'labels'              => $labels,
+		// Not public, and every one of these follows from that rather than
+		// being an independent choice. An organisation record holds a contact
+		// person's email; it has no front-end page, no archive, no feed, and no
+		// business being in search results or in the REST API's public
+		// responses.
+		'public'              => false,
+		'publicly_queryable'  => false,
 		'exclude_from_search' => true,
-		'show_ui'         => true,
-		'show_in_menu'    => GWCPP_MENU_SLUG,
-		'show_in_rest'    => false,
-		'has_archive'     => false,
-		'rewrite'         => false,
-		'query_var'       => false,
-		'hierarchical'    => false,
-		'supports'        => array( 'title' ),
-		'capability_type' => 'post',
-		'map_meta_cap'    => true,
-		'menu_icon'       => 'dashicons-groups',
+		'show_ui'             => true,
+		'show_in_menu'        => GWCPP_MENU_SLUG,
+		'show_in_rest'        => false,
+		'has_archive'         => false,
+		'rewrite'             => false,
+		'query_var'           => false,
+		'hierarchical'        => false,
+		'supports'            => array( 'title' ),
+		'capability_type'     => 'post',
+		'map_meta_cap'        => true,
+		'menu_icon'           => 'dashicons-groups',
 	);
 
 	/**
@@ -114,10 +119,12 @@ function gwcpp_register_org_type(): void {
 function gwcpp_post_org( int $post_id ): int {
 	$org = (int) get_post_meta( $post_id, GWCPP_POST_ORG_META, true );
 
-	/* An organisation that was deleted leaves its ID behind on every post that
+	/*
+	 * An organisation that was deleted leaves its ID behind on every post that
 	 * pointed at it. Returning it would let a user who is still a member of the
 	 * dead organisation's ID edit those posts, which is access granted by a
-	 * dangling reference. Checked here, once, rather than at each call site. */
+	 * dangling reference. Checked here, once, rather than at each call site.
+	 */
 	if ( $org > 0 && GWCPP_ORG_TYPE !== get_post_type( $org ) ) {
 		return 0;
 	}
@@ -300,7 +307,7 @@ function gwcpp_all_orgs(): array {
 		array(
 			'post_type'        => GWCPP_ORG_TYPE,
 			'post_status'      => array( 'publish', 'draft', 'private' ),
-			'numberposts'      => 500,
+			'numberposts'      => 500, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_numberposts -- Bounded on purpose. An organisation with more entries than this is past what this screen is for, and an unbounded query would be worse.
 			'orderby'          => 'title',
 			'order'            => 'ASC',
 			'suppress_filters' => false,

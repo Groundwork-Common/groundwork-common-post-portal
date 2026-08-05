@@ -8,13 +8,15 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* User meta, single: when this account last signed in, for the People table.
+/*
+ * User meta, single: when this account last signed in, for the People table.
  *
  * Named here rather than written as a literal in the two places that use it,
  * like every other meta key in the plugin. Deliberately without the leading
  * underscore the post meta keys carry: that convention marks meta as protected
  * from the post editor's Custom Fields panel, which is a post-meta concept and
- * does nothing on a user. */
+ * does nothing on a user.
+ */
 const GWCPP_LAST_LOGIN_META = 'gwcpp_last_login';
 
 add_action( 'add_meta_boxes', 'gwcpp_add_meta_boxes' );
@@ -79,10 +81,12 @@ function gwcpp_render_access_meta_box( WP_Post $post ): void {
 	} else {
 		$current = gwcpp_post_org( $post->ID );
 
-		/* Read-only for anybody who cannot save it — see gwcpp_can_assign_org().
+		/*
+		 * Read-only for anybody who cannot save it — see gwcpp_can_assign_org().
 		 * Shown rather than hidden, because which organisation owns a post is
 		 * worth knowing even to somebody who may not change it, and a box that
-		 * simply disappears reads as a bug. */
+		 * simply disappears reads as a bug.
+		 */
 		if ( ! gwcpp_can_assign_org() ) {
 			$org_post = $current > 0 ? get_post( $current ) : null;
 
@@ -223,10 +227,12 @@ function gwcpp_render_members_meta_box( WP_Post $post ): void {
 		echo '</tbody></table>';
 	}
 
-	/* A separate form posting to admin-post.php, not fields inside the post
+	/*
+	 * A separate form posting to admin-post.php, not fields inside the post
 	 * edit form. Inviting somebody creates a user account and sends an email —
 	 * that must happen when the button marked Invite is pressed, not as a side
-	 * effect of pressing Update with something left in a box. */
+	 * effect of pressing Update with something left in a box.
+	 */
 	echo '<form class="gwcpp-invite" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 	wp_nonce_field( 'gwcpp_invite_' . $post->ID );
 	echo '<input type="hidden" name="action" value="gwcpp_invite" />';
@@ -286,7 +292,7 @@ function gwcpp_render_org_posts_meta_box( WP_Post $post ): void {
 		array(
 			'post_type'              => $types,
 			'post_status'            => array( 'publish', 'draft', 'pending', 'private', 'future' ),
-			'posts_per_page'         => 200,
+			'posts_per_page'         => 200, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- A deliberate ceiling on an admin meta box listing one organisation's posts; the alternative is an unbounded query on a screen nobody paginates.
 			'no_found_rows'          => true,
 			'update_post_meta_cache' => false,
 			'update_post_term_cache' => false,
@@ -356,11 +362,13 @@ function gwcpp_save_access_meta( $post_id, $post ): void {
 		return;
 	}
 
-	/* Absent means "the form did not offer this", not "clear it". Anybody who
+	/*
+	 * Absent means "the form did not offer this", not "clear it". Anybody who
 	 * gets this far can see the selector, so in practice the two are the same —
 	 * but writing 0 on a missing field is how a post quietly loses its
 	 * organisation the first time some other plugin posts to this screen, and
-	 * that failure is silent and hard to trace back. */
+	 * that failure is silent and hard to trace back.
+	 */
 	if ( ! isset( $_POST['gwcpp_org'] ) ) {
 		return;
 	}
@@ -430,7 +438,7 @@ function gwcpp_handle_remove_member(): void {
 	gwcpp_require_admin_caps();
 
 	// phpcs:ignore WordPress.Security.NonceVerification -- Verified immediately below against these same values.
-	$org_id  = isset( $_GET['org'] ) ? (int) $_GET['org'] : 0;
+	$org_id = isset( $_GET['org'] ) ? (int) $_GET['org'] : 0;
 	// phpcs:ignore WordPress.Security.NonceVerification -- As above.
 	$user_id = isset( $_GET['user'] ) ? (int) $_GET['user'] : 0;
 
@@ -476,9 +484,11 @@ function gwcpp_org_redirect( int $org_id, string $code ): void {
 	exit;
 }
 
-/* Record when somebody signed in, so the Members table can say. Cheap, and it
+/*
+ * Record when somebody signed in, so the Members table can say. Cheap, and it
  * is the first question staff ask about a partner who says the portal is not
- * working: have they ever actually got in. */
+ * working: have they ever actually got in.
+ */
 add_action(
 	'wp_login',
 	static function ( $login, $user ): void {
@@ -491,9 +501,11 @@ add_action(
 	2
 );
 
-/* The message codes shown on the organisation and post edit screens. Admin
+/*
+ * The message codes shown on the organisation and post edit screens. Admin
  * notices there are core's, not ours, so this hooks the generic notice action
- * rather than being printed by a screen we render. */
+ * rather than being printed by a screen we render.
+ */
 add_action(
 	'admin_notices',
 	static function (): void {

@@ -8,13 +8,15 @@
 defined( 'ABSPATH' ) || exit;
 
 /** How long a sign-in link works for. Short, because it is single-use and
- *  requesting another is one click. */
+ *  requesting another is one click.
+ */
 const GWCPP_TOKEN_TTL = 900;
 
 /** The floor every sign-in request is padded to, in microseconds. */
 const GWCPP_CONSTANT_TIME_FLOOR = 150000;
 
-/* ── The portal page, and why its ID is pinned ───────────────────────────────
+/*
+ * ── The portal page, and why its ID is pinned ───────────────────────────────
  * The page is found once by whatever the settings name, and the resolved ID is
  * written back into the settings. After that the ID is what everything uses.
  *
@@ -24,7 +26,8 @@ const GWCPP_CONSTANT_TIME_FLOOR = 150000;
  * silently breaks every link in every inbox at once, with no error anywhere and
  * no way for the person holding the link to know why it now shows a 404.
  * Pinning the ID means the URL follows the page.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * The portal page's ID, or 0 when none is configured.
@@ -197,9 +200,11 @@ function gwcpp_consume_token( string $token, string $purpose = 'signin' ): int {
 		return 0;
 	}
 
-	/* Re-checked here rather than trusted from the token. A link minted three
+	/*
+	 * Re-checked here rather than trusted from the token. A link minted three
 	 * days ago names a user who may since have had their role changed or their
-	 * access revoked, and the token itself cannot know that. */
+	 * access revoked, and the token itself cannot know that.
+	 */
 	if ( ! gwcpp_user_is_portal_user( $user_id ) ) {
 		return 0;
 	}
@@ -207,16 +212,19 @@ function gwcpp_consume_token( string $token, string $purpose = 'signin' ): int {
 	wp_set_auth_cookie( $user_id, false );
 	wp_set_current_user( $user_id );
 
-	/* wp_set_auth_cookie does not fire wp_login — that is wp_signon's job — and
+	/*
+	 * wp_set_auth_cookie does not fire wp_login — that is wp_signon's job — and
 	 * plenty of things listen for it: security logs, last-seen timestamps,
 	 * two-factor plugins. Firing it manually keeps a magic-link sign-in
-	 * indistinguishable from any other, which is what those listeners assume. */
+	 * indistinguishable from any other, which is what those listeners assume.
+	 */
 	do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core's own hook, fired on purpose: see the note above.
 
 	return $user_id;
 }
 
-/* ── Durable tokens ──────────────────────────────────────────────────────────
+/*
+ * ── Durable tokens ──────────────────────────────────────────────────────────
  * Sign-in links live in a transient for fifteen minutes, which is right: they
  * are minted on demand and requesting another costs nothing.
  *
@@ -232,7 +240,8 @@ function gwcpp_consume_token( string $token, string $purpose = 'signin' ): int {
  * So these live in user meta, where nothing sweeps them but us, and they carry
  * their own expiry because that means we have to sweep them ourselves — which
  * the daily review run does.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** User meta, single: durable tokens, keyed by hash. */
 const GWCPP_TOKENS_META = '_gwcpp_tokens';
@@ -254,16 +263,20 @@ function gwcpp_mint_durable_token( int $user_id, string $purpose = 'review', int
 	$stored = get_user_meta( $user_id, GWCPP_TOKENS_META, true );
 	$stored = is_array( $stored ) ? $stored : array();
 
-	/* Only the hash is kept, exactly as with the transient tokens: read access
-	 * to the database should yield hashes rather than working links. */
+	/*
+	 * Only the hash is kept, exactly as with the transient tokens: read access
+	 * to the database should yield hashes rather than working links.
+	 */
 	$stored[ hash( 'sha256', $token ) ] = array(
 		'purpose' => $purpose,
 		'expires' => time() + max( MINUTE_IN_SECONDS, $ttl ),
 	);
 
-	/* Bounded per user. A partner who is reminded about four entries every week
+	/*
+	 * Bounded per user. A partner who is reminded about four entries every week
 	 * for a year would otherwise accumulate a meta row nobody ever looks at,
-	 * and the oldest are the ones already expired. */
+	 * and the oldest are the ones already expired.
+	 */
 	if ( count( $stored ) > 20 ) {
 		uasort(
 			$stored,
@@ -293,17 +306,19 @@ function gwcpp_consume_durable_token( string $token, string $purpose = 'review' 
 
 	$hash = hash( 'sha256', $token );
 
-	/* The token does not name its user, so the user has to be found by it. A
+	/*
+	 * The token does not name its user, so the user has to be found by it. A
 	 * meta_query on the serialized array is the only way, and it is a LIKE — but
 	 * on a 64-character hex hash, which cannot collide with anything and cannot
-	 * be a prefix of another hash. */
+	 * be a prefix of another hash.
+	 */
 	$users = get_users(
 		array(
-			'number'     => 2,
-			'meta_key'   => GWCPP_TOKENS_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- The token does not carry its user; a hash lookup is the only route.
-			'meta_value' => $hash,             // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- As above.
+			'number'       => 2,
+			'meta_key'     => GWCPP_TOKENS_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- The token does not carry its user; a hash lookup is the only route.
+			'meta_value'   => $hash,             // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- As above.
 			'meta_compare' => 'LIKE',
-			'fields'     => 'ID',
+			'fields'       => 'ID',
 		)
 	);
 
@@ -354,10 +369,10 @@ function gwcpp_consume_durable_token( string $token, string $purpose = 'review' 
 function gwcpp_purge_expired_durable_tokens(): int {
 	$users = get_users(
 		array(
-			'number'     => 500,
-			'meta_key'   => GWCPP_TOKENS_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- EXISTS on an indexed key, in cron.
+			'number'       => 500,
+			'meta_key'     => GWCPP_TOKENS_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- EXISTS on an indexed key, in cron.
 			'meta_compare' => 'EXISTS',
-			'fields'     => 'ID',
+			'fields'       => 'ID',
 		)
 	);
 
@@ -393,7 +408,8 @@ function gwcpp_purge_expired_durable_tokens(): int {
 	return $dropped;
 }
 
-/* ── Rate limiting ───────────────────────────────────────────────────────────
+/*
+ * ── Rate limiting ───────────────────────────────────────────────────────────
  * Three fixed windows in one non-autoloaded option: by address, by email, and
  * site-wide.
  *
@@ -409,7 +425,8 @@ function gwcpp_purge_expired_durable_tokens(): int {
  * itself is never stored. The option is world-readable to anything with
  * database access, and a list of every address that ever tried to sign in is a
  * list worth not keeping.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * The three windows: attempts allowed, and the period in seconds.
@@ -617,8 +634,10 @@ function gwcpp_rate_limit_hit( string $purpose, string $subject, array $limits )
 		'global' => 'all',
 	);
 
-	/* The sign-in windows have always called their per-subject scope `email`,
-	 * and that name is in a documented filter. Kept rather than renamed. */
+	/*
+	 * The sign-in windows have always called their per-subject scope `email`,
+	 * and that name is in a documented filter. Kept rather than renamed.
+	 */
 	if ( 'signin' === $purpose ) {
 		$keys = array(
 			'ip'     => $keys['ip'],
@@ -706,19 +725,23 @@ function gwcpp_prune_rate_state( array $state, array $limits, int $now ): array 
 			}
 		}
 
-		/* A hard ceiling as well as an expiry. Pruning by age alone still lets
+		/*
+		 * A hard ceiling as well as an expiry. Pruning by age alone still lets
 		 * a burst inside one window put a hundred thousand rows in one option,
 		 * and that option is read on every sign-in attempt. Dropping the whole
 		 * scope is the right failure: it resets counters, which is worse than
-		 * keeping them and far better than an option too large to load. */
+		 * keeping them and far better than an option too large to load.
+		 */
 		if ( isset( $state[ $scope ] ) && count( $state[ $scope ] ) > 5000 ) {
 			$state[ $scope ] = array();
 		}
 
-		/* And a scope with nothing left in it goes too, rather than sitting
+		/*
+		 * And a scope with nothing left in it goes too, rather than sitting
 		 * there as an empty array forever. Mostly tidiness — but it is also what
 		 * clears the counters written by the older unprefixed scope names, which
-		 * are otherwise emptied on the first prune and then kept for good. */
+		 * are otherwise emptied on the first prune and then kept for good.
+		 */
 		if ( empty( $state[ $scope ] ) ) {
 			unset( $state[ $scope ] );
 		}
@@ -802,9 +825,11 @@ function gwcpp_handle_link_request(): void {
 		gwcpp_bail( gwcpp_portal_url(), gwcpp_stale_form_message() );
 	}
 
-	/* A hidden field a person never sees and a bot fills in. Cheap, silent, and
+	/*
+	 * A hidden field a person never sees and a bot fills in. Cheap, silent, and
 	 * it catches the overwhelming majority of automated submissions without
-	 * asking a human to prove anything. */
+	 * asking a human to prove anything.
+	 */
 	$honeypot = isset( $_POST['gwcpp_website'] ) ? trim( (string) wp_unslash( $_POST['gwcpp_website'] ) ) : '';
 
 	$email = isset( $_POST['gwcpp_email'] )
@@ -818,9 +843,11 @@ function gwcpp_handle_link_request(): void {
 	$user = $send ? get_user_by( 'email', $email ) : false;
 	$send = $send && $user instanceof WP_User && gwcpp_user_is_portal_user( $user->ID );
 
-	/* The same words whether or not an account was found, whether or not the
+	/*
+	 * The same words whether or not an account was found, whether or not the
 	 * honeypot caught it, and whether or not the rate limiter refused. Every
-	 * one of those is information about somebody else's account. */
+	 * one of those is information about somebody else's account.
+	 */
 	$message = __( 'If that address has portal access, a sign-in link is on its way. It works once and expires in fifteen minutes.', 'groundwork-common-post-portal' );
 
 	gwcpp_flush_response( gwcpp_flash_url( gwcpp_portal_url(), 'ok', $message ), $start );
@@ -895,11 +922,13 @@ function gwcpp_send_magic_link( WP_User $user ): bool {
 function gwcpp_handle_magic_link(): void {
 	$token = isset( $_GET['gwcpp_token'] ) ? sanitize_text_field( wp_unslash( $_GET['gwcpp_token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A single-use token in the URL is the authentication here; the recipient has no session yet, so there is no nonce to check.
 
-	/* Automated fetches are refused before the token is spent. A mail client
+	/*
+	 * Automated fetches are refused before the token is spent. A mail client
 	 * that prefetches links, a scanner in a corporate gateway, or a chat app
 	 * generating a preview would otherwise burn a single-use link before the
 	 * person ever clicked it — and the symptom is "the link says it expired the
-	 * moment I opened it", which is unreportable and impossible to reproduce. */
+	 * moment I opened it", which is unreportable and impossible to reproduce.
+	 */
 	if ( gwcpp_request_is_automated() ) {
 		return;
 	}
@@ -974,13 +1003,15 @@ function gwcpp_handle_password_login(): void {
 
 	$login = isset( $_POST['gwcpp_user'] ) ? sanitize_user( wp_unslash( $_POST['gwcpp_user'] ) ) : '';
 
-	/* Counted before the attempt, and only for a submission that named
+	/*
+	 * Counted before the attempt, and only for a submission that named
 	 * somebody — an empty username can never authenticate, so counting it would
 	 * let a passer-by spend the windows without guessing anything.
 	 *
 	 * A refusal is reported with the same words and the same timing as a wrong
 	 * password. Saying "too many attempts" would confirm the username is worth
-	 * attacking, which is the one thing this form must not tell anybody. */
+	 * attacking, which is the one thing this form must not tell anybody.
+	 */
 	$refuse = '' === $login || gwcpp_login_rate_limited( $login );
 
 	$user = $refuse
@@ -999,14 +1030,16 @@ function gwcpp_handle_password_login(): void {
 		);
 
 	if ( is_wp_error( $user ) ) {
-		/* One message for every failure. WordPress's own errors distinguish
+		/*
+		 * One message for every failure. WordPress's own errors distinguish
 		 * "unknown username" from "incorrect password", which on a portal is an
 		 * account-existence oracle for the same reason the link form is.
 		 *
 		 * Flushed through the same constant-time floor as the link form, so
 		 * that a refusal — which does no password hashing at all and would
 		 * otherwise return conspicuously fast — is not distinguishable from a
-		 * real check. */
+		 * real check.
+		 */
 		gwcpp_flush_response(
 			gwcpp_flash_url(
 				gwcpp_portal_url(),
@@ -1045,7 +1078,8 @@ function gwcpp_handle_logout(): void {
 	exit;
 }
 
-/* ── Flash messages ──────────────────────────────────────────────────────────
+/*
+ * ── Flash messages ──────────────────────────────────────────────────────────
  * A message survives a redirect as a one-use transient named by a random key,
  * and the URL carries only the key.
  *
@@ -1058,7 +1092,8 @@ function gwcpp_handle_logout(): void {
  *
  * A key that indexes server-side text cannot be forged into new text, and
  * deleting on read means it shows once.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * Store a flash message and return the URL that will show it.

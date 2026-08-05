@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── Why POSTs are dispatched from template_redirect ─────────────────────────
+/*
+ * ── Why POSTs are dispatched from template_redirect ─────────────────────────
  * The obvious homes for a form handler are admin-post.php and admin-ajax.php.
  * Both live under /wp-admin/, and /wp-admin/ is exactly what the portal role is
  * redirected away from by gwcpp_block_admin_access(). Using either would mean
@@ -18,7 +19,8 @@ defined( 'ABSPATH' ) || exit;
  * before anything is rendered, which is precisely when a handler wants to run:
  * late enough to know which page this is, early enough to redirect without
  * headers already sent.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 add_action( 'template_redirect', 'gwcpp_dispatch' );
 
@@ -32,9 +34,11 @@ function gwcpp_dispatch(): void {
 
 	gwcpp_send_no_cache_headers();
 
-	/* Same reasoning as the POST block below: this only chooses which handler
+	/*
+	 * Same reasoning as the POST block below: this only chooses which handler
 	 * runs. Each token link authenticates with its own single-use token, and
-	 * whoever follows one has no session to mint a nonce against. */
+	 * whoever follows one has no session to mint a nonce against.
+	 */
 	// phpcs:disable WordPress.Security.NonceVerification.Recommended
 	$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
 
@@ -48,10 +52,12 @@ function gwcpp_dispatch(): void {
 		return;
 	}
 
-	/* Handoff acceptance is deliberately handled before the POST branch and
+	/*
+	 * Handoff acceptance is deliberately handled before the POST branch and
 	 * outside every signed-in check below: whoever accepts a handoff is a
 	 * different person from whoever sent it, and usually has no account at all
-	 * until this runs. */
+	 * until this runs.
+	 */
 	if ( 'GET' === $method && isset( $_GET['gwcpp_handoff_token'] ) ) {
 		gwcpp_handle_handoff_link();
 		return;
@@ -62,12 +68,14 @@ function gwcpp_dispatch(): void {
 		return;
 	}
 
-	/* Branching on the submit button's name rather than on a hidden action
+	/*
+	 * Branching on the submit button's name rather than on a hidden action
 	 * field. A hidden field can be edited to name any handler while the nonce
 	 * still matches the form it came from; a submit button's name is only sent
 	 * when that button is the one that submitted the form. It is not a security
 	 * boundary — the guards below are — but it means the shape of the request
-	 * matches the shape of the page. */
+	 * matches the shape of the page.
+	 */
 	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Each handler verifies its own nonce as its first act; this only chooses which one runs.
 	if ( isset( $_POST['gwcpp_request_link'] ) ) {
 		gwcpp_handle_link_request();
@@ -123,7 +131,8 @@ function gwcpp_send_no_cache_headers(): void {
 	}
 }
 
-/* ── The handler gate ────────────────────────────────────────────────────────
+/*
+ * ── The handler gate ────────────────────────────────────────────────────────
  * Every mutating handler starts the same way: a signed-in portal user, a post
  * that user actually has access to, and a nonce minted for that exact post.
  *
@@ -134,7 +143,8 @@ function gwcpp_send_no_cache_headers(): void {
  *
  * Both guards either return a validated value or end the request. Neither ever
  * hands back something the caller still has to remember to check.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * End the request at the portal.
@@ -185,10 +195,12 @@ function gwcpp_guard_post( string $nonce_field, string $action ): int {
 		! isset( $_POST[ $nonce_field ] )
 		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ $nonce_field ] ) ), $action . $post_id )
 	) {
-		/* Back to the post they were on rather than the portal root. By this
+		/*
+		 * Back to the post they were on rather than the portal root. By this
 		 * point the ID is known to be theirs, so naming it gives nothing away —
 		 * and dropping somebody at the top of the portal after a long edit,
-		 * with a message about a form, is how the message goes unread. */
+		 * with a message about a form, is how the message goes unread.
+		 */
 		gwcpp_bail(
 			gwcpp_portal_url(
 				array(
@@ -224,10 +236,10 @@ function gwcpp_handle_save(): void {
 
 	// Once, before validation, so a rejected upload is reported beside its own
 	// field rather than swallowed.
-	$upload  = gwcpp_apply_uploads( $post->post_type, $values, $user_id, $post_id );
-	$values  = $upload['values'];
+	$upload = gwcpp_apply_uploads( $post->post_type, $values, $user_id, $post_id );
+	$values = $upload['values'];
 
-	$errors  = gwcpp_validate_submission( $post->post_type, $values, $dropped ) + $upload['errors'];
+	$errors = gwcpp_validate_submission( $post->post_type, $values, $dropped ) + $upload['errors'];
 
 	$edit_url = gwcpp_portal_url(
 		array(
@@ -237,9 +249,11 @@ function gwcpp_handle_save(): void {
 	);
 
 	if ( $errors ) {
-		/* Anything that did upload before something else failed has nothing
+		/*
+		 * Anything that did upload before something else failed has nothing
 		 * pointing at it once the form redraws, so it goes now rather than
-		 * waiting for the cron sweep. */
+		 * waiting for the cron sweep.
+		 */
 		gwcpp_discard_attachments( $upload['uploaded'] );
 
 		gwcpp_stash_submission( $user_id, $post_id, $values, $errors, $dropped );
@@ -249,15 +263,19 @@ function gwcpp_handle_save(): void {
 		exit;
 	}
 
-	/* Computed before anything is written, because afterwards the submitted
-	 * values are the stored values and there is nothing left to compare. */
+	/*
+	 * Computed before anything is written, because afterwards the submitted
+	 * values are the stored values and there is nothing left to compare.
+	 */
 	$diff = gwcpp_diff_values( $post_id, $values );
 
 	if ( ! $diff ) {
-		/* Nothing actually differs. Said plainly rather than queued: a
+		/*
+		 * Nothing actually differs. Said plainly rather than queued: a
 		 * changeset with an empty diff is a row in staff's review queue asking
 		 * them to approve nothing, and the person who submitted it is owed the
-		 * information that their edit made no difference. */
+		 * information that their edit made no difference.
+		 */
 		gwcpp_discard_attachments( $upload['uploaded'] );
 
 		gwcpp_bail(
@@ -327,10 +345,10 @@ function gwcpp_handle_create(): void {
 	$values  = gwcpp_collect_submission( $post_type, $raw );
 	$dropped = gwcpp_dropped_fields( $post_type, $raw, $values );
 
-	$upload  = gwcpp_apply_uploads( $post_type, $values, $user_id );
-	$values  = $upload['values'];
+	$upload = gwcpp_apply_uploads( $post_type, $values, $user_id );
+	$values = $upload['values'];
 
-	$errors  = gwcpp_validate_submission( $post_type, $values, $dropped ) + $upload['errors'];
+	$errors = gwcpp_validate_submission( $post_type, $values, $dropped ) + $upload['errors'];
 
 	if ( $errors ) {
 		gwcpp_discard_attachments( $upload['uploaded'] );
@@ -346,11 +364,13 @@ function gwcpp_handle_create(): void {
 		exit;
 	}
 
-	/* The first organisation, when somebody belongs to several. A picker is the
+	/*
+	 * The first organisation, when somebody belongs to several. A picker is the
 	 * right answer and it is a decision the create form should present, not one
 	 * to guess at silently — noted here rather than solved, because the common
 	 * case is exactly one organisation and a picker showing one option is
-	 * worse than no picker. */
+	 * worse than no picker.
+	 */
 	$post_id = gwcpp_create_post( $post_type, $values, $user_id, (int) $orgs[0] );
 
 	if ( is_wp_error( $post_id ) ) {
@@ -358,9 +378,11 @@ function gwcpp_handle_create(): void {
 		gwcpp_bail( gwcpp_portal_url(), $post_id->get_error_message(), 'error' );
 	}
 
-	/* A newly created post is not published, so there is nothing live for a
+	/*
+	 * A newly created post is not published, so there is nothing live for a
 	 * changeset to protect — the whole thing IS the pending item, and staff
-	 * review it by publishing it. Uploads therefore attach immediately. */
+	 * review it by publishing it. Uploads therefore attach immediately.
+	 */
 	gwcpp_attach_uploads( $upload['uploaded'], (int) $post_id );
 
 	gwcpp_bail(
@@ -486,9 +508,11 @@ function gwcpp_render_signin(): void {
 	$magic    = (bool) gwcpp_setting( 'signin_magic' );
 	$password = (bool) gwcpp_setting( 'signin_password' );
 
-	/* Neither switched on is a configuration mistake rather than a state to
+	/*
+	 * Neither switched on is a configuration mistake rather than a state to
 	 * render a form for. Saying so plainly beats an empty box that looks like
-	 * the page failed to load. */
+	 * the page failed to load.
+	 */
 	if ( ! $magic && ! $password ) {
 		printf(
 			'<div class="gwcpp-empty"><p>%s</p></div>',
@@ -511,11 +535,13 @@ function gwcpp_render_signin(): void {
 			esc_html__( 'Email address', 'groundwork-common-post-portal' )
 		);
 
-		/* The honeypot. Hidden from people with CSS and from screen readers with
+		/*
+		 * The honeypot. Hidden from people with CSS and from screen readers with
 		 * aria-hidden, and taken out of the tab order — a field that is merely
 		 * offscreen is a field a keyboard user tabs into and fills in, which
 		 * silently discards their sign-in attempt with no way to find out why.
-		 * autocomplete="off" stops a password manager doing the same. */
+		 * autocomplete="off" stops a password manager doing the same.
+		 */
 		echo '<div class="gwcpp-hp" aria-hidden="true"><label for="gwcpp-website">Website</label><input type="text" id="gwcpp-website" name="gwcpp_website" tabindex="-1" autocomplete="off" /></div>';
 
 		printf(
@@ -627,8 +653,10 @@ function gwcpp_render_edit_view( int $user_id ): void {
 	$post_id = isset( $_GET['gwcpp_post'] ) ? (int) $_GET['gwcpp_post'] : 0;
 
 	if ( ! gwcpp_user_can_edit_post( $user_id, $post_id ) ) {
-		/* The same words for "no such post" and "not yours". A view that said
-		 * "you do not have access to this" would confirm the post exists. */
+		/*
+		 * The same words for "no such post" and "not yours". A view that said
+		 * "you do not have access to this" would confirm the post exists.
+		 */
 		printf(
 			'<div class="gwcpp-empty"><p>%s</p></div>',
 			esc_html__( 'That is not something you can edit.', 'groundwork-common-post-portal' )
@@ -645,7 +673,8 @@ function gwcpp_render_edit_view( int $user_id ): void {
 	$stash   = gwcpp_take_stash( $user_id, $post_id );
 	$pending = gwcpp_get_changeset( $post_id );
 
-	/* Three sources, in order of how recently the person touched them: a
+	/*
+	 * Three sources, in order of how recently the person touched them: a
 	 * submission that was just refused, then changes they sent for review, then
 	 * what is actually stored.
 	 *
@@ -653,7 +682,8 @@ function gwcpp_render_edit_view( int $user_id ): void {
 	 * sounds. Someone who submits a corrected phone number and comes back an
 	 * hour later would otherwise see the old number still in the box, conclude
 	 * their edit was lost, and submit it again — which is how a review queue
-	 * fills up with duplicates of the same change. */
+	 * fills up with duplicates of the same change.
+	 */
 	if ( null !== $stash ) {
 		$values = array_merge( $current, $stash['values'] );
 		$errors = $stash['errors'];
@@ -673,10 +703,12 @@ function gwcpp_render_edit_view( int $user_id ): void {
 	if ( null !== $pending && null === $stash ) {
 		gwcpp_render_pending_banner( $pending, $post_id );
 	} else {
-		/* Not shown while something is already waiting for review. Asking
+		/*
+		 * Not shown while something is already waiting for review. Asking
 		 * somebody to confirm details they submitted an hour ago, which staff
 		 * have not looked at yet, is asking them to vouch for a version of the
-		 * entry that does not exist. */
+		 * entry that does not exist.
+		 */
 		gwcpp_render_review_panel( $post );
 	}
 

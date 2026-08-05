@@ -53,7 +53,8 @@ final class HandoffTest extends TestCase {
 	 * minted while the panel was on screen stays valid for up to a day. Of
 	 * everything a portal user can do, this is the one that ends with a
 	 * WordPress account being created, so the handler asks again.
-	 * ─────────────────────────────────────────────────────────────────────── */
+	 * ───────────────────────────────────────────────────────────────────────
+	 */
 
 	public function test_handoff_is_refused_when_the_post_type_has_it_switched_off(): void {
 		update_option(
@@ -76,7 +77,8 @@ final class HandoffTest extends TestCase {
 	 * doing the inviting has to belong to it. Reaching the post by a direct
 	 * grant is not the same thing, and letting it count would hand somebody a
 	 * wider grant than they hold themselves.
-	 * ─────────────────────────────────────────────────────────────────────── */
+	 * ───────────────────────────────────────────────────────────────────────
+	 */
 
 	/**
 	 * A member gets past the membership check.

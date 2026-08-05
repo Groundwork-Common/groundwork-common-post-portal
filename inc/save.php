@@ -10,7 +10,8 @@ defined( 'ABSPATH' ) || exit;
 /** The form field that wraps every mapped value. */
 const GWCPP_FIELD_PARAM = 'gwcpp_f';
 
-/* ── Slashes ─────────────────────────────────────────────────────────────────
+/*
+ * ── Slashes ─────────────────────────────────────────────────────────────────
  * WordPress hands you $_POST with slashes added, and then adds them back on the
  * way out: update_post_meta() and wp_insert_post() both call wp_unslash() on
  * what you give them. So a value makes a round trip through two unslashes and
@@ -30,7 +31,8 @@ const GWCPP_FIELD_PARAM = 'gwcpp_f';
  * means every sanitizer in between is running against slashed input, and means
  * a value that never reaches update_post_meta (a validation message, a diff, a
  * changeset) carries slashes nobody expected.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * Turn a raw POST into sanitized values.
@@ -228,9 +230,11 @@ function gwcpp_current_values( int $post_id, string $post_type ): array {
 			continue;
 		}
 
-		/* Terms, not meta. Read from the taxonomy every time rather than from a
+		/*
+		 * Terms, not meta. Read from the taxonomy every time rather than from a
 		 * cached copy, so a term renamed or deleted elsewhere on the site is
-		 * reflected here without this plugin having to hear about it. */
+		 * reflected here without this plugin having to hear about it.
+		 */
 		if ( gwcpp_type_is_taxonomy( $type ) ) {
 			$terms          = wp_get_object_terms( $post_id, $key, array( 'fields' => 'ids' ) );
 			$values[ $key ] = is_array( $terms ) ? array_map( 'intval', $terms ) : array();
@@ -238,10 +242,12 @@ function gwcpp_current_values( int $post_id, string $post_type ): array {
 			continue;
 		}
 
-		/* Multi-value types read every row; everything else reads one. Driven
+		/*
+		 * Multi-value types read every row; everything else reads one. Driven
 		 * off the sanitizer's return shape rather than off a list of type
 		 * slugs, so a type registered through the filter gets the right
-		 * treatment without this function knowing it exists. */
+		 * treatment without this function knowing it exists.
+		 */
 		if ( gwcpp_type_is_multi( $type ) ) {
 			$stored         = get_post_meta( $post_id, $key, true );
 			$values[ $key ] = is_array( $stored ) ? $stored : array();
@@ -307,12 +313,14 @@ function gwcpp_save_fields( int $post_id, array $values ): bool {
 			$column = (string) $field['column'];
 			$new    = is_scalar( $value ) ? (string) $value : '';
 
-			/* The title is the one field with a floor. wp_update_post() accepts
+			/*
+			 * The title is the one field with a floor. wp_update_post() accepts
 			 * an empty one, and the result is a post shown as "(no title)"
 			 * everywhere on the site, done by somebody who cannot see any of
 			 * those places. Validation already refuses it; this is the second
 			 * line, for the paths that do not run validation — an approval
-			 * replaying an old changeset, a WP-CLI call. */
+			 * replaying an old changeset, a WP-CLI call.
+			 */
 			if ( 'post_title' === $column && '' === trim( $new ) ) {
 				continue;
 			}
@@ -333,11 +341,13 @@ function gwcpp_save_fields( int $post_id, array $values ): bool {
 			sort( $existing );
 
 			if ( $term_ids !== $existing ) {
-				/* append => false, so clearing every box really clears them.
+				/*
+				 * append => false, so clearing every box really clears them.
 				 * The *_present marker is what makes that safe: a form that
 				 * never showed this field does not submit the key at all and is
 				 * skipped above, so an empty array here always means somebody
-				 * actually unticked everything. */
+				 * actually unticked everything.
+				 */
 				wp_set_object_terms( $post_id, $term_ids, $key, false );
 				$changed = true;
 			}
@@ -362,9 +372,11 @@ function gwcpp_save_fields( int $post_id, array $values ): bool {
 	if ( $post_update ) {
 		$post_update['ID'] = $post_id;
 
-		/* wp_slash because wp_insert_post() unslashes what it is given, and
+		/*
+		 * wp_slash because wp_insert_post() unslashes what it is given, and
 		 * wp_update_post() is wp_insert_post. Without it every apostrophe in a
-		 * title loses its escaping one save at a time. */
+		 * title loses its escaping one save at a time.
+		 */
 		wp_update_post( wp_slash( $post_update ) );
 	}
 
@@ -423,11 +435,13 @@ function gwcpp_create_post( string $post_type, array $values, int $user_id, int 
 
 	$post_id = (int) $post_id;
 
-	/* Both grants, deliberately. The organisation is how their colleagues will
+	/*
+	 * Both grants, deliberately. The organisation is how their colleagues will
 	 * reach it; the direct grant is how the creator reaches it if they are
 	 * later removed from the organisation, and how they reach it at all when
 	 * they belong to no organisation. Relying on post_author instead would tie
-	 * access to a setting that is off by default. */
+	 * access to a setting that is off by default.
+	 */
 	if ( $org_id > 0 ) {
 		gwcpp_set_post_org( $post_id, $org_id );
 	}
@@ -467,10 +481,12 @@ function gwcpp_unpublish_post( int $post_id, int $user_id ): bool {
 		)
 	);
 
-	/* Recorded because six months later somebody will ask why a listing
+	/*
+	 * Recorded because six months later somebody will ask why a listing
 	 * vanished, and "a portal user unpublished it on this date" is the whole
 	 * answer. The alternative is reading the revision history, which does not
-	 * record status changes. */
+	 * record status changes.
+	 */
 	update_post_meta( $post_id, '_gwcpp_unpublished_by', $user_id );
 	update_post_meta( $post_id, '_gwcpp_unpublished_at', time() );
 
@@ -522,7 +538,8 @@ function gwcpp_republish_post( int $post_id ): bool {
 	return true;
 }
 
-/* ── Repopulating a rejected form ────────────────────────────────────────────
+/*
+ * ── Repopulating a rejected form ────────────────────────────────────────────
  * A submission that fails validation is stored briefly so the form can be
  * redrawn with what the person typed still in it, rather than blank.
  *
@@ -531,7 +548,8 @@ function gwcpp_republish_post( int $post_id ): bool {
  * on the page — in a transient keyed by user, which is both a larger object
  * than anyone intended and a place where a crafted extra POST field lands in
  * storage and comes back out at render time.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** The longest a single repopulated value may be. */
 const GWCPP_PENDING_MAX = 4000;
@@ -549,12 +567,14 @@ const GWCPP_PENDING_MAX = 4000;
 function gwcpp_stash_submission( int $user_id, int $post_id, array $values, array $errors, array $dropped = array() ): void {
 	$kept = array();
 
-	/* What they typed wins over what it sanitized to, but only for the fields
+	/*
+	 * What they typed wins over what it sanitized to, but only for the fields
 	 * that sanitized to nothing. Redrawing the form with a blank box beside
 	 * "that does not look like a web address" asks somebody to correct
 	 * something they can no longer see. These values are escaped at output like
 	 * every other, and they are never written to a post — the stash exists only
-	 * to redraw a form that was refused. */
+	 * to redraw a form that was refused.
+	 */
 	foreach ( $dropped as $key => $typed ) {
 		$values[ $key ] = sanitize_text_field( (string) $typed );
 	}

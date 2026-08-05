@@ -103,7 +103,8 @@ final class ValidateTest extends TestCase {
 		);
 
 		/* The exact key set, sorted, so this fails on both an early return that
-		 * drops later errors and on a spurious extra one. */
+		 * drops later errors and on a spurious extra one.
+		 */
 		$keys = array_keys( $errors );
 		sort( $keys );
 
@@ -229,7 +230,8 @@ final class ValidateTest extends TestCase {
 	 * url, email and date all turn an unusable value into ''. Found by typing
 	 * "not a website" into a real form: the field silently emptied, and because
 	 * it was optional there was no error at all — the input simply vanished
-	 * between the browser and the page that came back. */
+	 * between the browser and the page that came back.
+	 */
 
 	public function test_an_optional_field_that_sanitized_away_is_reported_not_silently_dropped(): void {
 		$raw = array( 'website' => 'not a website' );

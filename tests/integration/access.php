@@ -28,7 +28,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * assignment here is a LOCAL — and vok()'s `global` would then increment a
  * different variable entirely, leaving the summary reporting zero of both while
  * every individual line printed correctly. A failing run would have looked
- * exactly like a passing one. */
+ * exactly like a passing one.
+ */
 $GLOBALS['gwcpp_pass'] = 0;
 $GLOBALS['gwcpp_fail'] = 0;
 
@@ -55,7 +56,8 @@ function vok( string $label, bool $ok, string $detail = '' ): void {
  * would emit a "headers already sent" warning for every cookie it sets. The
  * cookie is not what is under test — the token exchange is — so the send is
  * switched off rather than the warnings tolerated, because a run whose real
- * failures are buried in six lines of expected warnings is a run nobody reads. */
+ * failures are buried in six lines of expected warnings is a run nobody reads.
+ */
 add_filter( 'send_auth_cookies', '__return_false' );
 
 /* ── Fixtures ────────────────────────────────────────────────────────────── */
@@ -65,7 +67,8 @@ $created_users = array();
 
 /* A post type registered right here, so the script does not depend on the
  * install having any particular one. It is registered late, which is fine:
- * nothing in this script goes through a rewrite rule. */
+ * nothing in this script goes through a rewrite rule.
+ */
 register_post_type(
 	'gwcpp_itest',
 	array(
@@ -252,7 +255,8 @@ update_post_meta( $post_a, 'staff_only_note', 'do not touch' );
 
 /* A submission naming a key that is not in the schema. gwcpp_save_fields()
  * iterates the schema, not the submission, so the extra key is never looked
- * at — this proves that structurally rather than by asserting on a branch. */
+ * at — this proves that structurally rather than by asserting on a branch.
+ */
 gwcpp_save_fields(
 	$post_a,
 	array(
@@ -275,7 +279,8 @@ vok(
 );
 
 /* Now map the title and confirm it does become writable, so the check above is
- * proving the allow-list rather than proving titles never save. */
+ * proving the allow-list rather than proving titles never save.
+ */
 gwcpp_put_field(
 	'gwcpp_itest',
 	array(
@@ -337,7 +342,8 @@ vok(
 );
 
 /* Consuming signs the user in, so this is the last thing the script does that
- * touches the current user. */
+ * touches the current user.
+ */
 $consumed = gwcpp_consume_token( $token );
 vok( 'a token signs in the user it names', $consumed === $user_a );
 vok( 'a token works only once', 0 === gwcpp_consume_token( $token ) );

@@ -65,8 +65,10 @@ function gwcpp_review_column( $columns ) {
 		return $columns;
 	}
 
-	/* Inserted before the date column rather than appended, because appended
-	 * puts it after Date where nobody scanning a list looks. */
+	/*
+	 * Inserted before the date column rather than appended, because appended
+	 * puts it after Date where nobody scanning a list looks.
+	 */
 	$out = array();
 	foreach ( $columns as $key => $label ) {
 		if ( 'date' === $key ) {
@@ -174,11 +176,13 @@ function gwcpp_review_filter_query( $query ): void {
 		return;
 	}
 
-	/* Checked for an array rather than cast straight to string. A post list
+	/*
+	 * Checked for an array rather than cast straight to string. A post list
 	 * screen sets one post type, but 'post_type' can hold an array on any query
 	 * this filter is handed, and (string) on an array is the notice "Array to
 	 * string conversion" followed by the literal filter running against a post
-	 * type named "Array". */
+	 * type named "Array".
+	 */
 	$post_type = $query->get( 'post_type' );
 	if ( ! is_string( $post_type ) || '' === $post_type || ! gwcpp_review_enabled( $post_type ) ) {
 		return;
@@ -218,10 +222,12 @@ function gwcpp_review_filter_query( $query ): void {
 		return;
 	}
 
-	/* "Needs confirming" is everything whose review date is older than the first
+	/*
+	 * "Needs confirming" is everything whose review date is older than the first
 	 * reminder threshold, PLUS everything that has never been confirmed at all —
 	 * and the second group is the one a naive date comparison silently drops,
-	 * because a row that does not exist does not compare less than anything. */
+	 * because a row that does not exist does not compare less than anything.
+	 */
 	$months = 'unmanaged' === $filter ? $cadence * 2 : max( 1, $cadence - 1 );
 	$cutoff = $today->modify( '-' . $months . ' months' )->format( 'Y-m-d' );
 
@@ -364,9 +370,11 @@ function gwcpp_save_review_meta( $post_id, $post ): void {
 		gwcpp_record_review( (int) $post_id, get_current_user_id() );
 	}
 
-	/* Publishing an auto-expired entry by hand clears the marker, so the cycle
+	/*
+	 * Publishing an auto-expired entry by hand clears the marker, so the cycle
 	 * does not later "restore" something staff had already restored — and so the
-	 * digest stops listing it as hidden the moment it stops being hidden. */
+	 * digest stops listing it as hidden the moment it stops being hidden.
+	 */
 	if ( 'publish' === $post->post_status && get_post_meta( $post_id, GWCPP_AUTO_EXPIRED_META, true ) ) {
 		delete_post_meta( (int) $post_id, GWCPP_AUTO_EXPIRED_META );
 	}

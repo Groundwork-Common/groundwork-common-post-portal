@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── The guard, and why it is on wp_mail ─────────────────────────────────────
+/*
+ * ── The guard, and why it is on wp_mail ─────────────────────────────────────
  * A staging copy of a site is a full copy: the same partners, the same
  * addresses, the same cron. Point it at a real mail server and the first time
  * somebody tests the review reminders, two hundred real organisations get an
@@ -41,7 +42,8 @@ defined( 'ABSPATH' ) || exit;
  * notifications. That is the intent — a staging clone should be quiet, not
  * selectively quiet — and it is why `live` passes straight through with no
  * processing at all.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 add_filter( 'wp_mail', 'gwcpp_guard_outbound_mail', 1 );
 
@@ -89,13 +91,15 @@ function gwcpp_guard_outbound_mail( $args ) {
 
 	$args['to'] = $kept;
 
-	/* Cc and Bcc are stripped rather than filtered. They arrive as headers in a
+	/*
+	 * Cc and Bcc are stripped rather than filtered. They arrive as headers in a
 	 * shape that varies — a string, an array, folded lines — and a guard that
 	 * parses them almost correctly is a guard that lets one through. Nothing in
 	 * this plugin sets either, so removing them costs nothing here and closes
-	 * the hole for anything that does. */
+	 * the hole for anything that does.
+	 */
 	if ( ! empty( $args['headers'] ) ) {
-		$headers = is_array( $args['headers'] ) ? $args['headers'] : explode( "\n", (string) $args['headers'] );
+		$headers         = is_array( $args['headers'] ) ? $args['headers'] : explode( "\n", (string) $args['headers'] );
 		$args['headers'] = array_values(
 			array_filter(
 				$headers,
@@ -126,12 +130,14 @@ function gwcpp_send_email( string $to, string $subject, string $body ): bool {
 	if ( '' !== $from_email && is_email( $from_email ) ) {
 		$name = '' !== $from_name ? $from_name : get_bloginfo( 'name' );
 
-		/* Quoted, with any quote of its own removed. CRLF and angle brackets are
+		/*
+		 * Quoted, with any quote of its own removed. CRLF and angle brackets are
 		 * already gone — the setting is sanitized with sanitize_text_field when
 		 * it is saved, so header injection is closed before this runs — but a
 		 * perfectly ordinary name containing a comma ("Smith, Jones & Co") is a
 		 * malformed From header unquoted, and some receivers drop the message
-		 * rather than guess. */
+		 * rather than guess.
+		 */
 		$headers[] = sprintf( 'From: "%s" <%s>', str_replace( '"', '', $name ), $from_email );
 	}
 
@@ -265,14 +271,17 @@ function gwcpp_email_raw_link( string $url ): string {
 	);
 }
 
-/* ── Notifications about changes ─────────────────────────────────────────────
+/*
+ * ── Notifications about changes ─────────────────────────────────────────────
  * Three messages, and the split between them is deliberate. Staff hear about
  * every submission; the submitter hears only about a decision. Telling somebody
  * "we received your change" and then, a day later, "we applied your change" is
  * two emails for one event, and the first is the one people learn to ignore.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
-/* ── Why the staff notification's return value is not discarded ──────────────
+/*
+ * ── Why the staff notification's return value is not discarded ──────────────
  * Every other failure in this plugin is visible to somebody. This one is not:
  * the person who submitted the change is told it went for review — which is
  * true, it did — and staff are told nothing, because the telling is the part
@@ -284,7 +293,8 @@ function gwcpp_email_raw_link( string $url ): string {
  * So a failure is recorded rather than dropped. gwcpp_note_staff_notification()
  * is what the handlers call; it keeps a flag the plugin's own screens can show,
  * and fires an action for sites that would rather send this somewhere real.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** Transient: set when the last attempt to notify staff failed. */
 const GWCPP_MAIL_TROUBLE_TRANSIENT = 'gwcpp_staff_mail_failed';
@@ -300,9 +310,11 @@ function gwcpp_note_staff_notification( bool $sent ): void {
 		return;
 	}
 
-	/* A week, not forever. If mail starts working again the flag clears on the
+	/*
+	 * A week, not forever. If mail starts working again the flag clears on the
 	 * next successful send, and if nothing is ever submitted again there is
-	 * nothing left to warn about anyway. */
+	 * nothing left to warn about anyway.
+	 */
 	set_transient( GWCPP_MAIL_TROUBLE_TRANSIENT, time(), WEEK_IN_SECONDS );
 
 	/**

@@ -21,51 +21,59 @@ const GWCPP_SETTINGS_OPTION = 'gwcpp_settings';
  */
 function gwcpp_setting_defaults(): array {
 	return array(
-		/* Which post types the portal covers. Empty is the honest default: a
-		 * plugin that switched itself on for `post` at activation would expose
-		 * every article on the site to whoever it later granted access to, and
-		 * it would do it before anyone had opened a settings screen. */
-		'post_types'        => array(),
+		// Which post types the portal covers. Empty is the honest default: a
+		// plugin that switched itself on for `post` at activation would expose
+		// every article on the site to whoever it later granted access to, and
+		// it would do it before anyone had opened a settings screen.
+		'post_types'      => array(),
 
-		/* The page holding the portal block. Resolved to an ID once and pinned,
+		/*
+		 * The page holding the portal block. Resolved to an ID once and pinned,
 		 * so renaming the page or changing its slug cannot quietly break every
-		 * sign-in link in every inbox. */
-		'portal_page'       => 0,
+		 * sign-in link in every inbox.
+		 */
+		'portal_page'     => 0,
 
 		// Sign-in.
-		'signin_magic'      => true,
-		'signin_password'   => false,
-		/* Short, because the archetypal portal user is on a shared front-desk
-		 * computer at an organisation with one login between six people. */
-		'session_hours'     => 3,
+		'signin_magic'    => true,
+		'signin_password' => false,
+		// Short, because the archetypal portal user is on a shared front-desk
+		// computer at an organisation with one login between six people.
+		'session_hours'   => 3,
 
-		/* Per-post-type flags, keyed by post type slug. Read through
+		/*
+		 * Per-post-type flags, keyed by post type slug. Read through
 		 * gwcpp_type_setting() rather than directly — a type that has never
 		 * been configured has no row here at all, and every caller wanting the
-		 * defaults for that case is a caller that can get them wrong. */
-		'types'             => array(),
+		 * defaults for that case is a caller that can get them wrong.
+		 */
+		'types'           => array(),
 
 		// Email. Empty means "use what WordPress would have used anyway".
-		'from_name'         => '',
-		'from_email'        => '',
-		'staff_email'       => '',
+		'from_name'       => '',
+		'from_email'      => '',
+		'staff_email'     => '',
 
-		/* Empty, and it stays empty. Shipping a word list would mean this
+		/*
+		 * Empty, and it stays empty. Shipping a word list would mean this
 		 * plugin deciding which words are unacceptable on every site that
-		 * installs it, in a language it does not know the site is written in. */
-		'blocked_words'     => '',
+		 * installs it, in a language it does not know the site is written in.
+		 */
+		'blocked_words'   => '',
 
-		/* Appearance. Empty means "inherit the theme-matched default already in
+		/*
+		 * Appearance. Empty means "inherit the theme-matched default already in
 		 * portal.css" — nothing here is required for the portal to look
 		 * reasonable, and a site that never opens the Appearance tab behaves
-		 * exactly as if these did not exist. */
-		'accent_color'      => '',
-		'portal_bg'         => '',
-		'portal_text'       => '',
-		'surface_color'     => '',
-		'line_color'        => '',
-		'radius'            => '',
-		'max_width'         => '',
+		 * exactly as if these did not exist.
+		 */
+		'accent_color'    => '',
+		'portal_bg'       => '',
+		'portal_text'     => '',
+		'surface_color'   => '',
+		'line_color'      => '',
+		'radius'          => '',
+		'max_width'       => '',
 	);
 }
 
@@ -80,42 +88,54 @@ function gwcpp_setting_defaults(): array {
  */
 function gwcpp_type_setting_defaults(): array {
 	return array(
-		/* Off. `post_author` on an imported or staff-authored post is whoever
-		 * ran the import, and on a site that has ever used a "submit a listing"
-		 * form it is whoever submitted it years ago. Turning this on is a
-		 * decision about a specific post type whose authorship you know the
-		 * shape of; making it the default would silently grant access based on
-		 * a column most sites have never looked at. */
+		// Off. `post_author` on an imported or staff-authored post is whoever
+		// ran the import, and on a site that has ever used a "submit a listing"
+		// form it is whoever submitted it years ago. Turning this on is a
+		// decision about a specific post type whose authorship you know the
+		// shape of; making it the default would silently grant access based on
+		// a column most sites have never looked at.
 		'author_grant'     => false,
 
-		/* Off. Editing what you were given is a much smaller promise than
-		 * creating new records in somebody's directory. */
+		/*
+		 * Off. Editing what you were given is a much smaller promise than
+		 * creating new records in somebody's directory.
+		 */
 		'allow_create'     => false,
 
-		/* On. The entire reason the changeset machinery exists is that the
+		/*
+		 * On. The entire reason the changeset machinery exists is that the
 		 * default answer to "should this go straight to the public site"
-		 * is no. A site that trusts its partners turns this off deliberately. */
+		 * is no. A site that trusts its partners turns this off deliberately.
+		 */
 		'require_approval' => true,
 
-		/* On, and note this is the *weakest* destructive action available —
+		/*
+		 * On, and note this is the *weakest* destructive action available —
 		 * unpublish to draft, reversible in one click. There is no setting
-		 * anywhere that grants a portal user deletion. */
+		 * anywhere that grants a portal user deletion.
+		 */
 		'allow_unpublish'  => true,
 
-		/* Off. Handing over is the one action where a portal user can cause an
+		/*
+		 * Off. Handing over is the one action where a portal user can cause an
 		 * account to be created, and a site should decide it is wanted before
-		 * that becomes possible. */
+		 * that becomes possible.
+		 */
 		'allow_handoff'    => false,
 
-		/* Zero means the review cycle is off for this post type, which is the
+		/*
+		 * Zero means the review cycle is off for this post type, which is the
 		 * default: a plugin that started emailing a site's partners because
 		 * somebody switched a post type on would be doing something nobody
-		 * asked for. Six is the usual answer once it is wanted. */
+		 * asked for. Six is the usual answer once it is wanted.
+		 */
 		'review_months'    => 0,
 
-		/* What a portal-created post starts as. Never 'publish': a create flow
+		/*
+		 * What a portal-created post starts as. Never 'publish': a create flow
 		 * that publishes on submit makes require_approval a lie for exactly the
-		 * content nobody has ever reviewed. */
+		 * content nobody has ever reviewed.
+		 */
 		'create_status'    => 'draft',
 	);
 }

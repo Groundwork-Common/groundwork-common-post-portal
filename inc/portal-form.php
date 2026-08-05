@@ -87,11 +87,13 @@ function gwcpp_render_field( array $field, $value, string $error = '' ): void {
 		echo '</span>';
 	}
 
-	/* The help text is printed BEFORE the control rather than after it. Placed
+	/*
+	 * The help text is printed BEFORE the control rather than after it. Placed
 	 * after, it is read by a screen reader only once the control is already
 	 * focused and the user is committed to answering, and it is the part of the
 	 * field a sighted user skips because it sits where an error message goes.
-	 * Before, it is instructions. */
+	 * Before, it is instructions.
+	 */
 	if ( '' !== $help ) {
 		printf(
 			'<p class="gwcpp-field__help" id="%s">%s</p>',
@@ -159,11 +161,13 @@ function gwcpp_render_edit_form( WP_Post $post, array $values, array $errors = a
 
 	$summary = gwcpp_error_summary( $errors );
 
-	/* enctype unconditionally, rather than only when a media field is mapped.
+	/*
+	 * enctype unconditionally, rather than only when a media field is mapped.
 	 * A form missing it silently sends filenames instead of files — no error,
 	 * no warning, just an upload that never happens — and the condition that
 	 * would get it wrong is "somebody added a media field after this template
-	 * was written". */
+	 * was written".
+	 */
 	echo '<form class="gwcpp-form" method="post" enctype="multipart/form-data" action="' . esc_url( gwcpp_portal_url() ) . '">';
 
 	if ( '' !== $summary ) {

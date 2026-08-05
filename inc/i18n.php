@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── Why these are functions and not constants ───────────────────────────────
+/*
+ * ── Why these are functions and not constants ───────────────────────────────
  * Every table in this file is a function with a static memo rather than a
  * `const` array, and the reason is load order rather than taste.
  *
@@ -24,7 +25,8 @@ defined( 'ABSPATH' ) || exit;
  * Tables with no strings in them stay `const` — GWCPP_PORTAL_VIEWS below — for
  * exactly the same reason inverted: there is nothing to translate, so there is
  * nothing to defer.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** The views the portal can be in. Order is the order of the nav. */
 const GWCPP_PORTAL_VIEWS = array( 'list', 'edit', 'new', 'account' );

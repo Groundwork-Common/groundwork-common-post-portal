@@ -148,7 +148,8 @@ final class RateLimitTest extends TestCase {
 	 * second let any passer-by lock the whole site out of sign-in for an hour
 	 * with thirty-one junk POSTs — silently, because the response is identical
 	 * either way.
-	 * ─────────────────────────────────────────────────────────────────────── */
+	 * ───────────────────────────────────────────────────────────────────────
+	 */
 
 	public function test_junk_and_bots_are_not_worth_counting(): void {
 		$this->assertFalse( gwcpp_signin_worth_counting( '', '' ), 'An empty form sends nothing.' );
@@ -196,7 +197,8 @@ final class RateLimitTest extends TestCase {
 	 * site-wide sign-in backstop and leave every partner unable to request a
 	 * magic link. Two throttles protecting different things must not share a
 	 * budget, and these tests are what says so.
-	 * ─────────────────────────────────────────────────────────────────────── */
+	 * ───────────────────────────────────────────────────────────────────────
+	 */
 
 	public function test_password_attempts_do_not_lock_out_magic_links(): void {
 		for ( $i = 0; $i < 60; $i++ ) {

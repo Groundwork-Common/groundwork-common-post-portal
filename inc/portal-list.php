@@ -33,10 +33,12 @@ function gwcpp_render_post_list( int $user_id ): void {
 	$pages = (int) ceil( count( $ids ) / GWCPP_PER_PAGE );
 	$page  = max( 1, min( $pages, $page ) );
 
-	/* Sorted by title rather than by date. A portal user is looking for one
+	/*
+	 * Sorted by title rather than by date. A portal user is looking for one
 	 * specific record they already know the name of, which is a different task
 	 * from browsing a blog, and "most recently modified first" reorders the
-	 * list under them every time they save something. */
+	 * list under them every time they save something.
+	 */
 	$posts = array_filter( array_map( 'get_post', $ids ) );
 	usort(
 		$posts,
@@ -117,9 +119,11 @@ function gwcpp_render_create_buttons( int $user_id ): void {
 		}
 	}
 
-	/* Creating needs somewhere to put it. A user with no organisation and no
+	/*
+	 * Creating needs somewhere to put it. A user with no organisation and no
 	 * way to be granted one would create posts only they can see, which looks
-	 * like the feature working right up until somebody asks where it went. */
+	 * like the feature working right up until somebody asks where it went.
+	 */
 	if ( ! $creatable || ! gwcpp_user_orgs( $user_id ) ) {
 		return;
 	}

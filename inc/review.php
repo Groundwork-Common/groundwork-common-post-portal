@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── Why this exists ─────────────────────────────────────────────────────────
+/*
+ * ── Why this exists ─────────────────────────────────────────────────────────
  * A directory goes stale quietly. Hours change, a clinic moves its Thursday
  * session, an organisation stops offering something — and nobody tells the site
  * owner, because from the partner's side nothing has happened. The entry keeps
@@ -30,7 +31,8 @@ defined( 'ABSPATH' ) || exit;
  * because that is the promise, warn hard a month after, and give the whole
  * cadence again before hiding anything. So a site configures one number and the
  * rest follow.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** Post meta, single: Y-m-d of the last confirmed review. */
 const GWCPP_REVIEWED_META = '_gwcpp_reviewed_at';
@@ -156,10 +158,12 @@ function gwcpp_review_state( int $post_id ): array {
 	$reviewed_raw = (string) get_post_meta( $post_id, GWCPP_REVIEWED_META, true );
 	$base         = gwcpp_review_date( $reviewed_raw );
 
-	/* No review date yet — an entry staff created before the cycle was switched
+	/*
+	 * No review date yet — an entry staff created before the cycle was switched
 	 * on, or one never touched from the portal. Its publish date is the honest
 	 * answer to "when was this last known to be right?", and it means switching
-	 * the cycle on does not instantly mark a site's whole directory as current. */
+	 * the cycle on does not instantly mark a site's whole directory as current.
+	 */
 	if ( null === $base ) {
 		$base         = gwcpp_review_date( gmdate( 'Y-m-d', (int) strtotime( $post->post_date ) ) );
 		$reviewed_raw = '';
@@ -187,11 +191,13 @@ function gwcpp_review_state( int $post_id ): array {
 	$exempt = (bool) get_post_meta( $post_id, GWCPP_REVIEW_EXEMPT_META, true );
 	$hidden = (bool) get_post_meta( $post_id, GWCPP_AUTO_EXPIRED_META, true );
 
-	/* "Managed" means somebody exists who could actually review this. An entry
+	/*
+	 * "Managed" means somebody exists who could actually review this. An entry
 	 * nobody has been given access to has no owner to chase, and hiding it would
 	 * punish a partner for a gap on the site's own side — so it escalates to
 	 * staff in the digest instead. Capped here rather than in the cron so the
-	 * admin column tells the same story the cron acts on. */
+	 * admin column tells the same story the cron acts on.
+	 */
 	$managed = gwcpp_post_has_owner( $post_id );
 
 	$state = $stage;
@@ -267,9 +273,11 @@ function gwcpp_record_review( int $post_id, int $user_id = 0 ): void {
 	update_post_meta( $post_id, GWCPP_REVIEWED_META, gwcpp_review_today()->format( 'Y-m-d' ) );
 	update_post_meta( $post_id, GWCPP_REVIEWED_BY_META, $user_id );
 
-	/* The ladder resets with the clock. Without this, an entry reviewed at month
+	/*
+	 * The ladder resets with the clock. Without this, an entry reviewed at month
 	 * eleven would keep every rung it had already climbed and go silent for the
-	 * whole of its next cycle. */
+	 * whole of its next cycle.
+	 */
 	delete_post_meta( $post_id, GWCPP_NOTICES_META );
 
 	// Back on the site if the cycle was what took it off.
@@ -286,9 +294,11 @@ function gwcpp_record_review( int $post_id, int $user_id = 0 ): void {
 	do_action( 'gwcpp_reviewed', $post_id, $user_id );
 }
 
-/* Saving from the portal is a review. Somebody who has just been through every
+/*
+ * Saving from the portal is a review. Somebody who has just been through every
  * field and pressed submit has done more than the confirm button asks for, and
- * making them press it afterwards as well would be asking twice. */
+ * making them press it afterwards as well would be asking twice.
+ */
 add_action( 'gwcpp_fields_saved', 'gwcpp_review_on_save', 10, 1 );
 add_action( 'gwcpp_changeset_stored', 'gwcpp_review_on_save', 10, 1 );
 
@@ -327,10 +337,12 @@ function gwcpp_review_expire( int $post_id ): bool {
 		)
 	);
 
-	/* The marker is what makes this reversible and attributable. Without it,
+	/*
+	 * The marker is what makes this reversible and attributable. Without it,
 	 * six months later a draft entry is indistinguishable from one staff took
 	 * down deliberately, and nothing knows to put it back when its owner
-	 * finally confirms. */
+	 * finally confirms.
+	 */
 	update_post_meta( $post_id, GWCPP_AUTO_EXPIRED_META, time() );
 
 	/**
@@ -372,11 +384,13 @@ function gwcpp_review_republish( int $post_id ): bool {
 	return true;
 }
 
-/* ── The notice ladder ───────────────────────────────────────────────────────
+/*
+ * ── The notice ladder ───────────────────────────────────────────────────────
  * Each entry walks this once per cycle. The two date-derived rungs are counted
  * back from the expiry date rather than forward in months, because "thirty days
  * before it disappears" is the thing anybody actually needs to act on.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * The rungs, as dates.
@@ -399,17 +413,18 @@ function gwcpp_review_ladder( string $basis, int $cadence ): array {
 	$expires = $base->modify( '+' . ( $cadence * 2 ) . ' months' );
 
 	return array(
-		'due'        => $base->modify( '+' . max( 1, $cadence - 1 ) . ' months' ),
-		'named'      => $base->modify( '+' . $cadence . ' months' ),
-		'overdue'    => $base->modify( '+' . ( $cadence + 1 ) . ' months' ),
-		'staff_30'   => $expires->modify( '-30 days' ),
-		'final_15'   => $expires->modify( '-15 days' ),
-		'expired'    => $expires,
+		'due'      => $base->modify( '+' . max( 1, $cadence - 1 ) . ' months' ),
+		'named'    => $base->modify( '+' . $cadence . ' months' ),
+		'overdue'  => $base->modify( '+' . ( $cadence + 1 ) . ' months' ),
+		'staff_30' => $expires->modify( '-30 days' ),
+		'final_15' => $expires->modify( '-15 days' ),
+		'expired'  => $expires,
 	);
 }
 
 /** Rungs that email the entry's owners. `staff_30` is deliberately absent — it
- *  goes to the site's staff, not to a partner. */
+ *  goes to the site's staff, not to a partner.
+ */
 const GWCPP_OWNER_RUNGS = array( 'due', 'named', 'overdue', 'final_15', 'expired' );
 
 /**
@@ -472,11 +487,13 @@ function gwcpp_review_due_rung( array $state, array $sent ): string {
 	return $standing;
 }
 
-/* ── Scheduling ──────────────────────────────────────────────────────────────
+/*
+ * ── Scheduling ──────────────────────────────────────────────────────────────
  * Registered idempotently on init, matching gwcpp_ensure_role()'s "safe on
  * every load" pattern, so a site that loses its cron entries gets them back
  * without anyone deactivating anything.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 add_action( 'init', 'gwcpp_schedule_review_events', 21 );
 add_action( 'gwcpp_daily_review', 'gwcpp_run_daily_review' );
@@ -513,7 +530,8 @@ function gwcpp_review_catch_up(): void {
 		return;
 	}
 
-	/* Hand the work to cron rather than doing it here, when there is a cron to
+	/*
+	 * Hand the work to cron rather than doing it here, when there is a cron to
 	 * hand it to. The daily run walks every tracked entry and then makes one
 	 * SMTP round trip per owner with mail waiting — with a backlog due at once
 	 * that is a wp-admin page which hangs for twenty seconds, or an FPM timeout
@@ -522,7 +540,8 @@ function gwcpp_review_catch_up(): void {
 	 *
 	 * spawn_cron() fires a non-blocking loopback request, and the recurring
 	 * event registered above is already overdue, so it runs there. The single
-	 * event is only for the case where the recurring one has gone missing. */
+	 * event is only for the case where the recurring one has gone missing.
+	 */
 	if ( ! defined( 'DISABLE_WP_CRON' ) || ! DISABLE_WP_CRON ) {
 		if ( ! wp_next_scheduled( 'gwcpp_daily_review' ) ) {
 			wp_schedule_single_event( time(), 'gwcpp_daily_review' );
@@ -551,7 +570,7 @@ function gwcpp_reviewable_post_ids(): array {
 		array(
 			'post_type'              => $types,
 			'post_status'            => array( 'publish', 'draft' ),
-			'posts_per_page'         => 500,
+			'posts_per_page'         => 500, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- Bounded so one cron tick cannot walk an unbounded set; the remainder is picked up by the next run.
 			'fields'                 => 'ids',
 			'no_found_rows'          => true,
 			'update_post_term_cache' => false,
@@ -599,10 +618,12 @@ function gwcpp_run_daily_review(): array {
 			continue;
 		}
 
-		/* Expiry happens here, before any mail, because the state the owner is
+		/*
+		 * Expiry happens here, before any mail, because the state the owner is
 		 * told about should be the state that is true by the time they read it.
 		 * An entry that is hidden and an email that says it is about to be are
-		 * a contradiction somebody has to write a support ticket about. */
+		 * a contradiction somebody has to write a support ticket about.
+		 */
 		if ( 'expired' === $rung && ! empty( $state['managed'] ) && empty( $state['exempt'] ) ) {
 			if ( gwcpp_review_expire( $post_id ) ) {
 				$expired_now[] = $post_id;
@@ -631,7 +652,8 @@ function gwcpp_run_daily_review(): array {
 		}
 	}
 
-	/* ── Rungs are recorded only once the message carrying them is away ──────
+	/*
+	 * ── Rungs are recorded only once the message carrying them is away ──────
 	 * An earlier design marked them in the loop above, before any owner mail
 	 * was sent — and the two are separated by every remaining entry in the
 	 * batch. A run that dies in between (entirely plausible: the catch-up above
@@ -642,7 +664,8 @@ function gwcpp_run_daily_review(): array {
 	 *
 	 * A duplicate reminder is a far cheaper mistake than a silently skipped
 	 * one, so the ordering errs in that direction.
-	 * ─────────────────────────────────────────────────────────────────────── */
+	 * ───────────────────────────────────────────────────────────────────────
+	 */
 	$mailed = 0;
 	foreach ( $batches as $user_id => $items ) {
 		if ( ! gwcpp_review_mail_owner( (int) $user_id, $items ) ) {
@@ -676,7 +699,8 @@ function gwcpp_run_daily_review(): array {
 	);
 }
 
-/* ── The run lock ────────────────────────────────────────────────────────────
+/*
+ * ── The run lock ────────────────────────────────────────────────────────────
  * Two things can start this run: the cron event, and gwcpp_review_catch_up() on
  * admin_init. The catch-up checks gwcpp_review_last_run first, but the cron
  * hook does not, and in any case both can read that option before either writes
@@ -692,14 +716,16 @@ function gwcpp_run_daily_review(): array {
  * thing WordPress offers to an atomic test-and-set without reaching for $wpdb.
  * A transient would not do, since on a site with a persistent object cache two
  * web nodes can hold different ideas of one.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** Option: held while a review run is in progress. */
 const GWCPP_REVIEW_LOCK_OPTION = 'gwcpp_review_running';
 
 /** How long before a held lock is assumed to belong to a run that died.
  *  Comfortably longer than any real run, and short enough that a process killed
- *  mid-walk does not stop the reminders for a day. */
+ *  mid-walk does not stop the reminders for a day.
+ */
 const GWCPP_REVIEW_LOCK_TTL = 30 * MINUTE_IN_SECONDS;
 
 /**
@@ -714,9 +740,11 @@ function gwcpp_review_claim_lock(): bool {
 
 	$held = (int) get_option( GWCPP_REVIEW_LOCK_OPTION, 0 );
 
-	/* Still warm: a run really is in progress. Refusing is the whole point —
+	/*
+	 * Still warm: a run really is in progress. Refusing is the whole point —
 	 * the cost of skipping is that reminders go out on the next run instead,
-	 * and the cost of not skipping is that somebody gets the same email twice. */
+	 * and the cost of not skipping is that somebody gets the same email twice.
+	 */
 	if ( $held > 0 && ( time() - $held ) < GWCPP_REVIEW_LOCK_TTL ) {
 		return false;
 	}
@@ -768,11 +796,13 @@ function gwcpp_run_weekly_digest(): array {
 	);
 }
 
-/* ── The emails ──────────────────────────────────────────────────────────────
+/*
+ * ── The emails ──────────────────────────────────────────────────────────────
  * One message per person, not per entry. A partner who looks after four
  * locations getting four separate emails on the same morning reads as spam, and
  * the fourth is the one they stop opening.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * Ask somebody to confirm their entries.
@@ -788,9 +818,11 @@ function gwcpp_review_mail_owner( int $user_id, array $items ): bool {
 		return false;
 	}
 
-	/* The tone comes from the worst entry in the batch. Telling somebody three
+	/*
+	 * The tone comes from the worst entry in the batch. Telling somebody three
 	 * things are fine and one is about to disappear, in a message headed "a
-	 * reminder", buries the only part that matters. */
+	 * reminder", buries the only part that matters.
+	 */
 	$worst = 'due';
 	$order = array(
 		'due'      => 1,
@@ -821,10 +853,12 @@ function gwcpp_review_mail_owner( int $user_id, array $items ): bool {
 		'expired'  => __( 'Because we could not confirm your details, your entry is no longer being shown. Nothing has been deleted — confirming your details puts it straight back.', 'groundwork-common-post-portal' ),
 	);
 
-	/* A durable link rather than an ordinary sign-in one. These sit in inboxes
+	/*
+	 * A durable link rather than an ordinary sign-in one. These sit in inboxes
 	 * for weeks and are stored on the user rather than in a transient, because
 	 * a deploy running `wp transient delete --all` would otherwise kill every
-	 * reminder link in every inbox at once, silently. */
+	 * reminder link in every inbox at once, silently.
+	 */
 	$url = gwcpp_portal_url( array( 'gwcpp_review_token' => gwcpp_mint_durable_token( $user_id, 'review' ) ) );
 
 	$list = '';

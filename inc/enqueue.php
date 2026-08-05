@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── Register early, enqueue late, twice ─────────────────────────────────────
+/*
+ * ── Register early, enqueue late, twice ─────────────────────────────────────
  * Registration happens on wp_enqueue_scripts at priority 5 so a theme can
  * declare our handle as a dependency, or deregister it, from the default
  * priority.
@@ -33,7 +34,8 @@ defined( 'ABSPATH' ) || exit;
  * enqueue_block_assets fires in both contexts, which is exactly the set of
  * places a block's style has to exist. The priority-5 registration still runs
  * before the priority-10 enqueue below.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 add_action( 'enqueue_block_assets', 'gwcpp_register_front_assets', 5 );
 add_action( 'wp_enqueue_scripts', 'gwcpp_register_front_assets', 5 );
@@ -55,10 +57,12 @@ function gwcpp_register_front_assets(): void {
 		GWCPP_VERSION
 	);
 
-	/* Deferred, and with no dependencies. It attaches on DOMContentLoaded and
+	/*
+	 * Deferred, and with no dependencies. It attaches on DOMContentLoaded and
 	 * touches nothing outside its own repeater, so there is no reason for it to
 	 * block rendering — and a portal user on a bad connection should see the
-	 * form before they can add a row to it. */
+	 * form before they can add a row to it.
+	 */
 	wp_register_script(
 		'gwcpp-repeater',
 		GWCPP_URL . 'assets/js/repeater.js',
@@ -135,12 +139,14 @@ function gwcpp_appearance_css(): string {
 			continue;
 		}
 
-		/* Anything with a brace, a semicolon or a comment marker is refused
+		/*
+		 * Anything with a brace, a semicolon or a comment marker is refused
 		 * rather than escaped. These arrive from a settings screen only an
 		 * administrator can reach, so this is not the last line of defence —
 		 * but a value that closes the rule it sits in can write arbitrary CSS
 		 * onto every portal page, and there is no legitimate colour or length
-		 * that needs any of those characters. */
+		 * that needs any of those characters.
+		 */
 		if ( preg_match( '/[{};<>]|\/\*/', $value ) ) {
 			continue;
 		}

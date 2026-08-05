@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── Why this type does not behave like the others ───────────────────────────
+/*
+ * ── Why this type does not behave like the others ───────────────────────────
  * Every other field stores its value in post meta under its own key. This one
  * does not, and cannot: the whole point of using a taxonomy is that the terms
  * are shared, queryable, and already drive archives, filters and menus
@@ -23,7 +24,8 @@ defined( 'ABSPATH' ) || exit;
  * Term creation is off by default. A portal user typing a slightly different
  * spelling of an existing term does not enrich the taxonomy, it forks it, and
  * the site ends up with "Food", "food " and "Foods" as three separate archives.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 add_filter( 'gwcpp_field_types', 'gwcpp_register_taxonomy_type' );
 
@@ -45,9 +47,9 @@ function gwcpp_register_taxonomy_type( array $types ): array {
 		'to_display'    => 'gwcpp_display_taxonomy',
 		'schema_form'   => 'gwcpp_schema_form_taxonomy',
 		'needs_present' => true,
-		/* Read by save.php and by current-values, so neither has to know the
-		 * type slug. A third-party type wanting the same treatment sets this
-		 * and gets it. */
+		// Read by save.php and by current-values, so neither has to know the
+		// type slug. A third-party type wanting the same treatment sets this
+		// and gets it.
 		'is_taxonomy'   => true,
 	);
 
@@ -182,10 +184,12 @@ function gwcpp_sanitize_taxonomy( $raw, array $field = array() ): array {
 			continue;
 		}
 
-		/* Confirmed to belong to THIS taxonomy. A term ID is a global integer,
+		/*
+		 * Confirmed to belong to THIS taxonomy. A term ID is a global integer,
 		 * so a crafted submission could otherwise attach a term from any
 		 * taxonomy on the site — including a private one used for access
-		 * control by some other plugin. */
+		 * control by some other plugin.
+		 */
 		$term = get_term( $term_id, $taxonomy );
 		if ( $term instanceof WP_Term && ! in_array( $term->term_id, $out, true ) ) {
 			$out[] = (int) $term->term_id;

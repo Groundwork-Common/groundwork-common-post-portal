@@ -65,7 +65,8 @@ final class UnpublishTest extends TestCase {
 	 * stored form could republish any draft the submitter could reach — long
 	 * after staff switched the feature off, and including drafts that a portal
 	 * user never took down in the first place.
-	 * ─────────────────────────────────────────────────────────────────────── */
+	 * ───────────────────────────────────────────────────────────────────────
+	 */
 
 	public function test_republishing_puts_it_back_and_clears_the_marker(): void {
 		gwcpp_unpublish_post( self::POST, self::USER );
