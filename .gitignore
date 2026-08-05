@@ -12,11 +12,11 @@ phpunit-*.phar
 # wp-env writes this when a developer overrides ports or mounts locally.
 .wp-env.override.json
 
-# Local-only development scaffolding — mail routing, fixtures, throwaway
-# mu-plugins. Mounted into wp-env by .wp-env.override.json. Nothing in here is
-# loaded on a real site, and nothing in here should ever be relied on by code
-# that ships. The recipe for recreating it is in README.md, so the knowledge is
-# committed even though the files are not.
+# A backstop, nothing more. Development scaffolding used to live here and was
+# lost the first time the working tree was cleaned, taking the seed script and
+# the mail routing with it. Both now live in tests/, which is committed and is
+# excluded from the release zip by .distignore. Do not put anything here that
+# would be missed.
 .dev/
 
 node_modules/

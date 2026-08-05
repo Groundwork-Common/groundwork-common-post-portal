@@ -136,11 +136,41 @@ jobs:
       - name: Run PHPCS
         run: composer run lint
 
-  integration:
-    name: Integration (wp-env)
+  # ── The two versions readme.txt promises ────────────────────────────────────
+  # Read out of readme.txt rather than written here, so "Requires at least" and
+  # "Tested up to" are claims CI enforces instead of numbers somebody typed once
+  # and never checked. Bump either header and the matrix follows.
+  versions:
+    name: Read the supported WordPress versions
     runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.read.outputs.list }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: read
+        run: |
+          min=$(grep -m1 -oE '^Requires at least:[[:space:]]*\S+' readme.txt | awk '{print $NF}')
+          max=$(grep -m1 -oE '^Tested up to:[[:space:]]*\S+' readme.txt | awk '{print $NF}')
+
+          if [ -z "$min" ] || [ -z "$max" ]; then
+            echo "::error::readme.txt is missing Requires at least or Tested up to."
+            exit 1
+          fi
+
+          echo "minimum=$min tested=$max"
+          printf 'list=["%s","%s"]\n' "$min" "$max" >> "$GITHUB_OUTPUT"
+
+  integration:
+    name: Integration (WP ${{ matrix.wp }})
+    runs-on: ubuntu-latest
+    needs: versions
     # Minutes rather than milliseconds, so not on every push to every branch.
     if: github.event_name != 'push' || github.ref == 'refs/heads/main'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        wp: ${{ fromJSON(needs.versions.outputs.list) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -149,52 +179,59 @@ jobs:
         with:
           node-version: '20'
 
-      # ── Mail, without which a third of these tests cannot mean anything ────
-      # The scripts assert that a reminder went out and that a handoff
-      # invitation was recorded — both of which go through wp_mail(), and
-      # wp_mail() returns false in a container with no MTA. The first CI run
-      # failed six assertions for exactly that reason, all of them about mail
-      # rather than about the plugin.
+      # ── Mail, and the WordPress version under test ─────────────────────────
+      # A third of these assertions are about a reminder going out or an
+      # invitation being recorded, and both go through wp_mail(), which returns
+      # false in a container with no MTA. The first CI run failed six of them
+      # for exactly that reason — all about mail, none about the plugin.
       #
-      # The project already solves this locally with Mailpit and a mu-plugin
-      # pointing PHPMailer at it (see README.md). This is the same arrangement,
-      # built at run time: `.dev/` and `.wp-env.override.json` are gitignored
-      # precisely so each environment can supply its own.
+      # The routing itself is tests/mu-plugins/mailpit.php, the same committed
+      # file used locally. Only the host and port differ, and it reads those
+      # from constants that wp-env writes into wp-config.php. This step used to
+      # generate a second copy of that file inline, which meant two versions to
+      # keep in step and the CI one invisible to anybody reading the repo.
       #
-      # Mailpit joins wp-env's own Docker network afterwards and answers to the
-      # hostname `mailpit`, which avoids guessing at a bridge gateway address —
-      # a user-defined network does not put the host on 172.17.0.1.
-      - name: Route mail to Mailpit
+      # Mailpit joins wp-env's own network below and answers to the hostname
+      # `mailpit`, which avoids guessing at a bridge gateway address — a
+      # user-defined network does not put the host on 172.17.0.1.
+      #
+      # `core` pins the WordPress under test. wp-env takes null to mean latest,
+      # which is what the maximum in the matrix should follow.
+      - name: Configure mail and pin WordPress
         run: |
-          mkdir -p .dev/mu-plugins
-          cat > .dev/mu-plugins/mailpit.php <<'PHP'
-          <?php
-          /**
-           * Send this environment's mail to Mailpit rather than nowhere.
-           *
-           * Without it wp_mail() returns false in CI and every assertion about
-           * a reminder or an invitation fails for a reason that has nothing to
-           * do with the plugin.
-           */
-          add_action(
-              'phpmailer_init',
-              static function ( $phpmailer ) {
-                  $phpmailer->isSMTP();
-                  $phpmailer->Host        = 'mailpit';
-                  $phpmailer->Port        = 1025;
-                  $phpmailer->SMTPAuth    = false;
-                  $phpmailer->SMTPAutoTLS = false;
-                  $phpmailer->SMTPSecure  = '';
-              }
-          );
+          if [ "${{ matrix.wp }}" = "latest" ]; then
+            core=null
+          else
+            core="\"https://wordpress.org/wordpress-${{ matrix.wp }}.zip\""
+          fi
 
-          add_filter( 'wp_mail_from', static fn() => 'ci@example.test' );
-          add_filter( 'wp_mail_from_name', static fn() => 'CI' );
-          PHP
-          printf '{ "mappings": { "wp-content/mu-plugins": "./.dev/mu-plugins" } }\n' > .wp-env.override.json
+          cat > .wp-env.override.json <<JSON
+          {
+            "core": $core,
+            "mappings": { "wp-content/mu-plugins": "./tests/mu-plugins" },
+            "config": {
+              "GWCPP_MAILPIT_HOST": "mailpit",
+              "GWCPP_MAILPIT_PORT": 1025
+            }
+          }
+          JSON
+
+          cat .wp-env.override.json
 
       - name: Start WordPress
-        run: npx --yes @wordpress/env start
+        run: npx --yes @wordpress/env start --update
+
+      # wp-env falls back to latest if it cannot fetch a pinned core, which
+      # would turn "we tested 6.3" into "we tested whatever downloaded".
+      - name: Confirm the version actually running
+        run: |
+          got=$(npx --yes @wordpress/env run tests-cli wp core version 2>/dev/null | tr -d '\r' | grep -oE '^[0-9.]+' | head -1)
+          echo "running: $got, wanted: ${{ matrix.wp }}"
+
+          if [ "${{ matrix.wp }}" != "latest" ] && [ "${got%.*}" != "${{ matrix.wp }}" ] && [ "$got" != "${{ matrix.wp }}" ]; then
+            echo "::error::Wanted WordPress ${{ matrix.wp }} but got $got."
+            exit 1
+          fi
 
       - name: Attach Mailpit to the wp-env network
         run: |
