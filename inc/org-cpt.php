@@ -83,7 +83,9 @@ function gwcpp_register_org_type(): void {
 		'publicly_queryable' => false,
 		'exclude_from_search' => true,
 		'show_ui'         => true,
-		'show_in_menu'    => GWCPP_MENU_SLUG,
+		/* The Portal menu's slug is the queue's, not the settings screen's — see
+		 * gwcpp_admin_menu(). gwcpp_order_submenu() then places this between them. */
+		'show_in_menu'    => GWCPP_QUEUE_SLUG,
 		'show_in_rest'    => false,
 		'has_archive'     => false,
 		'rewrite'         => false,

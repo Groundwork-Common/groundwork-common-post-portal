@@ -73,9 +73,9 @@ maintained.
 2. Create a page for the portal and add the **Post Portal** block to it.
 3. Go to **Portal → Settings**, choose which post types the portal covers, and
    select the page you just made.
-4. Go to **Portal → Fields**, pick a post type, and map the fields end users may
-   edit. If your fields are already registered with `register_meta()`, the
-   **Import fields** button will find them.
+4. Open the **Fields** tab on that same screen, pick a post type, and map the
+   fields end users may edit. If your fields are already registered with
+   `register_meta()`, the **Import fields** button will find them.
 5. Create an organisation under **Portal → Organisations** and invite somebody
    by email.
 
@@ -139,7 +139,7 @@ directly. The "author may edit their own" path is off by default.
 
 1. The portal as an end user sees it: their organisation's posts, and nothing else.
 2. Editing a post from the front end, with only the fields you mapped.
-3. The Fields screen, where you decide what a field is.
+3. The Fields tab, where you decide what a field is.
 4. A pending change waiting for approval, shown as old versus new.
 
 == Changelog ==

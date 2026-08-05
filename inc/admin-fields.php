@@ -36,22 +36,16 @@ function gwcpp_fields_post_type(): string {
 /**
  * The Fields screen.
  */
-function gwcpp_fields_screen(): void {
+function gwcpp_render_fields_tab(): void {
 	gwcpp_require_admin_caps();
 
 	$post_type = gwcpp_fields_post_type();
 
-	echo '<div class="wrap gwcpp-admin">';
-	printf( '<h1>%s</h1>', esc_html__( 'Portal Fields', 'groundwork-common-post-portal' ) );
-
-	gwcpp_render_admin_notice();
-
 	if ( '' === $post_type ) {
 		printf(
 			'<div class="notice notice-warning"><p>%s</p></div>',
-			esc_html__( 'Switch on a post type under Portal → Settings first, then come back here to choose what people may edit on it.', 'groundwork-common-post-portal' )
+			esc_html__( 'Switch on a post type on the General tab first, then come back here to choose what people may edit on it.', 'groundwork-common-post-portal' )
 		);
-		echo '</div>';
 		return;
 	}
 
@@ -66,8 +60,28 @@ function gwcpp_fields_screen(): void {
 	gwcpp_render_field_table( $post_type );
 	gwcpp_render_field_editor( $post_type );
 	echo '</div>';
+}
 
-	echo '</div>';
+/**
+ * A URL on the Fields tab.
+ *
+ * One builder rather than the slug written out at each link, so that the tab
+ * moving again is one edit and not five.
+ *
+ * @param array<string, string> $args Extra query arguments.
+ * @return string
+ */
+function gwcpp_fields_url( array $args = array() ): string {
+	return add_query_arg(
+		array_merge(
+			array(
+				'page' => GWCPP_MENU_SLUG,
+				'tab'  => 'fields',
+			),
+			$args
+		),
+		admin_url( 'admin.php' )
+	);
 }
 
 /**
@@ -94,7 +108,7 @@ function gwcpp_render_type_switcher( string $current ): void {
 		}
 		printf(
 			'<a href="%s" class="nav-tab%s">%s</a>',
-			esc_url( admin_url( 'admin.php?page=gwcpp-fields&gwcpp_type=' . rawurlencode( $post_type ) ) ),
+			esc_url( gwcpp_fields_url( array( 'gwcpp_type' => $post_type ) ) ),
 			$post_type === $current ? ' nav-tab-active' : '',
 			esc_html( $object->labels->name )
 		);
@@ -177,8 +191,11 @@ function gwcpp_render_field_table( string $post_type ): void {
 		printf(
 			'<a href="%s">%s</a>',
 			esc_url(
-				admin_url(
-					'admin.php?page=gwcpp-fields&gwcpp_type=' . rawurlencode( $post_type ) . '&edit=' . rawurlencode( $key )
+				gwcpp_fields_url(
+					array(
+						'gwcpp_type' => $post_type,
+						'edit'       => $key,
+					)
 				)
 			),
 			esc_html__( 'Edit', 'groundwork-common-post-portal' )
@@ -353,7 +370,7 @@ function gwcpp_render_field_editor( string $post_type ): void {
 	if ( '' !== $edit_key ) {
 		printf(
 			'<a class="button-link" href="%s">%s</a>',
-			esc_url( admin_url( 'admin.php?page=gwcpp-fields&gwcpp_type=' . rawurlencode( $post_type ) ) ),
+			esc_url( gwcpp_fields_url( array( 'gwcpp_type' => $post_type ) ) ),
 			esc_html__( 'Cancel', 'groundwork-common-post-portal' )
 		);
 	}
@@ -453,13 +470,11 @@ function gwcpp_handler_post_type(): string {
  */
 function gwcpp_fields_redirect( string $post_type, string $code ): void {
 	wp_safe_redirect(
-		add_query_arg(
+		gwcpp_fields_url(
 			array(
-				'page'         => 'gwcpp-fields',
 				'gwcpp_type'   => $post_type,
 				'gwcpp_notice' => $code,
-			),
-			admin_url( 'admin.php' )
+			)
 		)
 	);
 	exit;

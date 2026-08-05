@@ -139,7 +139,12 @@ function gwcpp_appearance_css(): string {
 function gwcpp_admin_assets( $hook ): void {
 	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 
-	$ours = ( is_string( $hook ) && false !== strpos( $hook, GWCPP_MENU_SLUG ) )
+	/* Matched on our slug PREFIX, not on the settings slug. WordPress builds a
+	 * submenu's hook as "{parent menu title}_page_{slug}", so the only screen
+	 * whose hook ever contained GWCPP_MENU_SLUG was the one whose slug that is —
+	 * Pending Changes came through as "portal_page_gwcpp-pending" and matched
+	 * nothing, which is why its diff tables rendered unstyled. */
+	$ours = ( is_string( $hook ) && false !== strpos( $hook, 'gwcpp-' ) )
 		|| ( $screen && GWCPP_ORG_TYPE === $screen->post_type )
 		|| ( $screen && 'post' === $screen->base && gwcpp_type_enabled( (string) $screen->post_type ) );
 
