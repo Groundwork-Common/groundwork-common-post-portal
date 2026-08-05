@@ -17,14 +17,24 @@ defined( 'ABSPATH' ) || exit;
 add_filter( 'wp_mail_from', static fn() => 'portal@example.test' );
 add_filter( 'wp_mail_from_name', static fn() => 'Post Portal (dev)' );
 
+/*
+ * Host and port come from constants so one committed file serves both
+ * environments. Locally Mailpit runs on the host and is reached through
+ * host.docker.internal; in CI it joins wp-env's own Docker network and answers
+ * to the alias `mailpit` on the standard port. Before this, CI generated a
+ * second copy of this file with different values — two things to keep in step,
+ * and the CI one was invisible to anybody reading the repository.
+ *
+ * wp-env writes these into wp-config.php from the `config` key.
+ */
 add_action(
 	'phpmailer_init',
 	static function ( $phpmailer ): void {
 		$phpmailer->isSMTP();
 		// Not localhost: this runs inside the container, where localhost is the
 		// container itself.
-		$phpmailer->Host        = 'host.docker.internal';
-		$phpmailer->Port        = 1027;
+		$phpmailer->Host        = defined( 'GWCPP_MAILPIT_HOST' ) ? GWCPP_MAILPIT_HOST : 'host.docker.internal';
+		$phpmailer->Port        = defined( 'GWCPP_MAILPIT_PORT' ) ? (int) GWCPP_MAILPIT_PORT : 1027;
 		$phpmailer->SMTPAuth    = false;
 		// Mailpit speaks plain SMTP; SMTPAutoTLS would try STARTTLS and fail.
 		$phpmailer->SMTPAutoTLS = false;

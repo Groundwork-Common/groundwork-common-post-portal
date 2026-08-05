@@ -29,6 +29,22 @@ WordPress 6.3, PHP 7.4. No build step, no Composer, no npm for anything that
 ships. The block's `edit.js` is hand-written ES5 against `wp.element`, and its
 `edit.asset.php` is hand-written to match.
 
+Both WordPress numbers are claims CI enforces rather than numbers somebody
+typed. The `versions` job reads **Requires at least** and **Tested up to** out
+of `readme.txt` and the integration suite runs against each, so bumping either
+header changes what is tested. A pinned core that fails to download would
+otherwise fall back to latest silently, turning "we tested 6.3" into "we tested
+whatever downloaded" — so the job also asserts the version that actually booted.
+
+`6.3` is the floor because of two APIs the plugin genuinely uses: **Block API
+v3**, and the `strategy` argument to `wp_register_script()` that loads the
+repeater deferred. Both were verified working on 6.3 rather than assumed.
+
+`.wp-env.json` pins core to an exact release rather than `null`. Unpinned, every
+run tested whatever happened to be current that day, which is a poor basis for a
+compatibility claim — and made the first symptom of a WordPress change "a test
+failed on my machine and not yours".
+
 ## Authorization
 
 `gwcpp_user_can_edit_post( int $user_id, int $post_id ): bool` in
