@@ -27,6 +27,7 @@ define( 'ABSPATH', __DIR__ . '/' );
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'HOUR_IN_SECONDS', 3600 );
 define( 'DAY_IN_SECONDS', 86400 );
+define( 'WEEK_IN_SECONDS', 604800 );
 define( 'MB_IN_BYTES', 1048576 );
 
 define( 'GWCPP_DIR', dirname( __DIR__ ) . '/' );
@@ -190,7 +191,19 @@ function update_option( $name, $value, $autoload = null ) {
 	return true;
 }
 
+/**
+ * Honest about its return value, because something depends on it.
+ *
+ * The real add_option() inserts only when the row does not exist and returns
+ * false when it does — which is what makes it usable as a test-and-set, and is
+ * exactly how gwcpp_review_claim_lock() uses it. A stub that always returned
+ * true would make the lock look like it worked while testing nothing.
+ */
 function add_option( $name, $value, $deprecated = '', $autoload = null ) {
+	if ( array_key_exists( $name, $GLOBALS['gwcpp_test']['options'] ) ) {
+		return false;
+	}
+
 	return update_option( $name, $value );
 }
 
@@ -379,6 +392,39 @@ function get_userdata( $id ) {
 	return $GLOBALS['gwcpp_test']['users'][ (int) $id ] ?? false;
 }
 
+/**
+ * Look a user up the way WordPress does.
+ *
+ * Honest about the three fields the plugin actually asks for, and returns false
+ * for anything else rather than guessing — a stub that matched more broadly than
+ * the real function would let a test pass on a lookup a site would refuse.
+ *
+ * @param string $field id | ID | email | login.
+ * @param mixed  $value What to match.
+ * @return GWCPP_Test_User|false
+ */
+function get_user_by( $field, $value ) {
+	$field = strtolower( (string) $field );
+
+	if ( 'id' === $field ) {
+		return $GLOBALS['gwcpp_test']['users'][ (int) $value ] ?? false;
+	}
+
+	$property = 'email' === $field ? 'user_email' : ( 'login' === $field ? 'user_login' : '' );
+
+	if ( '' === $property ) {
+		return false;
+	}
+
+	foreach ( $GLOBALS['gwcpp_test']['users'] as $user ) {
+		if ( strtolower( (string) $user->$property ) === strtolower( (string) $value ) ) {
+			return $user;
+		}
+	}
+
+	return false;
+}
+
 function wp_get_current_user() {
 	return $GLOBALS['gwcpp_test']['users'][ $GLOBALS['gwcpp_test']['current_user'] ?? 0 ] ?? false;
 }
@@ -433,6 +479,23 @@ function maybe_serialize_test( $value ) {
 }
 
 function get_posts( $args = array() ) {
+	return array();
+}
+
+/* Genuinely no-ops here, and that is honest rather than lazy: the in-memory
+ * store has no cache layer in front of it — get_post() and get_post_meta() read
+ * it directly — so there is nothing for priming to fill. They exist so that the
+ * priming call in gwcpp_editable_post_ids() does not fatal the moment a test
+ * gives get_posts() something to return, which is a trap worth not leaving.
+ *
+ * The thing priming is for — turning N round trips into one — is not observable
+ * without a real database, and is verified by counting queries in
+ * tests/integration/access.php instead. */
+function _prime_post_caches( $ids, $update_term_cache = true, $update_meta_cache = true ) {
+	return null;
+}
+
+function update_meta_cache( $meta_type, $object_ids ) {
 	return array();
 }
 

@@ -66,12 +66,18 @@ function gwcpp_register_richtext_type( array $types ): array {
  * @return array
  */
 function gwcpp_richtext_allowed_html(): array {
-	$common = array(
-		// Deliberately no `class` and no `style`. Both let submitted content
-		// borrow the site's own visual language, which is how a paragraph comes
-		// to look like an official notice.
-		'id' => false,
-	);
+	/* Empty, and it has to be written this way. No `class` and no `style`,
+	 * because both let submitted content borrow the site's own visual language,
+	 * which is how a paragraph comes to look like an official notice — and no
+	 * `id` either, for the same reason plus DOM clobbering and anchor hijacking.
+	 *
+	 * This used to say `'id' => false`, which reads as "not allowed" and is not.
+	 * wp_kses_attr_check() rejects on `! isset( $allowed[ $name ] ) || '' ===
+	 * $allowed[ $name ]`; isset() is true for false and '' === false is false,
+	 * so the attribute passed the gate, and is_array( false ) then skipped the
+	 * value check — allowing `id` unconditionally on every tag below. An
+	 * attribute is excluded by not appearing here at all. */
+	$common = array();
 
 	/**
 	 * The HTML a portal user may submit.
@@ -161,7 +167,7 @@ function gwcpp_harden_links( string $html ): string {
 /**
  * The editor.
  *
- * teeny mode: bold, italic, lists, link, and nothing else. The full editor
+ * Teeny mode: bold, italic, lists, link, and nothing else. The full editor
  * offers controls for things the allow-list above silently removes on save,
  * and a toolbar button whose effect vanishes when you press Save is worse than
  * no button.

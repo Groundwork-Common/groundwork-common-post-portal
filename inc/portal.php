@@ -32,6 +32,10 @@ function gwcpp_dispatch(): void {
 
 	gwcpp_send_no_cache_headers();
 
+	/* Same reasoning as the POST block below: this only chooses which handler
+	 * runs. Each token link authenticates with its own single-use token, and
+	 * whoever follows one has no session to mint a nonce against. */
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended
 	$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
 
 	if ( 'GET' === $method && isset( $_GET['gwcpp_token'] ) ) {
@@ -52,6 +56,7 @@ function gwcpp_dispatch(): void {
 		gwcpp_handle_handoff_link();
 		return;
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 	if ( 'POST' !== $method ) {
 		return;
@@ -108,7 +113,7 @@ function gwcpp_dispatch(): void {
  */
 function gwcpp_send_no_cache_headers(): void {
 	if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-		define( 'DONOTCACHEPAGE', true );
+		define( 'DONOTCACHEPAGE', true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- The name every caching plugin looks for; prefixing it would mean nothing reads it.
 	}
 
 	nocache_headers();
@@ -191,7 +196,7 @@ function gwcpp_guard_post( string $nonce_field, string $action ): int {
 					'gwcpp_post' => $post_id,
 				)
 			),
-			GWCPP_STALE_FORM
+			gwcpp_stale_form_message()
 		);
 	}
 
@@ -219,7 +224,7 @@ function gwcpp_handle_save(): void {
 
 	// Once, before validation, so a rejected upload is reported beside its own
 	// field rather than swallowed.
-	$upload  = gwcpp_apply_uploads( $post->post_type, $values, $user_id );
+	$upload  = gwcpp_apply_uploads( $post->post_type, $values, $user_id, $post_id );
 	$values  = $upload['values'];
 
 	$errors  = gwcpp_validate_submission( $post->post_type, $values, $dropped ) + $upload['errors'];
@@ -264,7 +269,7 @@ function gwcpp_handle_save(): void {
 
 	if ( gwcpp_type_setting( $post->post_type, 'require_approval' ) ) {
 		gwcpp_store_changeset( $post_id, $user_id, $values, $upload['uploaded'] );
-		gwcpp_notify_staff_change( $post_id, $user_id, $diff, true );
+		gwcpp_note_staff_notification( gwcpp_notify_staff_change( $post_id, $user_id, $diff, true ) );
 
 		gwcpp_bail(
 			$edit_url,
@@ -276,7 +281,7 @@ function gwcpp_handle_save(): void {
 	gwcpp_attach_uploads( $upload['uploaded'], $post_id );
 	gwcpp_save_fields( $post_id, $values );
 	gwcpp_log_change( $post_id, $user_id, 0, $diff );
-	gwcpp_notify_staff_change( $post_id, $user_id, $diff, false );
+	gwcpp_note_staff_notification( gwcpp_notify_staff_change( $post_id, $user_id, $diff, false ) );
 
 	gwcpp_bail(
 		$edit_url,
@@ -305,7 +310,7 @@ function gwcpp_handle_create(): void {
 		! isset( $_POST['gwcpp_create_nonce'] )
 		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gwcpp_create_nonce'] ) ), 'gwcpp_create_' . $post_type )
 	) {
-		gwcpp_bail( gwcpp_portal_url(), GWCPP_STALE_FORM );
+		gwcpp_bail( gwcpp_portal_url(), gwcpp_stale_form_message() );
 	}
 
 	if ( ! gwcpp_type_enabled( $post_type ) || ! gwcpp_type_setting( $post_type, 'allow_create' ) ) {
@@ -770,7 +775,7 @@ function gwcpp_render_new_view( int $user_id ): void {
  * note in auth.php about why these do not live in a transient.
  */
 function gwcpp_handle_review_link(): void {
-	$token = isset( $_GET['gwcpp_review_token'] ) ? sanitize_text_field( wp_unslash( $_GET['gwcpp_review_token'] ) ) : '';
+	$token = isset( $_GET['gwcpp_review_token'] ) ? sanitize_text_field( wp_unslash( $_GET['gwcpp_review_token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A single-use token in the URL is the authentication here; the recipient has no session yet, so there is no nonce to check.
 
 	if ( gwcpp_request_is_automated() ) {
 		return;

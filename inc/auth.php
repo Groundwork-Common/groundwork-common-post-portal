@@ -211,7 +211,7 @@ function gwcpp_consume_token( string $token, string $purpose = 'signin' ): int {
 	 * plenty of things listen for it: security logs, last-seen timestamps,
 	 * two-factor plugins. Firing it manually keeps a magic-link sign-in
 	 * indistinguishable from any other, which is what those listeners assume. */
-	do_action( 'wp_login', $user->user_login, $user );
+	do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core's own hook, fired on purpose: see the note above.
 
 	return $user_id;
 }
@@ -338,7 +338,7 @@ function gwcpp_consume_durable_token( string $token, string $purpose = 'review' 
 
 	wp_set_auth_cookie( $user_id, false );
 	wp_set_current_user( $user_id );
-	do_action( 'wp_login', $user->user_login, $user );
+	do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core's own hook, fired on purpose: see the note above.
 
 	return $user_id;
 }
@@ -446,6 +446,117 @@ function gwcpp_rate_limits(): array {
 }
 
 /**
+ * The windows for the password sign-in form.
+ *
+ * ── Why these are separate counters and not the ones above ───────────────────
+ * Because sharing them would put the lockout back, through a different door.
+ * The site-wide sign-in backstop is thirty an hour; if password attempts spent
+ * it, anyone could make thirty-one guesses at a plausible username and leave
+ * every partner unable to request a magic link for the rest of the hour. Two
+ * throttles that protect different things must not share a budget.
+ *
+ * Tighter than the link windows, because the thing being guessed here is a
+ * credential rather than an address: a person who has genuinely forgotten which
+ * password they used does not need fifty attempts, and an attacker does.
+ *
+ * @return array<string, array{limit:int, window:int}>
+ */
+function gwcpp_login_rate_limits(): array {
+	/**
+	 * Password sign-in rate limits.
+	 *
+	 * @param array $limits Keyed by scope.
+	 */
+	return (array) apply_filters(
+		'gwcpp_login_rate_limits',
+		array(
+			'ip'     => array(
+				'limit'  => 10,
+				'window' => 15 * MINUTE_IN_SECONDS,
+			),
+			// Per account. Low on purpose: this is the counter that turns
+			// password guessing from cheap into pointless.
+			'id'     => array(
+				'limit'  => 5,
+				'window' => HOUR_IN_SECONDS,
+			),
+			'global' => array(
+				'limit'  => 50,
+				'window' => HOUR_IN_SECONDS,
+			),
+		)
+	);
+}
+
+/**
+ * The windows for handing an entry over to somebody else.
+ *
+ * Handoff sends two emails per submission — one to an address the submitter
+ * typed — and creates an account when it is accepted. Unthrottled, a signed-in
+ * portal user can drive unlimited mail to arbitrary addresses from the site's
+ * domain, which is a reputation problem for the site and a nuisance for whoever
+ * is on the receiving end.
+ *
+ * Keyed on the person doing the handing over rather than on the address they
+ * typed, because varying the address is free and being a different signed-in
+ * user is not.
+ *
+ * @return array<string, array{limit:int, window:int}>
+ */
+function gwcpp_handoff_rate_limits(): array {
+	/**
+	 * Handoff invitation rate limits.
+	 *
+	 * @param array $limits Keyed by scope.
+	 */
+	return (array) apply_filters(
+		'gwcpp_handoff_rate_limits',
+		array(
+			'ip'     => array(
+				'limit'  => 10,
+				'window' => DAY_IN_SECONDS,
+			),
+			// Per user. Handing over is a thing somebody does once, occasionally
+			// twice when they mistype the address. Five a day is generous.
+			'id'     => array(
+				'limit'  => 5,
+				'window' => DAY_IN_SECONDS,
+			),
+			'global' => array(
+				'limit'  => 100,
+				'window' => DAY_IN_SECONDS,
+			),
+		)
+	);
+}
+
+/**
+ * Every window the plugin throttles on, flattened to `purpose:scope`.
+ *
+ * Used by the pruner, which sees whatever keys are in the option and needs a
+ * window for each without knowing which purpose wrote it.
+ *
+ * @return array<string, array{limit:int, window:int}>
+ */
+function gwcpp_all_rate_limits(): array {
+	$all = array();
+
+	$purposes = array(
+		'signin'  => gwcpp_rate_limits(),
+		'login'   => gwcpp_login_rate_limits(),
+		'handoff' => gwcpp_handoff_rate_limits(),
+	);
+
+	foreach ( $purposes as $purpose => $limits ) {
+		foreach ( (array) $limits as $scope => $window ) {
+			$all[ $purpose . ':' . $scope ] = $window;
+		}
+	}
+
+	return $all;
+}
+
+/**
  * Count this attempt, and say whether it is over a limit.
  *
  * Counts first and reports second, deliberately: an attempt that is refused
@@ -456,16 +567,65 @@ function gwcpp_rate_limits(): array {
  * @return bool True when the request should be refused.
  */
 function gwcpp_rate_limited( string $email ): bool {
-	$limits = gwcpp_rate_limits();
-	$now    = time();
-	$state  = get_option( 'gwcpp_rate_limits' );
-	$state  = is_array( $state ) ? $state : array();
+	return gwcpp_rate_limit_hit( 'signin', $email, gwcpp_rate_limits() );
+}
+
+/**
+ * As above, for the password form.
+ *
+ * @param string $login Username being attempted.
+ * @return bool True when the request should be refused.
+ */
+function gwcpp_login_rate_limited( string $login ): bool {
+	return gwcpp_rate_limit_hit( 'login', strtolower( $login ), gwcpp_login_rate_limits() );
+}
+
+/**
+ * As above, for handoff invitations.
+ *
+ * @param int $user_id Who is handing over.
+ * @return bool True when the request should be refused.
+ */
+function gwcpp_handoff_rate_limited( int $user_id ): bool {
+	return gwcpp_rate_limit_hit( 'handoff', 'user-' . $user_id, gwcpp_handoff_rate_limits() );
+}
+
+/**
+ * The counting itself, shared by every throttled action.
+ *
+ * Scopes are stored under `purpose:scope` so that two throttles protecting
+ * different things never share a budget — see the note on
+ * gwcpp_login_rate_limits() for what happens when they do.
+ *
+ * The subject is hashed rather than stored. The option is readable by anything
+ * with database access, and a list of every address and username that ever tried
+ * to sign in is a list worth not keeping.
+ *
+ * @param string $purpose Which throttle: signin | login | handoff.
+ * @param string $subject What is being counted — an address, a username, a user.
+ * @param array  $limits  Windows for this purpose, keyed by scope.
+ * @return bool True when the request should be refused.
+ */
+function gwcpp_rate_limit_hit( string $purpose, string $subject, array $limits ): bool {
+	$now   = time();
+	$state = get_option( 'gwcpp_rate_limits' );
+	$state = is_array( $state ) ? $state : array();
 
 	$keys = array(
 		'ip'     => hash( 'sha256', gwcpp_client_ip() ),
-		'email'  => hash( 'sha256', strtolower( $email ) ),
+		'id'     => hash( 'sha256', $subject ),
 		'global' => 'all',
 	);
+
+	/* The sign-in windows have always called their per-subject scope `email`,
+	 * and that name is in a documented filter. Kept rather than renamed. */
+	if ( 'signin' === $purpose ) {
+		$keys = array(
+			'ip'     => $keys['ip'],
+			'email'  => hash( 'sha256', strtolower( $subject ) ),
+			'global' => 'all',
+		);
+	}
 
 	$over = false;
 
@@ -477,7 +637,9 @@ function gwcpp_rate_limited( string $email ): bool {
 			continue;
 		}
 
-		$entry = $state[ $scope ][ $key ] ?? array(
+		$bucket = $purpose . ':' . $scope;
+
+		$entry = $state[ $bucket ][ $key ] ?? array(
 			'start' => 0,
 			'count' => 0,
 		);
@@ -494,14 +656,14 @@ function gwcpp_rate_limited( string $email ): bool {
 		}
 
 		++$entry['count'];
-		$state[ $scope ][ $key ] = $entry;
+		$state[ $bucket ][ $key ] = $entry;
 
 		if ( (int) $entry['count'] > $limit ) {
 			$over = true;
 		}
 	}
 
-	$state = gwcpp_prune_rate_state( $state, $limits, $now );
+	$state = gwcpp_prune_rate_state( $state, gwcpp_all_rate_limits(), $now );
 
 	update_option( 'gwcpp_rate_limits', $state, false );
 
@@ -517,8 +679,14 @@ function gwcpp_rate_limited( string $email ): bool {
  * it rather than in cron, which is the right place for it: an attacker filling
  * the table is also the one paying to clean it.
  *
+ * Given the flattened `purpose:scope` map from gwcpp_all_rate_limits(), so it
+ * can age out a bucket without knowing which throttle wrote it. A key it does
+ * not recognise falls back to an hour — which is also how counters left behind
+ * by the older unprefixed shape clear themselves after one upgrade, with no
+ * migration to write and nothing worse than a briefly forgotten counter.
+ *
  * @param array $state  Current state.
- * @param array $limits Window configuration.
+ * @param array $limits Window configuration, keyed as `purpose:scope`.
  * @param int   $now    Timestamp.
  * @return array
  */
@@ -546,6 +714,14 @@ function gwcpp_prune_rate_state( array $state, array $limits, int $now ): array 
 		if ( isset( $state[ $scope ] ) && count( $state[ $scope ] ) > 5000 ) {
 			$state[ $scope ] = array();
 		}
+
+		/* And a scope with nothing left in it goes too, rather than sitting
+		 * there as an empty array forever. Mostly tidiness — but it is also what
+		 * clears the counters written by the older unprefixed scope names, which
+		 * are otherwise emptied on the first prune and then kept for good. */
+		if ( empty( $state[ $scope ] ) ) {
+			unset( $state[ $scope ] );
+		}
 	}
 
 	return $state;
@@ -571,6 +747,38 @@ function gwcpp_client_ip(): string {
 /* ── Sign-in handlers ────────────────────────────────────────────────────── */
 
 /**
+ * Whether a sign-in submission is worth spending a rate-limit slot on.
+ *
+ * ── Why this is a named function and not an inline condition ─────────────────
+ * Because the order it imposes is the whole of a denial-of-service fix, and an
+ * inline condition is exactly the kind of thing that gets quietly reordered by
+ * somebody tidying up.
+ *
+ * gwcpp_rate_limited() counts before it reports — deliberately; see the note on
+ * it — so calling it on a submission that was never going to send anything hands
+ * an attacker the counter for free. The `global` window is thirty an hour, and a
+ * WordPress nonce for a logged-out visitor is the same nonce for every other
+ * logged-out visitor, so one fetch of the portal page buys unlimited replays.
+ * Thirty-one POSTs with rubbish in the address field would then refuse every
+ * real partner a sign-in link for the rest of the hour — silently, because the
+ * response says the same thing either way. Bot traffic the honeypot had already
+ * caught was spending it too.
+ *
+ * So the checks that cost nothing run first, and only a submission that could
+ * actually have produced an email is counted. The per-address and per-IP windows
+ * are unaffected: a well-formed address still counts against both whether or not
+ * an account exists, which is what stops this form being used to mailbomb
+ * somebody.
+ *
+ * @param string $honeypot The hidden field a person never sees and a bot fills in.
+ * @param string $email    The submitted address, already sanitized.
+ * @return bool
+ */
+function gwcpp_signin_worth_counting( string $honeypot, string $email ): bool {
+	return '' === $honeypot && '' !== $email && is_email( $email );
+}
+
+/**
  * Handle a request for a sign-in link.
  *
  * ── Why this is written so carefully ─────────────────────────────────────────
@@ -591,7 +799,7 @@ function gwcpp_handle_link_request(): void {
 		! isset( $_POST['gwcpp_signin_nonce'] )
 		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gwcpp_signin_nonce'] ) ), 'gwcpp_signin' )
 	) {
-		gwcpp_bail( gwcpp_portal_url(), GWCPP_STALE_FORM );
+		gwcpp_bail( gwcpp_portal_url(), gwcpp_stale_form_message() );
 	}
 
 	/* A hidden field a person never sees and a bot fills in. Cheap, silent, and
@@ -603,8 +811,9 @@ function gwcpp_handle_link_request(): void {
 		? sanitize_email( trim( (string) wp_unslash( $_POST['gwcpp_email'] ) ) )
 		: '';
 
-	$limited = '' !== $email && gwcpp_rate_limited( $email );
-	$send    = '' === $honeypot && '' !== $email && is_email( $email ) && ! $limited;
+	$wanted  = gwcpp_signin_worth_counting( $honeypot, $email );
+	$limited = $wanted && gwcpp_rate_limited( $email );
+	$send    = $wanted && ! $limited;
 
 	$user = $send ? get_user_by( 'email', $email ) : false;
 	$send = $send && $user instanceof WP_User && gwcpp_user_is_portal_user( $user->ID );
@@ -626,9 +835,9 @@ function gwcpp_handle_link_request(): void {
 /**
  * Pad to the constant-time floor, redirect, and let the browser go.
  *
- * fastcgi_finish_request() sends the response and returns, leaving PHP running.
- * Anything after this call costs the visitor nothing — which is what makes the
- * mail send unobservable rather than merely padded.
+ * Calling fastcgi_finish_request() sends the response and returns, leaving PHP
+ * running. Anything after this call costs the visitor nothing — which is what
+ * makes the mail send unobservable rather than merely padded.
  *
  * Where it is unavailable (mod_php, some FPM configurations), the padding above
  * is still doing its job; the send time is then visible, but it is visible
@@ -684,7 +893,7 @@ function gwcpp_send_magic_link( WP_User $user ): bool {
  * Handle a magic link arriving.
  */
 function gwcpp_handle_magic_link(): void {
-	$token = isset( $_GET['gwcpp_token'] ) ? sanitize_text_field( wp_unslash( $_GET['gwcpp_token'] ) ) : '';
+	$token = isset( $_GET['gwcpp_token'] ) ? sanitize_text_field( wp_unslash( $_GET['gwcpp_token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A single-use token in the URL is the authentication here; the recipient has no session yet, so there is no nonce to check.
 
 	/* Automated fetches are refused before the token is spent. A mail client
 	 * that prefetches links, a scanner in a corporate gateway, or a chat app
@@ -738,40 +947,75 @@ function gwcpp_request_is_automated(): bool {
 
 /**
  * Handle an ordinary username-and-password sign-in.
+ *
+ * ── Why this needs a throttle of its own ─────────────────────────────────────
+ * It is the only endpoint on the portal page that accepts a guessable
+ * credential, and when `signin_password` is on it is reachable by anybody at
+ * all. The nonce above is not a gate: WordPress issues one nonce for every
+ * logged-out visitor, so it is fetched once and replayed for as long as it
+ * lasts. Nothing else here costs an attacker anything.
+ *
+ * The counters are gwcpp_login_rate_limits(), separate from the magic-link
+ * windows on purpose — see the note there.
  */
 function gwcpp_handle_password_login(): void {
+	$start = microtime( true );
+
 	if (
 		! isset( $_POST['gwcpp_login_nonce'] )
 		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gwcpp_login_nonce'] ) ), 'gwcpp_login' )
 	) {
-		gwcpp_bail( gwcpp_portal_url(), GWCPP_STALE_FORM );
+		gwcpp_bail( gwcpp_portal_url(), gwcpp_stale_form_message() );
 	}
 
 	if ( ! gwcpp_setting( 'signin_password' ) ) {
 		gwcpp_bail( gwcpp_portal_url() );
 	}
 
-	$user = wp_signon(
-		array(
-			// Not sanitized, and not unslashed: wp_signon compares the password
-			// byte for byte against a hash, so anything done to it here is a
-			// silent authentication failure for passwords containing quotes.
-			'user_login'    => isset( $_POST['gwcpp_user'] ) ? sanitize_user( wp_unslash( $_POST['gwcpp_user'] ) ) : '',
-			'user_password' => isset( $_POST['gwcpp_pass'] ) ? (string) $_POST['gwcpp_pass'] : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- A password must reach wp_signon() unmodified.
-			'remember'      => false,
-		),
-		is_ssl()
-	);
+	$login = isset( $_POST['gwcpp_user'] ) ? sanitize_user( wp_unslash( $_POST['gwcpp_user'] ) ) : '';
+
+	/* Counted before the attempt, and only for a submission that named
+	 * somebody — an empty username can never authenticate, so counting it would
+	 * let a passer-by spend the windows without guessing anything.
+	 *
+	 * A refusal is reported with the same words and the same timing as a wrong
+	 * password. Saying "too many attempts" would confirm the username is worth
+	 * attacking, which is the one thing this form must not tell anybody. */
+	$refuse = '' === $login || gwcpp_login_rate_limited( $login );
+
+	$user = $refuse
+		? new WP_Error( 'gwcpp_throttled', 'Refused before the attempt.' )
+		: wp_signon(
+			array(
+				// Not sanitized, and not unslashed: wp_signon compares the
+				// password byte for byte against a hash, so anything done to it
+				// here is a silent authentication failure for passwords
+				// containing quotes.
+				'user_login'    => $login,
+				'user_password' => isset( $_POST['gwcpp_pass'] ) ? (string) $_POST['gwcpp_pass'] : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- A password must reach wp_signon() unmodified.
+				'remember'      => false,
+			),
+			is_ssl()
+		);
 
 	if ( is_wp_error( $user ) ) {
 		/* One message for every failure. WordPress's own errors distinguish
 		 * "unknown username" from "incorrect password", which on a portal is an
-		 * account-existence oracle for the same reason the link form is. */
-		gwcpp_bail(
-			gwcpp_portal_url(),
-			__( 'That username and password did not match. Please try again.', 'groundwork-common-post-portal' ),
-			'warn'
+		 * account-existence oracle for the same reason the link form is.
+		 *
+		 * Flushed through the same constant-time floor as the link form, so
+		 * that a refusal — which does no password hashing at all and would
+		 * otherwise return conspicuously fast — is not distinguishable from a
+		 * real check. */
+		gwcpp_flush_response(
+			gwcpp_flash_url(
+				gwcpp_portal_url(),
+				'warn',
+				__( 'That username and password did not match. Please try again.', 'groundwork-common-post-portal' )
+			),
+			$start
 		);
+		exit;
 	}
 
 	wp_safe_redirect( gwcpp_portal_url() );
@@ -815,11 +1059,6 @@ function gwcpp_handle_logout(): void {
  * A key that indexes server-side text cannot be forged into new text, and
  * deleting on read means it shows once.
  * ─────────────────────────────────────────────────────────────────────────── */
-
-/** Shown when a nonce has expired, which is the one guard failure that is
- *  nobody's fault: WordPress nonces last a day, and somebody who left the
- *  portal open overnight has done nothing wrong. */
-const GWCPP_STALE_FORM = 'That form had been open too long to submit safely, so nothing was saved. Please make your change again.';
 
 /**
  * Store a flash message and return the URL that will show it.

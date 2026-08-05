@@ -79,37 +79,56 @@ function gwcpp_collect_submission( string $post_type, array $raw ): array {
  * collector in three branches, which would have uploaded the same file three
  * times and left two orphans behind on every save.
  *
+ * ── And why reconciling belongs here too ─────────────────────────────────────
+ * A type may also declare an optional `reconcile` callable, run from the same
+ * loop. It exists for the same reason `upload` does: a sanitizer is handed a
+ * value and a field definition and nothing else, so a check that depends on
+ * which post is being edited cannot live there. gwcpp_reconcile_media() is the
+ * one implementation — see the note on it for what a hidden "keep the current
+ * file" input can otherwise be talked into naming.
+ *
  * @param string $post_type Post type slug.
  * @param array  $values    Sanitized values so far.
  * @param int    $user_id   Who is uploading.
+ * @param int    $post_id   Post being edited, or 0 when creating.
  * @return array{values:array, uploaded:int[], errors:array<string,string>}
  */
-function gwcpp_apply_uploads( string $post_type, array $values, int $user_id ): array {
+function gwcpp_apply_uploads( string $post_type, array $values, int $user_id, int $post_id = 0 ): array {
 	$uploaded = array();
 	$errors   = array();
 
 	foreach ( gwcpp_type_fields( $post_type ) as $field ) {
 		$def = gwcpp_field_type( (string) $field['type'] );
+		$key = (string) $field['key'];
 
-		if ( null === $def || empty( $def['upload'] ) || ! is_callable( $def['upload'] ) ) {
+		if ( null === $def ) {
 			continue;
 		}
 
-		$result = call_user_func( $def['upload'], $field, $user_id );
+		$fresh = null;
 
-		if ( is_wp_error( $result ) ) {
-			$errors[ (string) $field['key'] ] = $result->get_error_message();
-			continue;
+		if ( ! empty( $def['upload'] ) && is_callable( $def['upload'] ) ) {
+			$result = call_user_func( $def['upload'], $field, $user_id );
+
+			if ( is_wp_error( $result ) ) {
+				$errors[ $key ] = $result->get_error_message();
+				continue;
+			}
+
+			// null means "no file was sent for this field", which is not an
+			// error — it is what every save that does not touch the photo looks
+			// like. The reconciler below still runs, because that save is
+			// exactly the one carrying a `keep` value forward.
+			if ( null !== $result ) {
+				$fresh          = (int) $result;
+				$values[ $key ] = $fresh;
+				$uploaded[]     = $fresh;
+			}
 		}
 
-		// null means "no file was sent for this field", which is not an error —
-		// it is what every save that does not touch the photo looks like.
-		if ( null === $result ) {
-			continue;
+		if ( array_key_exists( $key, $values ) && ! empty( $def['reconcile'] ) && is_callable( $def['reconcile'] ) ) {
+			$values[ $key ] = call_user_func( $def['reconcile'], $values[ $key ], $field, $post_id, $fresh );
 		}
-
-		$values[ (string) $field['key'] ] = (int) $result;
-		$uploaded[]                       = (int) $result;
 	}
 
 	return array(
@@ -461,12 +480,32 @@ function gwcpp_unpublish_post( int $post_id, int $user_id ): bool {
 /**
  * Put an unpublished post back.
  *
+ * Re-checks the same two things the renderer checks before it shows the button,
+ * because a handler that trusts the renderer is a handler that can be replayed.
+ * A nonce minted while the control was on screen stays valid for up to a day, so
+ * "staff turned allow_unpublish off an hour ago" and "staff cleared the marker
+ * by republishing it themselves" are both states an old form can be submitted
+ * into. Neither should put the post back.
+ *
+ * The marker check is the load-bearing one: without it this republishes any
+ * draft the user can reach, including one staff had deliberately left unpublished
+ * and one that was never published in the first place.
+ *
  * @param int $post_id Post ID.
  * @return bool
  */
 function gwcpp_republish_post( int $post_id ): bool {
 	$post = get_post( $post_id );
 	if ( ! $post instanceof WP_Post || 'draft' !== $post->post_status ) {
+		return false;
+	}
+
+	if ( ! gwcpp_type_setting( $post->post_type, 'allow_unpublish' ) ) {
+		return false;
+	}
+
+	// Only a post a portal user took down may be put back by one.
+	if ( ! get_post_meta( $post_id, '_gwcpp_unpublished_by', true ) ) {
 		return false;
 	}
 
