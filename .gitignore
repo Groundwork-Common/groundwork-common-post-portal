@@ -1,0 +1,19 @@
+# PHPUnit, fetched rather than committed — see the note in tests/bootstrap.php.
+phpunit.phar
+phpunit-*.phar
+.phpunit.cache/
+.phpunit.result.cache
+
+# wp-env writes this when a developer overrides ports or mounts locally.
+.wp-env.override.json
+
+# Local-only development scaffolding — mail routing, fixtures, throwaway
+# mu-plugins. Mounted into wp-env by .wp-env.override.json. Nothing in here is
+# loaded on a real site, and nothing in here should ever be relied on by code
+# that ships. The recipe for recreating it is in README.md, so the knowledge is
+# committed even though the files are not.
+.dev/
+
+node_modules/
+vendor/
+.DS_Store

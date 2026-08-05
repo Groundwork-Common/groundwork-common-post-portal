@@ -1,0 +1,175 @@
+# Groundwork Common Post Portal
+
+Front-end editing for the people who own your content, without a wp-admin
+login. You choose the post types, you map the fields, they sign in with a link
+in their email.
+
+The user-facing description is in [`readme.txt`](readme.txt). This file is for
+whoever works on the code.
+
+## Why it works that way
+
+The plugin is a generalisation of a partner portal built for one diaper bank.
+That original worked well and could not be reused: one hardcoded post type, a
+field list copy-pasted across five functions that each had to be kept in sync
+by hand, a US state dropdown, a five-digit ZIP regex, and a form ID typed into
+two files.
+
+So the rule here is that **nothing knows what a field means**. The plugin knows
+how to decide who may edit a post, how to render a form from a schema an admin
+defined, how to hold a change until somebody approves it, and how to sign a
+person in without a password. What the fields *are* is configuration, and there
+is no `$post['city']` anywhere in this codebase.
+
+The one place that was not worth generalising is authorization. See below.
+
+## Requirements
+
+WordPress 6.3, PHP 7.4. No build step, no Composer, no npm for anything that
+ships. The block's `edit.js` is hand-written ES5 against `wp.element`, and its
+`edit.asset.php` is hand-written to match.
+
+## Authorization
+
+`gwcpp_user_can_edit_post( int $user_id, int $post_id ): bool` in
+[`inc/access.php`](inc/access.php) is the only function in the plugin that
+answers whether somebody may edit something. Every handler, every view and
+every list query routes through it or through a helper that calls it.
+
+It returns true when the post's type is portal-enabled **and** any of:
+
+| Path | Stored as | Notes |
+| --- | --- | --- |
+| Organisation | `_gwcpp_orgs` user meta ∩ `_gwcpp_org` post meta | The primary path. Many users, many posts. |
+| Direct grant | `_gwcpp_editors` post meta, array of user IDs | One-off access without an organisation. |
+| Author | `post_author` | Off by default, enabled per post type. |
+
+A registry of pluggable access strategies would be more elegant and would mean
+the answer lives in more than one place, which is the one property an
+authorization check must never have.
+
+Two consequences worth knowing:
+
+- The owned-post set is cached in a **non-persistent** cache group, invalidated
+  from `added/updated/deleted_post_meta` and `transition_post_status`.
+  Persisting it across requests would mean making an access-control decision on
+  out-of-date data.
+- The portal role holds `read` and a marker capability, and no real WordPress
+  capabilities. Enabled post types usually use `capability_type => 'post'`, so
+  granting real caps would leak access to every ordinary post on the site.
+  There is nothing underneath these checks that would catch a handler which
+  forgot them, which is why the guards end the request rather than returning a
+  value a caller has to remember to test.
+
+## Things that are deliberate
+
+- **Portal users cannot delete anything.** The strongest action is unpublish to
+  draft, which is reversible. Not configurable.
+- **POSTs are dispatched from `template_redirect`**, not `admin-post.php` or
+  `admin-ajax.php`. Those live under `/wp-admin/`, which is exactly what the
+  role is redirected away from.
+- **The portal page is never cached.** `DONOTCACHEPAGE`, `nocache_headers()`
+  and an explicit `Cache-Control: private, no-store`. `nocache_headers()` alone
+  sends `must-revalidate`, which several CDNs read as "store it, just
+  revalidate". If a page cache is ever added to a site running this, it needs
+  an exclusion rule there too; nothing in PHP can enforce that.
+- **Sign-in failures are silent.** A wrong post ID, a post you do not own, and
+  a post that does not exist are indistinguishable. A stale nonce is the one
+  guard failure that is nobody's fault, so it gets a plain-language message.
+- **Uninstalling deletes no posts, no post meta, and no users** — not even when
+  the destructive flag is armed. See [`uninstall.php`](uninstall.php).
+- **The schema's order lists are flat arrays of keys**, not an integer `order`
+  property on each field. A key that no longer exists is ignored at render
+  time, and a field missing from the order is appended. That is what makes
+  editing the schema safe rather than a migration.
+
+## Field types
+
+Types are a registry of callables in
+[`inc/field-types.php`](inc/field-types.php). Nothing in the plugin branches on
+`$field['type']` outside that file. The contract:
+
+| Callable | Signature | Purpose |
+| --- | --- | --- |
+| `render_portal` | `(array $field, mixed $value, string $name, array $ctx): void` | The front-end control. |
+| `render_admin` | `(array $field, mixed $value, string $name): void` | The wp-admin meta box control. |
+| `sanitize` | `(mixed $raw, array $field): mixed` | Raw POST to stored value. Never trusts input. |
+| `validate` | `(mixed $value, array $field): string` | `''` when valid, else the message shown to the user. |
+| `is_empty` | `(mixed $value, array $field): bool` | True deletes the meta row rather than storing. |
+| `to_display` | `(mixed $value, array $field): string` | Human-readable, for the approval diff and emails. |
+| `schema_form` | `(array $field): void` | Extra controls on the Fields screen for this type. |
+
+Register your own with the `gwcpp_field_types` filter.
+
+## Hooks
+
+| Hook | Type | Purpose |
+| --- | --- | --- |
+| `gwcpp_field_types` | filter | Add or alter field types. |
+| `gwcpp_org_type_args` | filter | Arguments for the organisation post type. |
+| `gwcpp_portal_post_types` | filter | The enabled post types, after settings. |
+| `gwcpp_editable_posts` | filter | The list of posts shown to a user. |
+| `gwcpp_field_label` | filter | A field's label at render time. |
+| `gwcpp_token_ttl` | filter | Sign-in token lifetime, in seconds. |
+| `gwcpp_rate_limits` | filter | The three rate-limit windows. |
+| `gwcpp_load_assets` | filter | Force portal CSS/JS on or off. |
+
+Every hook in the plugin is in this table. If you add one, add its row.
+
+## Tests
+
+Unit tests are pure logic with no database and no WordPress checkout —
+`tests/bootstrap.php` stubs the WordPress helpers they touch. PHPUnit is
+fetched rather than committed:
+
+```bash
+curl -sLO https://phar.phpunit.de/phpunit-11.phar && php phpunit-11.phar
+```
+
+`VersionTest` enforces that the plugin header, `GWCPP_VERSION`, the
+`Stable tag` in `readme.txt`, and the changelog and upgrade-notice entries all
+agree. It fails the moment any one of them is bumped alone.
+
+Integration behaviour is verified under wp-env with `wp eval-file` scripts:
+
+```bash
+npx @wordpress/env start && npx @wordpress/env run cli wp eval-file wp-content/plugins/groundwork-common-post-portal/tests/integration/access.php
+```
+
+### Seeing the emails
+
+Sign-in links are the product here, so being able to read one matters. Out of
+the box you cannot: wp-env's default From is `wordpress@localhost`, which
+PHPMailer rejects for having no TLD, so `wp_mail()` returns `false` before
+anything reaches SMTP. `/usr/sbin/sendmail` in the container is a busybox
+symlink that cannot deliver without a smarthost, and outbound port 25 is
+blocked on most connections anyway.
+
+So route mail to a local sink. Start one:
+
+```bash
+docker run -d --name gwcpp-mailpit -p 8027:8025 -p 1027:1025 axllent/mailpit
+```
+
+Then create `.dev/mu-plugins/mailpit.php` fixing `wp_mail_from` and pointing
+`phpmailer_init` at `host.docker.internal:1027` with `SMTPAuth` and
+`SMTPAutoTLS` both off, and mount it in `.wp-env.override.json`:
+
+```json
+{ "mappings": { "wp-content/mu-plugins": "./.dev/mu-plugins" } }
+```
+
+Read the inbox at http://localhost:8027. `.dev/` and
+`.wp-env.override.json` are both ignored by git and by `wp dist-archive`.
+
+Do **not** point this at a public disposable-inbox service. Those inboxes are
+readable by anyone, and a sign-in link is a credential — the whole design of
+this plugin is that possession of the link *is* the authentication.
+
+## Still to come
+
+Phase 2: the approval queue and its diff, the staff notification email, media
+upload, rich text, repeaters and taxonomy pickers.
+
+Phase 3: the periodic re-review and auto-expiry cycle, handoff to a replacement
+contact, and blocked-word screening.

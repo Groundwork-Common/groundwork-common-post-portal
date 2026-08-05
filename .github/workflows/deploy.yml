@@ -1,0 +1,92 @@
+name: Deploy to WordPress.org
+
+# WordPress.org publishes from Subversion, not from here. This copies a tagged
+# release into that repository so a release is `git tag` and nothing else — no
+# local SVN checkout, no hand-copied files, no chance of trunk and the tag
+# drifting apart because a step was missed at eleven at night.
+#
+# ── What it needs, and what it works out for itself ──────────────────────────
+# Two repository secrets, and only two:
+#
+#   SVN_USERNAME   your WordPress.org login
+#   SVN_PASSWORD   your WordPress.org password
+#
+# Settings → Secrets and variables → Actions. WordPress.org has no deploy keys
+# or scoped tokens for this; the plugin account's own credentials are what SVN
+# authenticates against, which is a reason to have 2FA on that account and to
+# keep these out of the workflow file.
+#
+# Everything else is derived. The SVN URL is
+# plugins.svn.wordpress.org/<slug>/, the slug defaults to this repository's
+# name — groundwork-common-post-portal, which is deliberately the same
+# string — and the version comes from the tag. So none of it is written down
+# here to go stale.
+#
+# ── What gets published ──────────────────────────────────────────────────────
+# The action reads .distignore, the same file that builds the local zip. What
+# reaches SVN trunk/ is therefore exactly what has been tested, and there is no
+# second list of exclusions to keep in step with the first.
+#
+# .wordpress-org/ goes to SVN assets/ — screenshots, banner, icon. Those render
+# the plugin's page on wordpress.org and are never downloaded by anyone
+# installing it, which is why a large banner costs installers nothing.
+#
+# ── Before the first real run ────────────────────────────────────────────────
+# This will fail until the plugin is approved, because the SVN repository does
+# not exist until then. Use the manual trigger below with dry-run left on to
+# rehearse it: everything runs except the commit.
+
+on:
+  release:
+    types: [ published ]
+
+  # Rehearsal, and the way to re-run a release that failed partway.
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Run everything except the commit'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The four values that must agree, checked before anything is published
+      # rather than discovered afterwards by somebody reading a plugin page.
+      # VersionTest already enforces three of them against each other on every
+      # push; this adds the one it cannot see — that they match the tag being
+      # released. Getting this wrong ships a version WordPress will not offer as
+      # an update, and fixing it means another release.
+      - name: Check the tag matches the plugin
+        if: github.event_name == 'release'
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          tag="${tag#v}"
+          header=$(grep -m1 -oE '^ \* Version:[[:space:]]*\S+' groundwork-common-post-portal.php | awk '{print $NF}')
+          stable=$(grep -m1 -oE '^Stable tag:[[:space:]]*\S+' readme.txt | awk '{print $NF}')
+          constant=$(grep -m1 -oE "GWCPP_VERSION[[:space:]]*=[[:space:]]*'[^']+'" groundwork-common-post-portal.php | grep -oE "'[^']+'" | tr -d "'")
+
+          echo "tag=$tag header=$header stable=$stable constant=$constant"
+
+          for value in "$header" "$stable" "$constant"; do
+            if [ "$value" != "$tag" ]; then
+              echo "::error::Tag $tag does not match the plugin ($header / $stable / $constant). Nothing published."
+              exit 1
+            fi
+          done
+
+      - name: Deploy
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        with:
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run || false }}
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}

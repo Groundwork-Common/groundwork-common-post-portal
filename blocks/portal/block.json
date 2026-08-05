@@ -1,0 +1,19 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "groundwork-common-post-portal/portal",
+	"title": "Post Portal",
+	"category": "widgets",
+	"icon": "id-alt",
+	"description": "The front-end portal where invited people sign in and edit the posts assigned to them.",
+	"keywords": [ "portal", "front-end editing", "sign in" ],
+	"textdomain": "groundwork-common-post-portal",
+	"supports": {
+		"html": false,
+		"multiple": false,
+		"align": [ "wide", "full" ]
+	},
+	"editorScript": "file:./edit.js",
+	"style": "gwcpp-portal",
+	"render": "file:./render.php"
+}

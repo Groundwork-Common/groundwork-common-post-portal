@@ -1,0 +1,130 @@
+=== Groundwork Common Post Portal ===
+Contributors: groundworkcommon
+Donate link: https://www.groundworkcommon.com/support/
+Tags: front-end editing, portal, passwordless, custom post types, moderation
+Requires at least: 6.3
+Tested up to: 7.0
+Requires PHP: 7.4
+Stable tag: 0.1.0
+License: GPL-2.0-or-later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+Let the people who own your content edit it from the front end, without ever handing them a wp-admin login.
+
+== Description ==
+
+Some of the content on your site is not really yours. A directory of partner
+organisations, a list of member clinics, a network of dealers, a roster of
+volunteers — somebody else knows when their phone number changes, and you find
+out months later.
+
+The usual fixes are both bad. Giving them a wp-admin account means training
+them on a screen built for you, and hoping they never wander into Appearance.
+Emailing you their updates means you are their content management system.
+
+This plugin gives those people one page. They sign in with a link sent to their
+email, they see only what belongs to them, and they edit only the fields you
+decided they may touch. They never see wp-admin, and there is no password to
+lose.
+
+**You decide what a field is.** Nothing about the data model is built in. Pick
+which post types the portal covers, then map the fields on a screen in
+wp-admin: a label, where the value is stored, and what type of control it is.
+A library, a food pantry, and a dealer network can all install this without a
+fork.
+
+**Nothing goes live until you say so.** Submissions are held as a pending
+change while the published post carries on showing the old values. You see an
+old-to-new comparison in wp-admin and approve or reject it. A partner cannot
+take their own listing down mid-review, and a typo is never public.
+
+**Access is a question with one answer.** A person reaches a post through the
+organisation they belong to, through a direct grant on that post, or — if you
+turn it on — by being its author. Every check in the plugin routes through a
+single function, so there is no second path to keep in step with the first.
+
+= Signing in =
+
+The default is passwordless. Somebody types their email, gets a link, and is
+signed in for a few hours. Links expire in fifteen minutes, work once, and are
+rate limited by address, by email, and site-wide. A request for an unknown
+address takes the same amount of time and says the same thing as a request for
+a known one, so the form cannot be used to find out who has an account.
+
+Ordinary username-and-password sign-in can be enabled alongside it for people
+who would rather have one.
+
+== External services ==
+
+This plugin contacts no external service. It sends email through WordPress —
+that is, through whatever your site already uses — and makes no outbound HTTP
+requests of its own.
+
+== About Groundwork Common ==
+
+Groundwork Common builds software for organisations doing public-interest work,
+and releases the generally useful parts of it. If this plugin is useful to you,
+[supporting the work](https://www.groundworkcommon.com/support/) keeps it
+maintained.
+
+== Installation ==
+
+1. Install and activate the plugin.
+2. Create a page for the portal and add the **Post Portal** block to it.
+3. Go to **Portal → Settings**, choose which post types the portal covers, and
+   select the page you just made.
+4. Go to **Portal → Fields**, pick a post type, and map the fields end users may
+   edit. If your fields are already registered with `register_meta()`, the
+   **Import fields** button will find them.
+5. Create an organisation under **Portal → Organisations** and invite somebody
+   by email.
+
+== Frequently Asked Questions ==
+
+= Can portal users delete posts? =
+
+No, and this is not configurable. The strongest thing a portal user can do is
+unpublish a post back to draft, which you can reverse in one click. Deleting
+stays a staff action in wp-admin.
+
+= What happens if somebody's magic link expires? =
+
+They request another one. Links are deliberately short-lived; requesting a new
+one costs nothing and is the expected path, not an error.
+
+= Can two people edit the same post? =
+
+Yes. Add them both to the organisation that owns it, or grant them each access
+on the post directly.
+
+= Does this work with ACF? =
+
+Field values stored as ordinary post meta work, and the Fields screen can
+import ACF field definitions to save you retyping them. Complex ACF types are
+mapped to the closest built-in control rather than reproduced exactly.
+
+= Will this let a portal user edit a post you did not intend? =
+
+Only if you grant it. Post types are opt-in, and within an enabled post type a
+user reaches only the posts their organisation owns or that they were granted
+directly. The "author may edit their own" path is off by default.
+
+== Screenshots ==
+
+1. The portal as an end user sees it: their organisation's posts, and nothing else.
+2. Editing a post from the front end, with only the fields you mapped.
+3. The Fields screen, where you decide what a field is.
+4. A pending change waiting for approval, shown as old versus new.
+
+== Changelog ==
+
+= 0.1.0 =
+* First release. Post type selection, the Fields screen and its field type
+  registry, organisations and direct grants, passwordless sign-in with optional
+  password sign-in, the front-end list and edit views, and wp-admin lockout for
+  portal users.
+
+== Upgrade Notice ==
+
+= 0.1.0 =
+First release.

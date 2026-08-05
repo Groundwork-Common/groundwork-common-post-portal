@@ -1,0 +1,20 @@
+# Everything here is development-only and must not reach a release zip.
+# `wp dist-archive .` reads this file.
+.git
+.gitignore
+.github
+.wordpress-org
+.distignore
+.wp-env.json
+.wp-env.override.json
+.dev
+.phpunit.cache
+.phpunit.result.cache
+phpunit.xml.dist
+phpunit.phar
+phpunit-*.phar
+tests
+
+node_modules
+README.md
+.DS_Store

@@ -1,0 +1,126 @@
+/**
+ * wp-admin styling, on this plugin's screens only.
+ *
+ * Deliberately thin. Core's admin CSS already styles .form-table, .widefat,
+ * .postbox and the notices, and every rule added here is one more thing to
+ * re-check when WordPress changes its admin design. What is left is layout that
+ * core has no opinion about.
+ */
+
+.gwcpp-fields-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 380px;
+	gap: 24px;
+	align-items: start;
+	margin-top: 16px;
+}
+
+@media (max-width: 1100px) {
+	.gwcpp-fields-layout {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.gwcpp-fields-list {
+	min-width: 0;
+}
+
+.gwcpp-col-order {
+	width: 80px;
+}
+
+.gwcpp-row-actions a {
+	text-decoration: none;
+}
+
+.gwcpp-delete {
+	color: #b32d2e;
+}
+
+.gwcpp-pill {
+	display: inline-block;
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: #f0f0f1;
+	color: #50575e;
+	font-size: 11px;
+	text-transform: lowercase;
+}
+
+.gwcpp-empty-state {
+	padding: 24px;
+	border: 1px dashed #c3c4c7;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.gwcpp-import {
+	margin-top: 12px;
+}
+
+.gwcpp-field-editor .inside {
+	padding-bottom: 12px;
+}
+
+.gwcpp-schema-setting {
+	display: block;
+	margin-bottom: 14px;
+}
+
+.gwcpp-schema-setting > label {
+	display: block;
+	margin-bottom: 4px;
+	font-weight: 600;
+}
+
+.gwcpp-schema-setting .description {
+	display: block;
+	margin-top: 4px;
+}
+
+.gwcpp-type-flags label {
+	display: inline-block;
+	margin-bottom: 2px;
+}
+
+.gwcpp-people,
+.gwcpp-org-posts {
+	margin: 0 0 12px;
+}
+
+.gwcpp-people li {
+	display: flex;
+	gap: 8px;
+	align-items: baseline;
+	justify-content: space-between;
+	padding: 4px 0;
+	border-bottom: 1px solid #f0f0f1;
+	margin: 0;
+}
+
+.gwcpp-remove {
+	color: #b32d2e;
+	text-decoration: none;
+	font-size: 12px;
+	flex: none;
+}
+
+.gwcpp-invite {
+	margin-top: 16px;
+	padding-top: 16px;
+	border-top: 1px solid #dcdcde;
+}
+
+.gwcpp-colophon {
+	margin-top: 32px;
+	padding: 12px 16px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #fff;
+	max-width: 40rem;
+}
+
+.gwcpp-colophon summary {
+	cursor: pointer;
+	font-weight: 600;
+}

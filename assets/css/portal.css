@@ -1,0 +1,390 @@
+/**
+ * The portal.
+ *
+ * Every colour and dimension is a custom property on .gwcpp, so a theme can
+ * restyle the whole thing by setting a handful of them rather than by fighting
+ * selectors. The appearance settings write exactly these properties.
+ *
+ * Deliberately plain. This is a form somebody at a front desk fills in once
+ * every few months, often on an old machine and often in a hurry — so: system
+ * fonts, real focus rings, controls large enough to hit, and no animation
+ * beyond what a hover needs.
+ */
+
+.gwcpp {
+	--gwcpp-accent: #2b6cb0;
+	--gwcpp-accent-text: #ffffff;
+	--gwcpp-bg: transparent;
+	--gwcpp-text: #1f2933;
+	--gwcpp-muted: #52606d;
+	--gwcpp-surface: #ffffff;
+	--gwcpp-line: #cbd2d9;
+	--gwcpp-error: #b42318;
+	--gwcpp-ok: #027a48;
+	--gwcpp-radius: 8px;
+	--gwcpp-gap: 20px;
+	--gwcpp-max-width: 42rem;
+
+	max-width: var(--gwcpp-max-width);
+	margin-inline: auto;
+	background: var(--gwcpp-bg);
+	color: var(--gwcpp-text);
+	font-size: 16px;
+	line-height: 1.5;
+}
+
+.gwcpp *,
+.gwcpp *::before,
+.gwcpp *::after {
+	box-sizing: border-box;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.gwcpp-header {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: center;
+	justify-content: space-between;
+	padding-bottom: 16px;
+	margin-bottom: var(--gwcpp-gap);
+	border-bottom: 1px solid var(--gwcpp-line);
+}
+
+.gwcpp-header__who {
+	display: flex;
+	flex-direction: column;
+}
+
+.gwcpp-header__name {
+	font-weight: 600;
+}
+
+.gwcpp-header__org,
+.gwcpp-list__type {
+	font-size: 0.875rem;
+	color: var(--gwcpp-muted);
+}
+
+.gwcpp-header__out {
+	margin: 0;
+}
+
+.gwcpp-back {
+	margin: 0 0 var(--gwcpp-gap);
+}
+
+.gwcpp-title {
+	margin: 0 0 var(--gwcpp-gap);
+	font-size: 1.5rem;
+	line-height: 1.25;
+}
+
+/* ── Notices ────────────────────────────────────────────────────────────── */
+
+.gwcpp-notice {
+	padding: 12px 16px;
+	margin-bottom: var(--gwcpp-gap);
+	border-left: 4px solid var(--gwcpp-accent);
+	border-radius: var(--gwcpp-radius);
+	background: color-mix(in srgb, var(--gwcpp-accent) 8%, var(--gwcpp-surface));
+}
+
+.gwcpp-notice p {
+	margin: 0;
+}
+
+.gwcpp-notice--error {
+	border-left-color: var(--gwcpp-error);
+	background: color-mix(in srgb, var(--gwcpp-error) 8%, var(--gwcpp-surface));
+}
+
+.gwcpp-notice--ok {
+	border-left-color: var(--gwcpp-ok);
+	background: color-mix(in srgb, var(--gwcpp-ok) 8%, var(--gwcpp-surface));
+}
+
+/* color-mix is unsupported in older browsers, where the background falls back
+   to nothing and the notice is a bordered block on the page background. That
+   still reads as a notice, so no @supports fallback is worth the bytes. */
+
+/* ── List ───────────────────────────────────────────────────────────────── */
+
+.gwcpp-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--gwcpp-line);
+	border-radius: var(--gwcpp-radius);
+	overflow: hidden;
+}
+
+.gwcpp-list__item {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	justify-content: space-between;
+	padding: 14px 16px;
+	background: var(--gwcpp-surface);
+}
+
+.gwcpp-list__item + .gwcpp-list__item {
+	border-top: 1px solid var(--gwcpp-line);
+}
+
+.gwcpp-list__link {
+	font-weight: 600;
+	text-decoration: none;
+	color: inherit;
+}
+
+.gwcpp-list__link:hover .gwcpp-list__title,
+.gwcpp-list__link:focus-visible .gwcpp-list__title {
+	text-decoration: underline;
+}
+
+.gwcpp-list__meta {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+}
+
+.gwcpp-badge {
+	padding: 2px 10px;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	background: color-mix(in srgb, var(--gwcpp-muted) 14%, var(--gwcpp-surface));
+	color: var(--gwcpp-muted);
+}
+
+.gwcpp-badge--publish {
+	background: color-mix(in srgb, var(--gwcpp-ok) 14%, var(--gwcpp-surface));
+	color: var(--gwcpp-ok);
+}
+
+.gwcpp-empty {
+	padding: 24px;
+	border: 1px dashed var(--gwcpp-line);
+	border-radius: var(--gwcpp-radius);
+	color: var(--gwcpp-muted);
+}
+
+.gwcpp-empty p:first-child {
+	margin-top: 0;
+}
+
+.gwcpp-empty p:last-child {
+	margin-bottom: 0;
+}
+
+.gwcpp-pagination {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	justify-content: center;
+	margin-top: var(--gwcpp-gap);
+}
+
+.gwcpp-pagination__where {
+	font-size: 0.875rem;
+	color: var(--gwcpp-muted);
+}
+
+/* ── Forms ──────────────────────────────────────────────────────────────── */
+
+.gwcpp-form {
+	margin: 0 0 var(--gwcpp-gap);
+}
+
+.gwcpp-field {
+	margin-bottom: var(--gwcpp-gap);
+}
+
+.gwcpp-fieldset {
+	border: 0;
+	margin: 0;
+	padding: 0;
+	min-width: 0;
+}
+
+.gwcpp-label {
+	display: block;
+	margin-bottom: 4px;
+	font-weight: 600;
+}
+
+.gwcpp-required {
+	color: var(--gwcpp-error);
+}
+
+.gwcpp-field__help {
+	margin: 0 0 8px;
+	font-size: 0.875rem;
+	color: var(--gwcpp-muted);
+}
+
+.gwcpp-field__error {
+	margin: 6px 0 0;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--gwcpp-error);
+}
+
+.gwcpp-input {
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid var(--gwcpp-line);
+	border-radius: var(--gwcpp-radius);
+	background: var(--gwcpp-surface);
+	color: var(--gwcpp-text);
+	font: inherit;
+}
+
+.gwcpp-textarea {
+	resize: vertical;
+}
+
+.gwcpp-field--invalid .gwcpp-input,
+.gwcpp-field--invalid .gwcpp-select {
+	border-color: var(--gwcpp-error);
+	/* A second, non-colour signal. Roughly one man in twelve cannot rely on a
+	   red border alone, and the error text below is easy to miss on a long
+	   form. */
+	box-shadow: inset 3px 0 0 var(--gwcpp-error);
+}
+
+.gwcpp-input:focus-visible,
+.gwcpp-button:focus-visible,
+.gwcpp-list__link:focus-visible {
+	outline: 2px solid var(--gwcpp-accent);
+	outline-offset: 2px;
+}
+
+.gwcpp-choices {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.gwcpp-choice,
+.gwcpp-check {
+	display: flex;
+	gap: 8px;
+	align-items: flex-start;
+	font-weight: 400;
+	/* The whole row is the hit target, not just the 13px box. */
+	padding: 6px 4px;
+	cursor: pointer;
+}
+
+.gwcpp-choice input,
+.gwcpp-check input {
+	margin-top: 0.2em;
+	flex: none;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+
+.gwcpp-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: center;
+}
+
+.gwcpp-actions--top {
+	margin-bottom: var(--gwcpp-gap);
+}
+
+.gwcpp-button {
+	display: inline-block;
+	padding: 11px 20px;
+	border: 1px solid var(--gwcpp-line);
+	border-radius: var(--gwcpp-radius);
+	background: var(--gwcpp-surface);
+	color: var(--gwcpp-text);
+	font: inherit;
+	font-weight: 600;
+	line-height: 1.2;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.gwcpp-button:hover {
+	border-color: var(--gwcpp-accent);
+}
+
+.gwcpp-button--primary {
+	background: var(--gwcpp-accent);
+	border-color: var(--gwcpp-accent);
+	color: var(--gwcpp-accent-text);
+}
+
+.gwcpp-button--quiet {
+	background: transparent;
+	border-color: transparent;
+	text-decoration: underline;
+}
+
+.gwcpp-button--danger {
+	border-color: var(--gwcpp-error);
+	color: var(--gwcpp-error);
+}
+
+/* ── Sign in ────────────────────────────────────────────────────────────── */
+
+.gwcpp-signin {
+	max-width: 26rem;
+}
+
+.gwcpp-signin__title {
+	margin: 0 0 8px;
+	font-size: 1.375rem;
+}
+
+.gwcpp-or {
+	margin: var(--gwcpp-gap) 0 12px;
+	padding-top: var(--gwcpp-gap);
+	border-top: 1px solid var(--gwcpp-line);
+	font-weight: 600;
+}
+
+/* The honeypot. Not display:none — some bots skip anything with it — and taken
+   out of the layout without being reachable by keyboard or screen reader,
+   which the markup handles with tabindex and aria-hidden. */
+.gwcpp-hp {
+	position: absolute;
+	left: -9999px;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+
+/* ── Unpublish ──────────────────────────────────────────────────────────── */
+
+.gwcpp-form--danger {
+	margin-top: calc(var(--gwcpp-gap) * 2);
+	padding: 16px 20px;
+	border: 1px solid var(--gwcpp-line);
+	border-radius: var(--gwcpp-radius);
+}
+
+.gwcpp-danger__title {
+	margin: 0 0 6px;
+	font-size: 1rem;
+}
+
+.gwcpp-form--danger p {
+	margin: 0 0 12px;
+	font-size: 0.9375rem;
+	color: var(--gwcpp-muted);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.gwcpp-button {
+		transition: border-color 120ms ease;
+	}
+}
