@@ -660,27 +660,25 @@ function gwcpp_reap_orphan_uploads(): int {
 	$deleted = 0;
 
 	/*
-	 * Worked out once, not once per candidate. gwcpp_attachment_is_claimed()
-	 * used to re-run gwcpp_pending_post_ids() — a full meta-join query — inside
-	 * this loop, then read a changeset off each of up to two hundred posts. A
-	 * hundred candidates meant a hundred of those queries and twenty thousand
-	 * meta reads, in cron, to answer a question whose answer is the same every
-	 * time round.
+	 * Built once for the whole sweep rather than re-walked per candidate. The
+	 * old shape asked the question one attachment at a time, which meant a fresh
+	 * pass over the entire queue for each of up to a hundred files.
 	 */
 	$claimed = gwcpp_claimed_attachment_ids();
 
 	foreach ( $candidates as $attachment_id ) {
-		$flagged = (int) get_post_meta( $attachment_id, GWCPP_PENDING_ATTACHMENT_META, true );
+		$attachment_id = (int) $attachment_id;
+		$flagged       = (int) get_post_meta( $attachment_id, GWCPP_PENDING_ATTACHMENT_META, true );
 
 		if ( $flagged <= 0 || ( $now - $flagged ) < GWCPP_ORPHAN_AGE ) {
 			continue;
 		}
 
-		if ( isset( $claimed[ (int) $attachment_id ] ) ) {
+		if ( isset( $claimed[ $attachment_id ] ) ) {
 			continue;
 		}
 
-		wp_delete_attachment( (int) $attachment_id, true );
+		wp_delete_attachment( $attachment_id, true );
 		++$deleted;
 	}
 
@@ -688,21 +686,22 @@ function gwcpp_reap_orphan_uploads(): int {
 }
 
 /**
- * Every attachment some pending changeset still points at.
+ * Every attachment some pending changeset is still holding on to.
+ *
+ * Keyed by attachment ID so a caller tests membership rather than searching.
  *
  * Asked before deleting rather than inferred from age alone, because a review
  * queue that took five weeks to get through is a slow team, not a licence to
- * delete what they were about to approve.
- *
- * Keyed by ID rather than returned as a list, so the caller's per-candidate
- * check is an isset() rather than an in_array() over a growing array.
+ * delete what they were about to approve — and it reads the complete queue,
+ * because a changeset this missed is a file deleted while somebody was still
+ * waiting for it.
  *
  * @return array<int, true>
  */
 function gwcpp_claimed_attachment_ids(): array {
 	$claimed = array();
 
-	foreach ( gwcpp_pending_post_ids() as $post_id ) {
+	foreach ( gwcpp_every_pending_post_id() as $post_id ) {
 		$changeset = gwcpp_get_changeset( (int) $post_id );
 
 		if ( null === $changeset ) {
@@ -719,10 +718,6 @@ function gwcpp_claimed_attachment_ids(): array {
 
 /**
  * True when some pending changeset still names this attachment.
- *
- * The single-attachment spelling of the above. Delegates rather than looping
- * again, because two copies of "is this file still spoken for" is exactly the
- * pair that drifts apart and quietly starts deleting things.
  *
  * @param int $attachment_id Attachment ID.
  * @return bool

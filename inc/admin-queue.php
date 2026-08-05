@@ -18,6 +18,7 @@ function gwcpp_queue_screen(): void {
 	gwcpp_require_admin_caps();
 
 	$pending = gwcpp_pending_post_ids();
+	$total   = gwcpp_pending_count();
 
 	echo '<div class="wrap gwcpp-admin">';
 	printf( '<h1>%s</h1>', esc_html__( 'Pending Changes', 'groundwork-common-post-portal' ) );
@@ -34,6 +35,25 @@ function gwcpp_queue_screen(): void {
 			'<div class="notice notice-warning"><p><strong>%s</strong> %s</p></div>',
 			esc_html__( 'We could not email you about a recent change.', 'groundwork-common-post-portal' ),
 			esc_html__( 'Submissions still arrive here, but nobody is being notified about them. This usually means the site cannot send mail at all — worth checking before somebody waits weeks for an answer.', 'groundwork-common-post-portal' )
+		);
+	}
+
+	/*
+	 * Said out loud rather than left to arithmetic on the menu bubble. A screen
+	 * that quietly draws the first two hundred of a longer queue looks exactly
+	 * like a screen that has drawn all of it.
+	 */
+	if ( count( $pending ) < $total ) {
+		printf(
+			'<p class="description">%s</p>',
+			esc_html(
+				sprintf(
+					/* translators: 1: how many are shown, 2: how many are waiting in total. */
+					__( 'Showing the %1$d most recently submitted of %2$d waiting. Approve or reject some to see the rest.', 'groundwork-common-post-portal' ),
+					count( $pending ),
+					$total
+				)
+			)
 		);
 	}
 

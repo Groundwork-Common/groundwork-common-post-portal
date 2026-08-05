@@ -73,9 +73,9 @@ maintained.
 2. Create a page for the portal and add the **Post Portal** block to it.
 3. Go to **Portal → Settings**, choose which post types the portal covers, and
    select the page you just made.
-4. Go to **Portal → Fields**, pick a post type, and map the fields end users may
-   edit. If your fields are already registered with `register_meta()`, the
-   **Import fields** button will find them.
+4. Open the **Fields** tab on that same screen, pick a post type, and map the
+   fields end users may edit. If your fields are already registered with
+   `register_meta()`, the **Import fields** button will find them.
 5. Create an organisation under **Portal → Organisations** and invite somebody
    by email.
 
@@ -172,12 +172,25 @@ directly. The "author may edit their own" path is off by default.
 
 1. The portal as an end user sees it: their organisation's posts, and nothing else.
 2. Editing a post from the front end, with only the fields you mapped.
-3. The Fields screen, where you decide what a field is.
+3. The Fields tab, where you decide what a field is.
 4. A pending change waiting for approval, shown as old versus new.
 
 == Changelog ==
 
 = 0.3.1 =
+* Fixed: a file waiting for approval could be deleted while somebody was still
+  waiting for it. Past 200 waiting changes the oldest fell off the list the
+  cleanup consulted, and those are exactly the ones whose uploads had aged past
+  the thirty-day threshold.
+* Fixed: at short review cadences the reminder ladder could deliver the staff
+  warning first and count it as the owner's, leaving somebody whose only notice
+  arrived a fortnight before their entry came off the site.
+* Fixed: the review cycle read the newest 500 entries, so on a large directory
+  the ones it never checked were the oldest — which is the whole point of it.
+* Fields is now a tab on the Settings screen rather than a page of its own, and
+  the Portal menu reads Pending Changes, Organisations, Settings.
+* Fixed: the pending queue's stylesheet never loaded, and its menu count stopped
+  at the page size.
 * Security: the sign-in form's site-wide limit could be spent by anyone with
   malformed submissions, which briefly stopped everybody else requesting a link.
   Only genuine attempts count towards it now.
@@ -238,9 +251,11 @@ directly. The "author may edit their own" path is off by default.
 == Upgrade Notice ==
 
 = 0.3.1 =
-Security and performance fixes, and two deliberate tightenings: handing an entry
-over now requires belonging to its organisation, and assigning a post to an
-organisation now requires an administrator.
+Fixes a case where a file waiting for approval could be deleted, and one where a
+review reminder reached staff instead of the owner. Security and performance
+fixes throughout, and two deliberate tightenings: handing an entry over now
+requires belonging to its organisation, and assigning a post to an organisation
+now requires an administrator.
 
 = 0.3.0 =
 Adds the review cycle, handover, and blocked-word screening. The review cycle is

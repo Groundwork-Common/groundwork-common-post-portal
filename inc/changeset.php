@@ -291,46 +291,113 @@ function gwcpp_reject_changeset( int $post_id, int $rejected_by = 0, string $not
 	return true;
 }
 
+/** How many waiting changes the queue screen draws before it stops. */
+const GWCPP_QUEUE_PAGE_SIZE = 200;
+
 /**
- * Every post waiting for review.
+ * The posts waiting for review, most recently touched first.
+ *
+ * Bounded, because the caller is a screen that renders a diff table per item.
+ * Anything that has to be *right* rather than merely readable — the count, the
+ * reaper — wants gwcpp_every_pending_post_id() instead.
+ *
+ * @param int $limit Most to return.
+ * @return int[]
+ */
+function gwcpp_pending_post_ids( int $limit = GWCPP_QUEUE_PAGE_SIZE ): array {
+	$types = gwcpp_post_types();
+	if ( ! $types || $limit < 1 ) {
+		return array();
+	}
+
+	return array_map( 'intval', gwcpp_pending_query( $limit, 1, 'modified' ) );
+}
+
+/**
+ * Every post waiting for review, without exception.
+ *
+ * ── Why this is not just the function above with a bigger number ─────────────
+ * gwcpp_attachment_is_claimed() asks "is any pending changeset still using this
+ * file?" immediately before the reaper force-deletes it. Asked against a capped
+ * list, that question silently becomes "is any of the FIRST 200 still using
+ * it?", and the ordering made it worse: the queue is newest-touched first, so
+ * the changesets that fell off the end were the oldest-waiting ones — exactly
+ * the ones whose uploads had aged past the thirty-day threshold. A site with a
+ * long queue would have had staff approve a change whose photo had been deleted
+ * out from under it a fortnight earlier.
+ *
+ * Walked oldest ID first rather than by modified date, because a paged query
+ * ordered by something a concurrent request can change will skip rows between
+ * pages — and a skipped row here means a deleted file.
  *
  * @return int[]
  */
-function gwcpp_pending_post_ids(): array {
+function gwcpp_every_pending_post_id(): array {
 	$types = gwcpp_post_types();
 	if ( ! $types ) {
 		return array();
 	}
 
-	return get_posts(
+	$ids  = array();
+	$page = 1;
+
+	do {
+		$found = gwcpp_pending_query( GWCPP_QUEUE_PAGE_SIZE, $page, 'ID' );
+		$count = count( $found );
+		$ids   = array_merge( $ids, array_map( 'intval', $found ) );
+		++$page;
+		// A short page means that was the last one.
+	} while ( GWCPP_QUEUE_PAGE_SIZE === $count );
+
+	return $ids;
+}
+
+/**
+ * One page of the pending-changeset query.
+ *
+ * @param int    $per_page How many.
+ * @param int    $page     Which page, from 1.
+ * @param string $orderby  'modified' or 'ID'.
+ * @return int[]
+ */
+function gwcpp_pending_query( int $per_page, int $page, string $orderby ): array {
+	$posts = get_posts(
 		array(
-			'post_type'              => $types,
+			'post_type'              => gwcpp_post_types(),
 			'post_status'            => array( 'publish', 'draft', 'pending', 'private', 'future' ),
-			'posts_per_page'         => 200, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- The approval queue's ceiling. A backlog past this is a staffing problem, not a query to make bigger.
+			'posts_per_page'         => $per_page,
+			'paged'                  => $page,
 			'fields'                 => 'ids',
 			'no_found_rows'          => true,
 			'update_post_term_cache' => false,
-			'orderby'                => 'modified',
-			'order'                  => 'DESC',
+			'orderby'                => $orderby,
+			'order'                  => 'ID' === $orderby ? 'ASC' : 'DESC',
 			'meta_key'               => GWCPP_PENDING_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- EXISTS on an indexed meta key; the queue is unavoidably a meta lookup.
 			'meta_compare'           => 'EXISTS',
 		)
 	);
+
+	return is_array( $posts ) ? $posts : array();
 }
 
 /**
  * How many posts are waiting, for the menu bubble.
  *
- * ── Why this one is cached and gwcpp_pending_post_ids() is not ───────────────
+ * Counts all of them. A bubble that stops at the page size tells somebody with
+ * a backlog that they have exactly as much waiting as they had yesterday.
+ *
+ * ── And why the answer is cached ─────────────────────────────────────────────
  * Because of where it is called from. gwcpp_admin_menu() runs on `admin_menu`,
  * which fires on every single wp-admin request — the Dashboard, Media, Users,
  * somebody else's plugin's settings screen — and all it wants is a number for
  * the bubble. Uncached, that put a filesort over a meta join on every admin
- * page load on the site, to draw a digit that is usually zero.
+ * page load on the site to draw a digit that is usually zero, and counting
+ * *every* pending post rather than the first page makes it a walk of the whole
+ * queue rather than one query. The fix above and this one need each other.
  *
- * The queue screen itself still calls gwcpp_pending_post_ids() directly and
- * still sees the truth, because a stale list there would be somebody approving
- * a change that is not there any more.
+ * The queue screen still calls the query directly and still sees the truth,
+ * because a stale list there would be somebody approving a change that is not
+ * there any more.
  *
  * A minute is short enough that the bubble is never meaningfully wrong, and the
  * three changeset actions clear it immediately anyway — so the only way to see
@@ -346,7 +413,7 @@ function gwcpp_pending_count(): int {
 		return (int) $cached;
 	}
 
-	$count = count( gwcpp_pending_post_ids() );
+	$count = count( gwcpp_every_pending_post_id() );
 
 	set_transient( GWCPP_PENDING_COUNT_TRANSIENT, $count, MINUTE_IN_SECONDS );
 
@@ -432,7 +499,11 @@ function gwcpp_change_log( int $post_id ): array {
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-/** Attachment meta, single: the post this upload is waiting to join. */
+/** Attachment meta, single: when this upload was flagged as waiting, as a Unix
+ *  timestamp. Its presence is what marks the file as a changeset's to delete;
+ *  the value is what the reaper ages against. Deliberately not the post ID —
+ *  which the name suggests and which nothing has ever stored here.
+ */
 const GWCPP_PENDING_ATTACHMENT_META = '_gwcpp_pending_for';
 
 /**

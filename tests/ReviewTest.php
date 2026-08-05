@@ -247,6 +247,110 @@ final class ReviewTest extends TestCase {
 		$this->assertSame( 'current', gwcpp_review_state( self::POST )['stage'] );
 	}
 
+	/* ── Rung ordering ───────────────────────────────────────────────────────
+	 * Four rungs are counted forward from the basis in months, two backward
+	 * from expiry in days. Which lands first depends on the cadence, and the
+	 * runner takes the last rung in the array that has passed — so the array
+	 * order has to BE the date order or it sends the wrong message.
+	 * ───────────────────────────────────────────────────────────────────────
+	 */
+
+	/**
+	 * @param int $cadence Months between reviews.
+	 */
+	#[DataProvider( 'cadences' )]
+	public function test_the_ladder_is_ordered_soonest_first( int $cadence ): void {
+		$dates = array_values( gwcpp_review_ladder( '2026-01-01', $cadence ) );
+
+		$sorted = $dates;
+		usort( $sorted, static fn( $a, $b ) => $a <=> $b );
+
+		$this->assertEquals( $sorted, $dates, 'at a cadence of ' . $cadence );
+	}
+
+	/**
+	 * @return array<string, array{0:int}>
+	 */
+	public static function cadences(): array {
+		return array(
+			'monthly'    => array( 1 ),
+			'two months' => array( 2 ),
+			'quarterly'  => array( 3 ),
+			'biannual'   => array( 6 ),
+			'annual'     => array( 12 ),
+		);
+	}
+
+	public function test_a_staff_rung_loses_a_day_it_shares_with_an_owner_rung(): void {
+		// At a cadence of two, expiry minus 30 days and the overdue date are the
+		// same day. Whichever sorts last is the one the owner does or does not get.
+		$ladder = gwcpp_review_ladder( '2026-01-01', 2 );
+
+		$this->assertSame(
+			$ladder['overdue']->format( 'Y-m-d' ),
+			$ladder['staff_30']->format( 'Y-m-d' ),
+			'The collision this is about.'
+		);
+
+		$keys = array_keys( $ladder );
+
+		$this->assertLessThan(
+			array_search( 'overdue', $keys, true ),
+			array_search( 'staff_30', $keys, true ),
+			'staff_30 must sort first so "last rung passed" picks the message that goes to somebody who can act on it.'
+		);
+	}
+
+	/**
+	 * Walk a whole cycle a day at a time and collect what the owner is actually
+	 * sent. The bug this covers: at short cadences a staff-only rung sorted last,
+	 * won every day it was standing, was recorded as delivered and so never came
+	 * round again — and the owner's entry was hidden having been told nothing.
+	 *
+	 * @param int $cadence Months between reviews.
+	 */
+	#[DataProvider( 'cadences' )]
+	public function test_an_owner_is_warned_before_their_entry_is_hidden( int $cadence ): void {
+		$basis = '2026-01-01';
+		$state = array(
+			'enabled' => true,
+			'cadence' => $cadence,
+			'basis'   => $basis,
+		);
+
+		$day  = gwcpp_review_date( $basis );
+		$end  = gwcpp_review_ladder( $basis, $cadence )['expired'];
+		$sent = array();
+
+		while ( $day <= $end ) {
+			$rung = gwcpp_review_due_rung( $state, $sent, $day );
+
+			if ( '' !== $rung ) {
+				$sent[] = $rung;
+			}
+
+			$day = $day->modify( '+1 day' );
+		}
+
+		$owner_rungs = array_values( array_intersect( $sent, GWCPP_OWNER_RUNGS ) );
+
+		$this->assertNotEmpty(
+			$owner_rungs,
+			'Nobody may lose an entry having been sent nothing at all, at any cadence.'
+		);
+		$this->assertContains( 'expired', $sent, 'The entry is hidden, so its owner is told that.' );
+		$this->assertSame( 'expired', end( $sent ), 'And that is the last thing they hear in the cycle.' );
+		/* The rung that was actually being lost. Without this the assertions above
+		 * are satisfied by final_15 and expired alone — an owner whose first word
+		 * on the subject is that their entry goes in a fortnight, which is the
+		 * opposite of nudging them early enough to act.
+		 */
+		$this->assertNotEmpty(
+			array_intersect( $sent, array( 'due', 'named' ) ),
+			'The owner is nudged well before the final warning, at every cadence.'
+		);
+	}
+
 	public function test_the_staff_rung_is_not_an_owner_rung(): void {
 		$this->assertNotContains(
 			'staff_30',

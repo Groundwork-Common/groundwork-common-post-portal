@@ -393,11 +393,28 @@ function gwcpp_review_republish( int $post_id ): bool {
  */
 
 /**
- * The rungs, as dates.
+ * The rungs, as dates, soonest first.
  *
- * Ordered soonest first. The runner takes the LAST rung that has passed, so an
- * entry that arrives already deep into the ladder — which every entry does on
- * the day a site switches the cycle on — gets one email rather than six.
+ * The runner takes the LAST rung that has passed, so an entry that arrives
+ * already deep into the ladder — which every entry does on the day a site
+ * switches the cycle on — gets one email rather than six.
+ *
+ * ── Sorted, because "soonest first" is not a property of how they are typed ──
+ * Four rungs are counted forward from the basis in months and two backward from
+ * expiry in days, and which of those lands first depends on the cadence. Listed
+ * in the obvious reading order they interleave at short cadences: at a cadence
+ * of one, staff_30 falls a month and a half BEFORE the entry is due; at two, it
+ * lands on the same day as overdue.
+ *
+ * That mattered because the runner walked them in the order they were written.
+ * A staff-only rung sitting last in the list won over the owner reminders that
+ * had genuinely passed, was recorded as delivered, and so never came round
+ * again — leaving a partner whose first and only warning was the one sent a
+ * fortnight before their entry came off the site.
+ *
+ * Ties go to the owner: staff_30 is placed before any rung falling on the same
+ * day, so "last passed" picks the message that goes to the person who can
+ * actually act on it. Nobody should lose an entry having been told nothing.
  *
  * @param string $basis     Y-m-d the clock runs from.
  * @param int    $cadence   Months between reviews.
@@ -412,7 +429,7 @@ function gwcpp_review_ladder( string $basis, int $cadence ): array {
 
 	$expires = $base->modify( '+' . ( $cadence * 2 ) . ' months' );
 
-	return array(
+	$rungs = array(
 		'due'      => $base->modify( '+' . max( 1, $cadence - 1 ) . ' months' ),
 		'named'    => $base->modify( '+' . $cadence . ' months' ),
 		'overdue'  => $base->modify( '+' . ( $cadence + 1 ) . ' months' ),
@@ -420,6 +437,36 @@ function gwcpp_review_ladder( string $basis, int $cadence ): array {
 		'final_15' => $expires->modify( '-15 days' ),
 		'expired'  => $expires,
 	);
+
+	$sortable = array();
+	foreach ( $rungs as $rung => $date ) {
+		$sortable[] = array(
+			'rung' => $rung,
+			'date' => $date,
+			'tie'  => 'staff_30' === $rung ? 0 : 1,
+		);
+	}
+
+	/*
+	 * usort is stable in PHP 8, so rungs sharing both a date and a tiebreak keep
+	 * the order above — which is why a cadence of one, where overdue and expired
+	 * fall together, still reports expired.
+	 */
+	usort(
+		$sortable,
+		static function ( array $a, array $b ): int {
+			$by_date = $a['date'] <=> $b['date'];
+
+			return 0 !== $by_date ? $by_date : ( $a['tie'] <=> $b['tie'] );
+		}
+	);
+
+	$sorted = array();
+	foreach ( $sortable as $item ) {
+		$sorted[ $item['rung'] ] = $item['date'];
+	}
+
+	return $sorted;
 }
 
 /** Rungs that email the entry's owners. `staff_30` is deliberately absent — it
@@ -461,17 +508,21 @@ function gwcpp_review_record_notices( int $post_id, array $sent, array $fresh ):
 /**
  * The rung an entry is standing on, and whether it has been delivered.
  *
- * @param array    $state Review state.
- * @param string[] $sent  Rungs already delivered.
+ * @param array                  $state Review state.
+ * @param string[]               $sent  Rungs already delivered.
+ * @param DateTimeImmutable|null $today The day to judge against. Defaults to
+ *                                      today, and exists so a test can walk a
+ *                                      whole cycle a day at a time instead of
+ *                                      inferring the ladder from one snapshot.
  * @return string The rung to send now, or '' when there is nothing to send.
  */
-function gwcpp_review_due_rung( array $state, array $sent ): string {
+function gwcpp_review_due_rung( array $state, array $sent, ?DateTimeImmutable $today = null ): string {
 	if ( empty( $state['enabled'] ) || ! empty( $state['exempt'] ) ) {
 		return '';
 	}
 
 	$ladder = gwcpp_review_ladder( (string) $state['basis'], (int) $state['cadence'] );
-	$today  = gwcpp_review_today();
+	$today  = $today ?? gwcpp_review_today();
 
 	$standing = '';
 	foreach ( $ladder as $rung => $date ) {
@@ -554,8 +605,23 @@ function gwcpp_review_catch_up(): void {
 	gwcpp_run_daily_review();
 }
 
+/** How many tracked entries are read from the database at a time. */
+const GWCPP_REVIEW_PAGE_SIZE = 500;
+
 /**
  * Every post the cycle tracks.
+ *
+ * ── Paged, because the cap used to decide which entries had a review cycle ───
+ * This was one query for the first 500 in WordPress's default order, which is
+ * newest first. On a directory larger than that, the entries never returned
+ * were the oldest ones — which are precisely the ones most likely to have gone
+ * stale, and the whole reason the cycle exists. They were never nudged, never
+ * warned, never hidden and never listed in the weekly digest, and nothing
+ * anywhere said so.
+ *
+ * Walked oldest ID first so the pages cannot shift underneath the run: the
+ * cycle writes post meta and post status as it goes, so ordering by date or
+ * modified time would let rows move between pages mid-walk.
  *
  * @return int[]
  */
@@ -566,17 +632,33 @@ function gwcpp_reviewable_post_ids(): array {
 		return array();
 	}
 
-	return get_posts(
-		array(
-			'post_type'              => $types,
-			'post_status'            => array( 'publish', 'draft' ),
-			'posts_per_page'         => 500, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- Bounded so one cron tick cannot walk an unbounded set; the remainder is picked up by the next run.
-			'fields'                 => 'ids',
-			'no_found_rows'          => true,
-			'update_post_term_cache' => false,
-			'suppress_filters'       => false,
-		)
-	);
+	$ids  = array();
+	$page = 1;
+
+	do {
+		$found = get_posts(
+			array(
+				'post_type'              => $types,
+				'post_status'            => array( 'publish', 'draft' ),
+				'posts_per_page'         => GWCPP_REVIEW_PAGE_SIZE,
+				'paged'                  => $page,
+				'fields'                 => 'ids',
+				'orderby'                => 'ID',
+				'order'                  => 'ASC',
+				'no_found_rows'          => true,
+				'update_post_term_cache' => false,
+				'suppress_filters'       => false,
+			)
+		);
+
+		$found = is_array( $found ) ? $found : array();
+		$count = count( $found );
+		$ids   = array_merge( $ids, array_map( 'intval', $found ) );
+		++$page;
+		// A short page means that was the last one.
+	} while ( GWCPP_REVIEW_PAGE_SIZE === $count );
+
+	return $ids;
 }
 
 /**
@@ -906,7 +988,11 @@ function gwcpp_review_mail_staff( array $post_ids, string $which ): bool {
 
 	$intro = 'expired' === $which
 		? __( 'Nobody confirmed these, so they are no longer shown. Nothing has been deleted, and the owner can put any of them back by confirming their details.', 'groundwork-common-post-portal' )
-		: __( 'These have not been confirmed and will stop being shown in 30 days. Their owners have been reminded.', 'groundwork-common-post-portal' );
+		// "are being reminded" rather than "have been": at a short cadence this
+		// rung can fall before the owner's first nudge, and a message telling
+		// staff somebody has already been chased when they have not is how a
+		// partner ends up blamed for ignoring an email nobody sent.
+		: __( 'These have not been confirmed and will stop being shown in 30 days. Their owners are being reminded.', 'groundwork-common-post-portal' );
 
 	return gwcpp_send_email(
 		gwcpp_staff_email(),

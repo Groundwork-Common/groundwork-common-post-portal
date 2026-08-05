@@ -111,18 +111,173 @@
 	border-top: 1px solid #dcdcde;
 }
 
+/* ─── Colophon ──────────────────────────────────────────────────────────────
+   Sits between the page title and the tab bar, so it has to introduce the
+   screen without competing with it. Left rule and a flat tint rather than a
+   full card: enough to read as a distinct voice, not so much that it looks
+   like a notice demanding action. */
 .gwcpp-colophon {
-	margin-top: 32px;
-	padding: 12px 16px;
-	border: 1px solid #dcdcde;
-	border-radius: 4px;
-	background: #fff;
-	max-width: 40rem;
+	position: relative;
+	display: grid;
+	/* Even halves. An asymmetric split left the narrative column far wider than
+	   the measure cap allowed it to fill, so the left half ended in a band of
+	   empty tint that read as a layout fault rather than a column. */
+	grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
+	gap: 8px 40px;
+	/* Stretch, not start: the columns have to be full height for the rule
+	   between them to be, and a rule that stops where the shorter column's text
+	   ends reads as an accident. Each column then centres its own content. */
+	align-items: stretch;
+	margin: 12px 0 24px;
+	padding: 20px 24px;
+	border-left: 4px solid #2271b1;
+	background: #f6f7f7;
 }
 
-.gwcpp-colophon summary {
-	cursor: pointer;
-	font-weight: 600;
+/* One column below roughly a tablet. The aside is an aside on a wide screen and
+   simply the end of the passage on a narrow one — there is no arrangement in
+   which a 20em column beside a 20em column reads as two columns. */
+@media ( max-width: 960px ) {
+	.gwcpp-colophon {
+		grid-template-columns: minmax( 0, 1fr );
+	}
+}
+
+/* Both columns centre their own text against the panel's full height, so
+   neither hangs off the top when the other is taller. The toggle is positioned
+   absolutely and is deliberately not part of this — it stays pinned top right,
+   where it has room and is out of the reading path. */
+.gwcpp-colophon__main,
+.gwcpp-colophon__aside {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+/* A rule between the columns rather than a box around the aside: it separates
+   without making the support ask look like a second, competing notice. */
+.gwcpp-colophon__aside {
+	padding-left: 40px;
+	border-left: 1px solid #dcdcde;
+}
+
+@media ( max-width: 960px ) {
+	.gwcpp-colophon__aside {
+		padding: 12px 0 0;
+		border-left: 0;
+		border-top: 1px solid #dcdcde;
+	}
+}
+
+.gwcpp-colophon__aside p:last-child {
+	margin-bottom: 0;
+}
+
+/* Three levels, on purpose, rather than three buttons. Primary is the
+   sponsorship ask — the one thing this panel most wants acted on. Secondary is
+   "Learn about Groundwork Common", which follows the referral paragraph and
+   should look pressable without competing. "Report a problem" stays a plain
+   link: useful and easy to find, but giving it the same weight would put a bug
+   report on equal footing with the ask, and three controls of identical weight
+   is the same as no hierarchy at all. */
+.gwcpp-colophon .button {
+	margin-top: 2px;
+}
+
+.gwcpp-colophon h2 {
+	margin: 0 0 16px;
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+/* The wordmark. Sized by height with width following the 958 x 173 viewBox, so
+   it scales with the box rather than being pinned to a pixel width. */
+.gwcpp-colophon__logo {
+	display: block;
+	width: 156px;
+	height: 28px;
+	background-image: url( '../img/gwc-logo-horizontal-light.svg' );
+	background-repeat: no-repeat;
+	background-position: left center;
+	background-size: contain;
+}
+
+/* Falls back to the heading text alone if the file is ever missing — the
+   screen-reader span is real text, not a replacement trick, so nothing is lost
+   beyond the picture. */
+@media ( prefers-color-scheme: dark ) {
+	.gwcpp-colophon__logo {
+		background-image: url( '../img/gwc-logo-horizontal-dark.svg' );
+	}
+}
+
+/* The measure is capped on the paragraphs, not the panel. A 46em box floating
+   in a full-width screen reads as something that failed to lay out; a
+   full-width panel whose text stops at a readable line length reads as
+   deliberate. */
+.gwcpp-colophon p {
+	margin: 0 0 8px;
+	font-size: 13px;
+	line-height: 1.6;
+	color: #50575e;
+}
+
+.gwcpp-colophon p:last-child {
+	margin-bottom: 0;
+	color: inherit;
+}
+
+@media ( prefers-color-scheme: dark ) {
+	/* wp-admin is light by default, but plugins and extensions darken it and
+	   #f6f7f7 becomes a white slab under one. */
+	.gwcpp-colophon {
+		background: rgb( 34 113 177 / .08 );
+	}
+
+	.gwcpp-colophon p {
+		color: inherit;
+		opacity: .85;
+	}
+}
+
+/* ─── Colophon: collapsed ───────────────────────────────────────────────────
+   A strip, not a disappearance. Collapsing is a request for less noise while
+   working, not a request never to be told who maintains the plugin — and it
+   has to leave something to click to get back. */
+.gwcpp-colophon--collapsed {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 10px 24px;
+}
+
+.gwcpp-colophon--collapsed .gwcpp-colophon__logo {
+	width: 122px;
+	height: 22px;
+	flex: 0 0 auto;
+}
+
+/* Top-right of the panel, out of the reading path. Deliberately a quiet link
+   rather than a button: it competes with nothing, and a prominent control for
+   getting rid of something is an invitation to use it. */
+.gwcpp-colophon__toggle {
+	position: absolute;
+	top: 10px;
+	right: 12px;
+	font-size: 12px;
+	color: #646970;
+	text-decoration: none;
+}
+
+.gwcpp-colophon__toggle:hover,
+.gwcpp-colophon__toggle:focus {
+	color: #2271b1;
+	text-decoration: underline;
+}
+
+.gwcpp-colophon--collapsed .gwcpp-colophon__toggle {
+	position: static;
+	margin-left: auto;
 }
 
 /* ── The approval queue ─────────────────────────────────────────────────── */

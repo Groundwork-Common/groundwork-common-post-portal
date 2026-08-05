@@ -83,6 +83,36 @@ Two consequences worth knowing:
   time, and a field missing from the order is appended. That is what makes
   editing the schema safe rather than a migration.
 
+## Admin screens
+
+The Portal menu reads **Pending Changes, Organisations, Settings** — most
+urgent to least. The top-level item opens the queue rather than the settings,
+because settings is a screen somebody visits while setting the portal up and
+then rarely again, and the queue is the only screen here that is ever urgent.
+
+Two consequences worth knowing:
+
+- **The menu's parent slug is `GWCPP_QUEUE_SLUG`, not `GWCPP_MENU_SLUG`.** The
+  latter is still the settings page's own slug and every link to it still
+  works; only the parent changed.
+- **The order is sorted after the fact**, in `gwcpp_order_submenu()` on
+  `admin_menu` priority 100. Organisations is not ours to place — WordPress adds
+  it from the post type's `show_in_menu` while it builds the menu, before this
+  plugin's `admin_menu` callback runs — so arranging by registration order would
+  mean hanging the menu on the order two unrelated files happen to load in.
+
+**Fields is a tab on the Settings screen**, not a page of its own. It is part of
+configuring the portal, it is meaningless until a post type is switched on one
+tab over, and as a sibling menu item it read as a separate feature. It renders
+outside the settings form, because it is five separate actions each with its own
+nonce and confirmation, and nesting those in a form whose button says "Save
+settings" makes an Enter keypress submit the wrong one.
+
+Admin CSS is matched on the `gwcpp-` slug prefix rather than on
+`GWCPP_MENU_SLUG`. WordPress builds a submenu's hook as
+`{parent menu title}_page_{slug}`, so matching the settings slug matched only
+the settings screen, and the queue's diff tables rendered unstyled.
+
 ## Field types
 
 Types are a registry of callables in
@@ -154,6 +184,16 @@ Changes** and approve or reject.
 - The portal form prefills from the pending changeset, not the live post, so
   somebody returning an hour later sees their own submitted values rather than
   concluding the edit was lost and sending it again.
+- **The queue screen is paged; nothing that decides anything is.** The screen
+  draws `GWCPP_QUEUE_PAGE_SIZE` items and says so when there are more. The menu
+  bubble and `gwcpp_claimed_attachment_ids()` use `gwcpp_every_pending_post_id()`
+  instead, which walks the lot. That split exists because the reaper asks the
+  queue whether an upload is still wanted immediately before force-deleting it:
+  asked against a capped, newest-first list, the answer was "no" for the
+  oldest-waiting changesets — the ones whose uploads had aged past the
+  thirty-day threshold — and the file went while somebody was still waiting for
+  it to be approved. A cap on a display is a design decision; a cap under a
+  question whose wrong answer deletes data is a bug.
 
 The alternative — flipping `post_status` to `pending` — takes a live listing off
 the public site the moment somebody corrects a typo in it. That is not a trade
@@ -262,6 +302,23 @@ those rungs recorded as sent forever. The ladder never revisits a rung it
 believes it has delivered, so somebody loses their final warning and has their
 entry hidden having been told nothing. A duplicate reminder is a far cheaper
 mistake than a silently skipped one.
+
+### The rungs are sorted, and the walk is paged
+
+Four rungs are counted forward from the basis in months and two backward from
+expiry in days, so which lands first depends on the cadence. Written out in
+reading order they interleave at short cadences — at a cadence of one the
+staff 30-day rung falls a month and a half *before* the entry is even due — and
+the runner takes the last rung in the array that has passed. A staff-only rung
+sitting later in the list therefore won, was recorded as delivered, and never
+came round again, so the owner's first and only warning was the one sent a
+fortnight before their entry came off the site. `gwcpp_review_ladder()` now
+sorts by date, and a tie goes to the owner's rung rather than the staff one.
+
+`gwcpp_reviewable_post_ids()` pages through every tracked entry, oldest ID
+first. It used to read the first 500 in WordPress's default newest-first order,
+which meant that on a larger directory the entries it never returned were the
+oldest ones — precisely the ones the cycle exists for.
 
 ### Review links are not transients
 
