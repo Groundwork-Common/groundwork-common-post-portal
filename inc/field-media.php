@@ -555,18 +555,24 @@ function gwcpp_reap_orphan_uploads(): int {
 	$now     = time();
 	$deleted = 0;
 
+	/* Built once for the whole sweep rather than re-walked per candidate. The
+	 * old shape asked the question one attachment at a time, which meant a fresh
+	 * pass over the entire queue for each of up to a hundred files. */
+	$claimed = gwcpp_claimed_attachment_ids();
+
 	foreach ( $candidates as $attachment_id ) {
-		$flagged = (int) get_post_meta( $attachment_id, GWCPP_PENDING_ATTACHMENT_META, true );
+		$attachment_id = (int) $attachment_id;
+		$flagged       = (int) get_post_meta( $attachment_id, GWCPP_PENDING_ATTACHMENT_META, true );
 
 		if ( $flagged <= 0 || ( $now - $flagged ) < GWCPP_ORPHAN_AGE ) {
 			continue;
 		}
 
-		if ( gwcpp_attachment_is_claimed( (int) $attachment_id ) ) {
+		if ( isset( $claimed[ $attachment_id ] ) ) {
 			continue;
 		}
 
-		wp_delete_attachment( (int) $attachment_id, true );
+		wp_delete_attachment( $attachment_id, true );
 		++$deleted;
 	}
 
@@ -574,22 +580,42 @@ function gwcpp_reap_orphan_uploads(): int {
 }
 
 /**
- * True when some pending changeset still names this attachment.
+ * Every attachment some pending changeset is still holding on to.
+ *
+ * Keyed by attachment ID so a caller tests membership rather than searching.
  *
  * Asked before deleting rather than inferred from age alone, because a review
  * queue that took five weeks to get through is a slow team, not a licence to
- * delete what they were about to approve.
+ * delete what they were about to approve — and it reads the complete queue,
+ * because a changeset this missed is a file deleted while somebody was still
+ * waiting for it.
+ *
+ * @return array<int, true>
+ */
+function gwcpp_claimed_attachment_ids(): array {
+	$claimed = array();
+
+	foreach ( gwcpp_every_pending_post_id() as $post_id ) {
+		$changeset = gwcpp_get_changeset( (int) $post_id );
+
+		if ( null === $changeset ) {
+			continue;
+		}
+
+		foreach ( $changeset['attachments'] as $attachment_id ) {
+			$claimed[ (int) $attachment_id ] = true;
+		}
+	}
+
+	return $claimed;
+}
+
+/**
+ * True when some pending changeset still names this attachment.
  *
  * @param int $attachment_id Attachment ID.
  * @return bool
  */
 function gwcpp_attachment_is_claimed( int $attachment_id ): bool {
-	foreach ( gwcpp_pending_post_ids() as $post_id ) {
-		$changeset = gwcpp_get_changeset( (int) $post_id );
-		if ( null !== $changeset && in_array( $attachment_id, $changeset['attachments'], true ) ) {
-			return true;
-		}
-	}
-
-	return false;
+	return isset( gwcpp_claimed_attachment_ids()[ $attachment_id ] );
 }

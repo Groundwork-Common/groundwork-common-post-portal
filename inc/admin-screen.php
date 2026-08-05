@@ -21,9 +21,10 @@ defined( 'ABSPATH' ) || exit;
  * ─────────────────────────────────────────────────────────────────────────── */
 
 /** The Settings screen's tabs, in order. */
-const GWCPP_TABS = array( 'general', 'signin', 'appearance' );
+const GWCPP_TABS = array( 'general', 'signin', 'appearance', 'fields' );
 
 add_action( 'admin_menu', 'gwcpp_admin_menu' );
+add_action( 'admin_menu', 'gwcpp_order_submenu', 100 );
 add_action( 'admin_post_gwcpp_save_settings', 'gwcpp_handle_save_settings' );
 
 /**
@@ -47,35 +48,18 @@ function gwcpp_require_admin_caps(): void {
  * Register the menu.
  */
 function gwcpp_admin_menu(): void {
+	/* The top level opens Pending Changes rather than Settings. Settings is a
+	 * screen somebody visits when setting the portal up and then rarely again;
+	 * the queue is the one with other people's work waiting on it, and it is the
+	 * only screen here that is ever urgent. */
 	add_menu_page(
 		__( 'Post Portal', 'groundwork-common-post-portal' ),
 		__( 'Portal', 'groundwork-common-post-portal' ),
 		'manage_options',
-		GWCPP_MENU_SLUG,
-		'gwcpp_settings_screen',
+		GWCPP_QUEUE_SLUG,
+		'gwcpp_queue_screen',
 		'dashicons-id-alt',
 		58
-	);
-
-	/* WordPress makes the first submenu item a duplicate of the parent, labelled
-	 * with the parent's name. Re-adding it with the label we want replaces that
-	 * rather than adding a second row. */
-	$settings = add_submenu_page(
-		GWCPP_MENU_SLUG,
-		__( 'Portal Settings', 'groundwork-common-post-portal' ),
-		__( 'Settings', 'groundwork-common-post-portal' ),
-		'manage_options',
-		GWCPP_MENU_SLUG,
-		'gwcpp_settings_screen'
-	);
-
-	$fields = add_submenu_page(
-		GWCPP_MENU_SLUG,
-		__( 'Portal Fields', 'groundwork-common-post-portal' ),
-		__( 'Fields', 'groundwork-common-post-portal' ),
-		'manage_options',
-		'gwcpp-fields',
-		'gwcpp_fields_screen'
 	);
 
 	/* The count in the menu label, in core's own bubble markup. Without it the
@@ -91,8 +75,11 @@ function gwcpp_admin_menu(): void {
 		);
 	}
 
+	/* WordPress makes the first submenu item a duplicate of the parent, labelled
+	 * with the parent's name. Re-adding it with the label we want replaces that
+	 * rather than adding a second row. */
 	$queue = add_submenu_page(
-		GWCPP_MENU_SLUG,
+		GWCPP_QUEUE_SLUG,
 		__( 'Pending Changes', 'groundwork-common-post-portal' ),
 		$label,
 		'manage_options',
@@ -100,11 +87,60 @@ function gwcpp_admin_menu(): void {
 		'gwcpp_queue_screen'
 	);
 
-	foreach ( array( $settings, $fields, $queue ) as $hook ) {
+	/* Fields is a tab on this screen rather than a page of its own. It is part
+	 * of configuring the portal, it is meaningless until a post type is switched
+	 * on one tab over, and as a sibling menu item it read as a separate feature. */
+	$settings = add_submenu_page(
+		GWCPP_QUEUE_SLUG,
+		__( 'Portal Settings', 'groundwork-common-post-portal' ),
+		__( 'Settings', 'groundwork-common-post-portal' ),
+		'manage_options',
+		GWCPP_MENU_SLUG,
+		'gwcpp_settings_screen'
+	);
+
+	foreach ( array( $queue, $settings ) as $hook ) {
 		if ( $hook ) {
 			add_action( 'load-' . $hook, 'gwcpp_add_help_tabs' );
 		}
 	}
+}
+
+/**
+ * Put the Portal submenu in the order somebody would ask for it.
+ *
+ * Pending Changes, Organisations, Settings — most urgent to least. Sorted after
+ * the fact rather than arranged by registration order, because Organisations is
+ * not ours to place: WordPress adds it from the post type's `show_in_menu`
+ * while it builds the menu, which happens before this file's `admin_menu`
+ * callback runs. Ordering by registration would therefore depend on the order
+ * two unrelated files happen to load in, which is not a thing to hang a menu on.
+ *
+ * Anything else somebody hooks in lands after the three we know about, in
+ * whatever order it arrived.
+ */
+function gwcpp_order_submenu(): void {
+	global $submenu;
+
+	if ( empty( $submenu[ GWCPP_QUEUE_SLUG ] ) || ! is_array( $submenu[ GWCPP_QUEUE_SLUG ] ) ) {
+		return;
+	}
+
+	$wanted = array(
+		GWCPP_QUEUE_SLUG,
+		'edit.php?post_type=' . GWCPP_ORG_TYPE,
+		GWCPP_MENU_SLUG,
+	);
+
+	usort(
+		$submenu[ GWCPP_QUEUE_SLUG ],
+		static function ( $a, $b ) use ( $wanted ): int {
+			$a_at = array_search( $a[2] ?? '', $wanted, true );
+			$b_at = array_search( $b[2] ?? '', $wanted, true );
+
+			return ( false === $a_at ? PHP_INT_MAX : $a_at ) <=> ( false === $b_at ? PHP_INT_MAX : $b_at );
+		}
+	);
 }
 
 /**
@@ -130,31 +166,43 @@ function gwcpp_settings_screen(): void {
 	echo '<div class="wrap gwcpp-admin">';
 	printf( '<h1>%s</h1>', esc_html__( 'Post Portal', 'groundwork-common-post-portal' ) );
 
+	/* Between the page title and the tab bar, and on this screen only. Above the
+	 * tabs because it introduces the whole screen rather than any one section of
+	 * it, and because a colophon below four tabs of settings is one nobody
+	 * reaches. Same position it holds in Location Finder. */
+	gwcpp_render_colophon();
+
 	gwcpp_render_admin_notice();
 	gwcpp_render_tabs( $tab );
 	gwcpp_render_setup_checklist();
 
-	echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-	wp_nonce_field( 'gwcpp_save_settings' );
-	echo '<input type="hidden" name="action" value="gwcpp_save_settings" />';
-	printf( '<input type="hidden" name="tab" value="%s" />', esc_attr( $tab ) );
+	if ( 'fields' === $tab ) {
+		/* Deliberately outside the settings form. The Fields tab is five separate
+		 * actions — add, edit, reorder, import, retire — each with its own nonce
+		 * and its own confirmation. Nested inside a form whose button reads "Save
+		 * settings", an Enter pressed in a field label would submit the wrong one. */
+		gwcpp_render_fields_tab();
+	} else {
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		wp_nonce_field( 'gwcpp_save_settings' );
+		echo '<input type="hidden" name="action" value="gwcpp_save_settings" />';
+		printf( '<input type="hidden" name="tab" value="%s" />', esc_attr( $tab ) );
 
-	switch ( $tab ) {
-		case 'signin':
-			gwcpp_tab_signin();
-			break;
-		case 'appearance':
-			gwcpp_tab_appearance();
-			break;
-		default:
-			gwcpp_tab_general();
+		switch ( $tab ) {
+			case 'signin':
+				gwcpp_tab_signin();
+				break;
+			case 'appearance':
+				gwcpp_tab_appearance();
+				break;
+			default:
+				gwcpp_tab_general();
+		}
+
+		submit_button( __( 'Save settings', 'groundwork-common-post-portal' ) );
+
+		echo '</form>';
 	}
-
-	submit_button( __( 'Save settings', 'groundwork-common-post-portal' ) );
-
-	echo '</form>';
-
-	gwcpp_render_colophon();
 
 	echo '</div>';
 }
@@ -169,6 +217,7 @@ function gwcpp_render_tabs( string $current ): void {
 		'general'    => __( 'General', 'groundwork-common-post-portal' ),
 		'signin'     => __( 'Signing in', 'groundwork-common-post-portal' ),
 		'appearance' => __( 'Appearance', 'groundwork-common-post-portal' ),
+		'fields'     => __( 'Fields', 'groundwork-common-post-portal' ),
 	);
 
 	echo '<nav class="nav-tab-wrapper">';
@@ -210,7 +259,7 @@ function gwcpp_render_setup_checklist(): void {
 			}
 		}
 		if ( gwcpp_post_types() && ! $mapped ) {
-			$missing[] = __( 'No fields are mapped yet, so the edit form would be empty. Set them up on the Fields screen.', 'groundwork-common-post-portal' );
+			$missing[] = __( 'No fields are mapped yet, so the edit form would be empty. Set them up on the Fields tab.', 'groundwork-common-post-portal' );
 		}
 	}
 
@@ -723,39 +772,188 @@ function gwcpp_colophon_snoozed( int $collapsed_at, int $now ): bool {
 	return ( $now - $collapsed_at ) < 30 * DAY_IN_SECONDS;
 }
 
+/** User meta, single: when this person folded the panel away. */
+const GWCPP_COLOPHON_META = 'gwcpp_colophon_collapsed_at';
+
+/** Where a bug report should go. */
+const GWCPP_ISSUES_URL = 'https://github.com/Groundwork-Common/groundwork-common-post-portal/issues';
+
+add_action( 'admin_init', 'gwcpp_handle_colophon_toggle' );
+
 /**
- * The Groundwork Common panel.
+ * Whether to render the panel collapsed for the current user.
+ *
+ * @return bool
+ */
+function gwcpp_colophon_is_collapsed(): bool {
+	return gwcpp_colophon_snoozed(
+		(int) get_user_meta( get_current_user_id(), GWCPP_COLOPHON_META, true ),
+		time()
+	);
+}
+
+/**
+ * Collapse or expand, then send the browser back where it was.
+ *
+ * A nonced link handled server-side rather than a script and an AJAX route.
+ * This runs at most twice a month per person, so a page load costs nothing, and
+ * the alternative would add an endpoint, a nonce to ship to the browser and a
+ * script, all to avoid a reload nobody will notice.
+ */
+function gwcpp_handle_colophon_toggle(): void {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Presence check only; the nonce is verified below before anything is written.
+	if ( ! isset( $_GET['gwcpp_colophon'] ) ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	check_admin_referer( 'gwcpp_colophon' );
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified directly above.
+	$wanted = sanitize_key( wp_unslash( $_GET['gwcpp_colophon'] ) );
+
+	if ( 'collapse' === $wanted ) {
+		update_user_meta( get_current_user_id(), GWCPP_COLOPHON_META, time() );
+	} else {
+		delete_user_meta( get_current_user_id(), GWCPP_COLOPHON_META );
+	}
+
+	/* Back to the same tab, minus the toggle. Without stripping the arguments a
+	 * refresh would re-fire the toggle, and the nonce would outlive its
+	 * usefulness in the address bar. */
+	wp_safe_redirect( remove_query_arg( array( 'gwcpp_colophon', '_wpnonce' ) ) );
+	exit;
+}
+
+/**
+ * The collapse/expand link, nonced.
+ *
+ * @param string $action 'collapse' or 'expand'.
+ * @return string
+ */
+function gwcpp_colophon_toggle_url( string $action ): string {
+	return wp_nonce_url( add_query_arg( 'gwcpp_colophon', $action ), 'gwcpp_colophon' );
+}
+
+/**
+ * Who made this, and the one thing worth asking of somebody using it.
+ *
+ * Still not a notice. A plugin that interrupts an unrelated admin page to talk
+ * about its author is the behaviour the directory guidelines exist to stop, and
+ * it earns the dismissal it gets. Somebody who has opened this screen has
+ * chosen to be here; that is the whole difference.
+ *
+ * Two asks, in the order they are actually worth: a referral, then ongoing
+ * support for the work itself.
+ *
+ * Neither is called a donation. Groundwork Common is a services practice, not a
+ * charity, so "donate" would imply a tax status that does not exist — and
+ * asking a nonprofit to donate to its vendor points the arrow the wrong way.
+ * Sponsorship is the honest word for paying to keep freely released software
+ * maintained, and it describes the exchange accurately: the money buys
+ * continued work, not goodwill.
  */
 function gwcpp_render_colophon(): void {
 	if ( '' === GWCPP_SPONSOR_URL && '' === GWCPP_GWC_URL ) {
 		return;
 	}
 
-	$collapsed = gwcpp_colophon_snoozed(
-		(int) get_user_meta( get_current_user_id(), 'gwcpp_colophon_collapsed_at', true ),
-		time()
-	);
-
-	printf(
-		'<details class="gwcpp-colophon"%s><summary>%s</summary>',
-		$collapsed ? '' : ' open',
-		esc_html__( 'About this plugin', 'groundwork-common-post-portal' )
-	);
-
-	printf(
-		'<p>%s</p>',
-		esc_html__( 'Post Portal is built and maintained by Groundwork Common, who make software for organisations doing public-interest work and release the generally useful parts of it.', 'groundwork-common-post-portal' )
-	);
-
-	if ( '' !== GWCPP_SPONSOR_URL ) {
-		printf(
-			'<p><a href="%s" class="button">%s</a> <a href="%s">%s</a></p>',
-			esc_url( GWCPP_SPONSOR_URL ),
-			esc_html__( 'Support this work', 'groundwork-common-post-portal' ),
-			esc_url( GWCPP_GWC_URL ),
-			esc_html__( 'See what else we do', 'groundwork-common-post-portal' )
-		);
+	if ( gwcpp_colophon_is_collapsed() ) {
+		?>
+		<div class="gwcpp-colophon gwcpp-colophon--collapsed">
+			<span class="gwcpp-colophon__logo" aria-hidden="true"></span>
+			<span class="screen-reader-text"><?php esc_html_e( 'Groundwork Common', 'groundwork-common-post-portal' ); ?></span>
+			<a class="gwcpp-colophon__toggle" href="<?php echo esc_url( gwcpp_colophon_toggle_url( 'expand' ) ); ?>">
+				<?php esc_html_e( 'Show', 'groundwork-common-post-portal' ); ?>
+			</a>
+		</div>
+		<?php
+		return;
 	}
+	?>
+	<div class="gwcpp-colophon">
+		<a class="gwcpp-colophon__toggle" href="<?php echo esc_url( gwcpp_colophon_toggle_url( 'collapse' ) ); ?>">
+			<?php esc_html_e( 'Hide for 30 days', 'groundwork-common-post-portal' ); ?>
+		</a>
 
-	echo '</details>';
+		<div class="gwcpp-colophon__main">
+			<h2 class="gwcpp-colophon__brand">
+				<?php
+				/*
+				 * The wordmark carries the name visually and the heading carries
+				 * it to everything else. Marked aria-hidden and paired with real
+				 * text rather than given alt text, because an <img alt="Groundwork
+				 * Common"> immediately after a heading saying the same words is
+				 * read out twice.
+				 *
+				 * Two files, swapped by colour scheme in the stylesheet: the logo
+				 * is ink on transparent, so one version or the other disappears
+				 * depending on what it is sitting on. Naming is by BACKGROUND, not
+				 * by ink — "-light" is the one for light backgrounds.
+				 */
+				?>
+				<a href="<?php echo esc_url( GWCPP_GWC_URL ); ?>" target="_blank" rel="noopener noreferrer">
+					<span class="screen-reader-text"><?php esc_html_e( 'Groundwork Common', 'groundwork-common-post-portal' ); ?></span>
+					<span class="gwcpp-colophon__logo" aria-hidden="true"></span>
+				</a>
+			</h2>
+
+			<p>
+				<?php
+				/* The anchor is built here rather than carried inside the
+				 * translatable string, so a translator is never handed markup they
+				 * can break and no HTML has to survive a round trip through
+				 * translate.wordpress.org. */
+				$gwcpp_gwc_link = sprintf(
+					'<a href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>',
+					esc_url( GWCPP_GWC_URL ),
+					esc_html__( 'Groundwork Common', 'groundwork-common-post-portal' )
+				);
+
+				printf(
+					/* translators: %s: Groundwork Common, linked to the company site. */
+					esc_html__( '%s provides technology leadership and support for nonprofits — fractional, by the project, or alongside an in-house team. We release tools like this one because good technology work should leave an organization more capable, not more dependent on whoever built it.', 'groundwork-common-post-portal' ),
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Assembled directly above from esc_url() and esc_html__().
+					$gwcpp_gwc_link
+				);
+				?>
+			</p>
+
+			<p>
+				<?php esc_html_e( 'If you find this plugin useful, the most valuable thing you can do for us is mention us to a nonprofit who might benefit from our services. Referrals are how our business continues to grow its impact and reach.', 'groundwork-common-post-portal' ); ?>
+			</p>
+
+			<?php /* Directly under the referral ask, which is what it answers. */ ?>
+			<p>
+				<a class="button" href="<?php echo esc_url( GWCPP_GWC_URL ); ?>" target="_blank" rel="noopener noreferrer">
+					<?php esc_html_e( 'Learn about Groundwork Common', 'groundwork-common-post-portal' ); ?>
+				</a>
+			</p>
+		</div>
+
+		<?php /* Second column: the two things a reader can act on. */ ?>
+		<div class="gwcpp-colophon__aside">
+			<?php if ( '' !== GWCPP_SPONSOR_URL ) : ?>
+				<p>
+					<?php esc_html_e( 'You can also support our WordPress plugins directly. While we offer the plugin free to you, it costs us to maintain it — the security updates, the compatibility testing against each new WordPress release, the bug nobody but you has hit. We can’t do it without your support, and we appreciate whatever support you can give.', 'groundwork-common-post-portal' ); ?>
+				</p>
+
+				<p>
+					<a class="button button-primary" href="<?php echo esc_url( GWCPP_SPONSOR_URL ); ?>" target="_blank" rel="noopener noreferrer">
+						<?php esc_html_e( 'Support our work', 'groundwork-common-post-portal' ); ?>
+					</a>
+				</p>
+			<?php endif; ?>
+
+			<p>
+				<a href="<?php echo esc_url( GWCPP_ISSUES_URL ); ?>" target="_blank" rel="noopener noreferrer">
+					<?php esc_html_e( 'Report a problem', 'groundwork-common-post-portal' ); ?>
+				</a>
+			</p>
+		</div>
+	</div>
+	<?php
 }
