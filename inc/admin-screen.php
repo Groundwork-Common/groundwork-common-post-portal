@@ -78,7 +78,29 @@ function gwcpp_admin_menu(): void {
 		'gwcpp_fields_screen'
 	);
 
-	foreach ( array( $settings, $fields ) as $hook ) {
+	/* The count in the menu label, in core's own bubble markup. Without it the
+	 * queue is a screen somebody has to remember to visit, and a submission
+	 * waits until a partner emails to ask why nothing happened. */
+	$waiting = gwcpp_pending_count();
+	$label   = __( 'Pending Changes', 'groundwork-common-post-portal' );
+
+	if ( $waiting > 0 ) {
+		$label .= sprintf(
+			' <span class="awaiting-mod"><span class="pending-count">%d</span></span>',
+			$waiting
+		);
+	}
+
+	$queue = add_submenu_page(
+		GWCPP_MENU_SLUG,
+		__( 'Pending Changes', 'groundwork-common-post-portal' ),
+		$label,
+		'manage_options',
+		GWCPP_QUEUE_SLUG,
+		'gwcpp_queue_screen'
+	);
+
+	foreach ( array( $settings, $fields, $queue ) as $hook ) {
 		if ( $hook ) {
 			add_action( 'load-' . $hook, 'gwcpp_add_help_tabs' );
 		}
@@ -616,6 +638,9 @@ function gwcpp_admin_messages(): array {
 		'invited'       => array( 'success', __( 'Invitation sent.', 'groundwork-common-post-portal' ) ),
 		'invite_failed' => array( 'error', __( 'That person could not be invited. See the message on the organisation.', 'groundwork-common-post-portal' ) ),
 		'removed'       => array( 'success', __( 'Removed.', 'groundwork-common-post-portal' ) ),
+		'approved'      => array( 'success', __( 'Approved. The changes are on the site, and the person who sent them has been told.', 'groundwork-common-post-portal' ) ),
+		'rejected'      => array( 'success', __( 'Rejected. The entry is unchanged, and the person who sent the changes has been told.', 'groundwork-common-post-portal' ) ),
+		'queue_gone'    => array( 'warning', __( 'That change had already been dealt with — somebody else got there first.', 'groundwork-common-post-portal' ) ),
 	);
 }
 

@@ -124,3 +124,56 @@
 	cursor: pointer;
 	font-weight: 600;
 }
+
+/* ── The approval queue ─────────────────────────────────────────────────── */
+
+.gwcpp-queue-item {
+	margin-bottom: 20px;
+}
+
+.gwcpp-queue-item__title {
+	margin: 0 0 4px;
+	font-size: 16px;
+}
+
+.gwcpp-queue-item__same {
+	padding: 10px 14px;
+	border-left: 4px solid #dba617;
+	background: #fcf9e8;
+}
+
+.gwcpp-diff {
+	margin: 12px 0;
+}
+
+.gwcpp-diff__old {
+	color: #646970;
+	text-decoration: line-through;
+}
+
+.gwcpp-diff__new {
+	font-weight: 600;
+}
+
+.gwcpp-queue-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	align-items: center;
+	margin-top: 12px;
+}
+
+.gwcpp-queue-actions form {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin: 0;
+}
+
+.gwcpp-queue-reject {
+	flex: 1 1 22rem;
+}
+
+.gwcpp-button-reject {
+	color: #b32d2e;
+}

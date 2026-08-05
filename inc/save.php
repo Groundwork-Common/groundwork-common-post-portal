@@ -62,6 +62,64 @@ function gwcpp_collect_submission( string $post_type, array $raw ): array {
 }
 
 /**
+ * Run any uploads a submission carried, and fold the results into its values.
+ *
+ * ── Why uploads are a separate pass ──────────────────────────────────────────
+ * Every other field's value arrives in $_POST and is handled by the type's
+ * sanitize callable. A file does not: it arrives in $_FILES, and turning it
+ * into a value means writing to disk and creating an attachment — a side effect
+ * a sanitizer must never have, because sanitizers get called from diffs, from
+ * previews, and from tests.
+ *
+ * So types that take files declare an optional `upload` callable, run exactly
+ * once per submission from here. `upload` is not part of the required contract
+ * in GWCPP_TYPE_CONTRACT; a type without it is simply skipped.
+ *
+ * Called once, and once only. An earlier draft of the save handler called the
+ * collector in three branches, which would have uploaded the same file three
+ * times and left two orphans behind on every save.
+ *
+ * @param string $post_type Post type slug.
+ * @param array  $values    Sanitized values so far.
+ * @param int    $user_id   Who is uploading.
+ * @return array{values:array, uploaded:int[], errors:array<string,string>}
+ */
+function gwcpp_apply_uploads( string $post_type, array $values, int $user_id ): array {
+	$uploaded = array();
+	$errors   = array();
+
+	foreach ( gwcpp_type_fields( $post_type ) as $field ) {
+		$def = gwcpp_field_type( (string) $field['type'] );
+
+		if ( null === $def || empty( $def['upload'] ) || ! is_callable( $def['upload'] ) ) {
+			continue;
+		}
+
+		$result = call_user_func( $def['upload'], $field, $user_id );
+
+		if ( is_wp_error( $result ) ) {
+			$errors[ (string) $field['key'] ] = $result->get_error_message();
+			continue;
+		}
+
+		// null means "no file was sent for this field", which is not an error —
+		// it is what every save that does not touch the photo looks like.
+		if ( null === $result ) {
+			continue;
+		}
+
+		$values[ (string) $field['key'] ] = (int) $result;
+		$uploaded[]                       = (int) $result;
+	}
+
+	return array(
+		'values'   => $values,
+		'uploaded' => $uploaded,
+		'errors'   => $errors,
+	);
+}
+
+/**
  * Fields the user filled in that sanitized away to nothing.
  *
  * ── The gap this closes ──────────────────────────────────────────────────────
@@ -151,6 +209,16 @@ function gwcpp_current_values( int $post_id, string $post_type ): array {
 			continue;
 		}
 
+		/* Terms, not meta. Read from the taxonomy every time rather than from a
+		 * cached copy, so a term renamed or deleted elsewhere on the site is
+		 * reflected here without this plugin having to hear about it. */
+		if ( gwcpp_type_is_taxonomy( $type ) ) {
+			$terms          = wp_get_object_terms( $post_id, $key, array( 'fields' => 'ids' ) );
+			$values[ $key ] = is_array( $terms ) ? array_map( 'intval', $terms ) : array();
+			sort( $values[ $key ] );
+			continue;
+		}
+
 		/* Multi-value types read every row; everything else reads one. Driven
 		 * off the sanitizer's return shape rather than off a list of type
 		 * slugs, so a type registered through the filter gets the right
@@ -233,6 +301,26 @@ function gwcpp_save_fields( int $post_id, array $values ): bool {
 			if ( (string) $post->$column !== $new ) {
 				$post_update[ $column ] = $new;
 				$changed                = true;
+			}
+			continue;
+		}
+
+		if ( gwcpp_type_is_taxonomy( (string) $field['type'] ) ) {
+			$term_ids = is_array( $value ) ? array_map( 'intval', $value ) : array();
+			$existing = wp_get_object_terms( $post_id, $key, array( 'fields' => 'ids' ) );
+			$existing = is_array( $existing ) ? array_map( 'intval', $existing ) : array();
+
+			sort( $term_ids );
+			sort( $existing );
+
+			if ( $term_ids !== $existing ) {
+				/* append => false, so clearing every box really clears them.
+				 * The *_present marker is what makes that safe: a form that
+				 * never showed this field does not submit the key at all and is
+				 * skipped above, so an empty array here always means somebody
+				 * actually unticked everything. */
+				wp_set_object_terms( $post_id, $term_ids, $key, false );
+				$changed = true;
 			}
 			continue;
 		}

@@ -3,7 +3,7 @@
  * Plugin Name:       Groundwork Common Post Portal
  * Plugin URI:        https://github.com/Groundwork-Common/groundwork-common-post-portal
  * Description:       Let the people who own your content edit it from the front end, without ever handing them a wp-admin login. You choose the post types, you map the fields, they sign in with a link in their email.
- * Version:           0.1.0
+ * Version:           0.2.0
  * Requires at least: 6.3
  * Requires PHP:      7.4
  * Author:            Groundwork Common LLC
@@ -38,7 +38,7 @@ defined( 'ABSPATH' ) || exit;
  * which is the one property an authorization check must never have.
  * ─────────────────────────────────────────────────────────────────────────── */
 
-const GWCPP_VERSION        = '0.1.0';
+const GWCPP_VERSION        = '0.2.0';
 const GWCPP_SCHEMA_VERSION = 1;
 
 /*
@@ -88,6 +88,23 @@ if ( ! function_exists( 'gwcpp_setting' ) ) {
 if ( ! function_exists( 'gwcpp_field_types' ) ) {
 	require GWCPP_DIR . 'inc/field-types.php';
 }
+
+/* The richer types, each of which registers itself onto the filter in
+ * field-types.php. They must be loaded before anything CALLS that registry —
+ * which is every render and every save — but the registration itself is lazy,
+ * so their order among themselves does not matter. */
+if ( ! function_exists( 'gwcpp_register_taxonomy_type' ) ) {
+	require GWCPP_DIR . 'inc/field-taxonomy.php';
+}
+if ( ! function_exists( 'gwcpp_register_richtext_type' ) ) {
+	require GWCPP_DIR . 'inc/field-richtext.php';
+}
+if ( ! function_exists( 'gwcpp_register_repeater_type' ) ) {
+	require GWCPP_DIR . 'inc/field-repeater.php';
+}
+if ( ! function_exists( 'gwcpp_register_media_type' ) ) {
+	require GWCPP_DIR . 'inc/field-media.php';
+}
 if ( ! function_exists( 'gwcpp_get_schema' ) ) {
 	require GWCPP_DIR . 'inc/schema.php';
 }
@@ -112,6 +129,9 @@ if ( ! function_exists( 'gwcpp_validate_submission' ) ) {
 if ( ! function_exists( 'gwcpp_save_fields' ) ) {
 	require GWCPP_DIR . 'inc/save.php';
 }
+if ( ! function_exists( 'gwcpp_get_changeset' ) ) {
+	require GWCPP_DIR . 'inc/changeset.php';
+}
 if ( ! function_exists( 'gwcpp_render_edit_form' ) ) {
 	require GWCPP_DIR . 'inc/portal-form.php';
 }
@@ -135,6 +155,9 @@ if ( ! function_exists( 'gwcpp_fields_screen' ) ) {
 
 	// The tab shell, and the settings that are not reachable without it.
 	require GWCPP_DIR . 'inc/admin-screen.php';
+
+	// The approval queue, which hangs off that shell's menu.
+	require GWCPP_DIR . 'inc/admin-queue.php';
 
 	/* Contextual help for the settings screens. Loaded after both because it
 	 * describes what they do. */
@@ -181,5 +204,15 @@ register_deactivation_hook(
 	__FILE__,
 	static function (): void {
 		flush_rewrite_rules( false );
+
+		/* The daily upload sweep, which gwcpp_schedule_upload_reaper() puts back
+		 * on the next init if the plugin is reactivated. Left scheduled, it is a
+		 * cron event pointing at a function that no longer exists — harmless in
+		 * WordPress, which skips unknown hooks, and a permanent entry in every
+		 * cron listing a site owner ever looks at. */
+		$next = wp_next_scheduled( 'gwcpp_reap_orphan_uploads' );
+		if ( $next ) {
+			wp_unschedule_event( $next, 'gwcpp_reap_orphan_uploads' );
+		}
 	}
 );

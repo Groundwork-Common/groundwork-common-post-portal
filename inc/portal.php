@@ -196,7 +196,13 @@ function gwcpp_handle_save(): void {
 	$raw     = isset( $_POST[ GWCPP_FIELD_PARAM ] ) && is_array( $_POST[ GWCPP_FIELD_PARAM ] ) ? $_POST[ GWCPP_FIELD_PARAM ] : array();
 	$values  = gwcpp_collect_submission( $post->post_type, $raw );
 	$dropped = gwcpp_dropped_fields( $post->post_type, $raw, $values );
-	$errors  = gwcpp_validate_submission( $post->post_type, $values, $dropped );
+
+	// Once, before validation, so a rejected upload is reported beside its own
+	// field rather than swallowed.
+	$upload  = gwcpp_apply_uploads( $post->post_type, $values, $user_id );
+	$values  = $upload['values'];
+
+	$errors  = gwcpp_validate_submission( $post->post_type, $values, $dropped ) + $upload['errors'];
 
 	$edit_url = gwcpp_portal_url(
 		array(
@@ -206,6 +212,11 @@ function gwcpp_handle_save(): void {
 	);
 
 	if ( $errors ) {
+		/* Anything that did upload before something else failed has nothing
+		 * pointing at it once the form redraws, so it goes now rather than
+		 * waiting for the cron sweep. */
+		gwcpp_discard_attachments( $upload['uploaded'] );
+
 		gwcpp_stash_submission( $user_id, $post_id, $values, $errors, $dropped );
 		// No flash message: the form redraws with a summary at the top and
 		// every message beside its own field, which says all of it better.
@@ -213,19 +224,43 @@ function gwcpp_handle_save(): void {
 		exit;
 	}
 
-	/* Phase 1 writes straight through. The require_approval flag is already
-	 * read by the button label and by the settings screen, and Phase 2 routes
-	 * this call into a changeset instead. Until then a site with approval on
-	 * would see a button promising review and no review, so the label asks
-	 * gwcpp_save_button_label() which asks the same flag — keeping the two in
-	 * step is the whole reason that is a function rather than a string here. */
-	$changed = gwcpp_save_fields( $post_id, $values );
+	/* Computed before anything is written, because afterwards the submitted
+	 * values are the stored values and there is nothing left to compare. */
+	$diff = gwcpp_diff_values( $post_id, $values );
+
+	if ( ! $diff ) {
+		/* Nothing actually differs. Said plainly rather than queued: a
+		 * changeset with an empty diff is a row in staff's review queue asking
+		 * them to approve nothing, and the person who submitted it is owed the
+		 * information that their edit made no difference. */
+		gwcpp_discard_attachments( $upload['uploaded'] );
+
+		gwcpp_bail(
+			$edit_url,
+			__( 'Nothing had changed, so there was nothing to save.', 'groundwork-common-post-portal' ),
+			'ok'
+		);
+	}
+
+	if ( gwcpp_type_setting( $post->post_type, 'require_approval' ) ) {
+		gwcpp_store_changeset( $post_id, $user_id, $values, $upload['uploaded'] );
+		gwcpp_notify_staff_change( $post_id, $user_id, $diff, true );
+
+		gwcpp_bail(
+			$edit_url,
+			__( 'Thank you. Your changes have been sent for review, and will appear once somebody has looked at them.', 'groundwork-common-post-portal' ),
+			'ok'
+		);
+	}
+
+	gwcpp_attach_uploads( $upload['uploaded'], $post_id );
+	gwcpp_save_fields( $post_id, $values );
+	gwcpp_log_change( $post_id, $user_id, 0, $diff );
+	gwcpp_notify_staff_change( $post_id, $user_id, $diff, false );
 
 	gwcpp_bail(
 		$edit_url,
-		$changed
-			? __( 'Saved. Thank you.', 'groundwork-common-post-portal' )
-			: __( 'Nothing had changed, so there was nothing to save.', 'groundwork-common-post-portal' ),
+		__( 'Saved. Thank you.', 'groundwork-common-post-portal' ),
 		'ok'
 	);
 }
@@ -266,9 +301,14 @@ function gwcpp_handle_create(): void {
 	$raw     = isset( $_POST[ GWCPP_FIELD_PARAM ] ) && is_array( $_POST[ GWCPP_FIELD_PARAM ] ) ? $_POST[ GWCPP_FIELD_PARAM ] : array();
 	$values  = gwcpp_collect_submission( $post_type, $raw );
 	$dropped = gwcpp_dropped_fields( $post_type, $raw, $values );
-	$errors  = gwcpp_validate_submission( $post_type, $values, $dropped );
+
+	$upload  = gwcpp_apply_uploads( $post_type, $values, $user_id );
+	$values  = $upload['values'];
+
+	$errors  = gwcpp_validate_submission( $post_type, $values, $dropped ) + $upload['errors'];
 
 	if ( $errors ) {
+		gwcpp_discard_attachments( $upload['uploaded'] );
 		gwcpp_stash_submission( $user_id, 0, $values, $errors, $dropped );
 		wp_safe_redirect(
 			gwcpp_portal_url(
@@ -289,8 +329,14 @@ function gwcpp_handle_create(): void {
 	$post_id = gwcpp_create_post( $post_type, $values, $user_id, (int) $orgs[0] );
 
 	if ( is_wp_error( $post_id ) ) {
+		gwcpp_discard_attachments( $upload['uploaded'] );
 		gwcpp_bail( gwcpp_portal_url(), $post_id->get_error_message(), 'error' );
 	}
+
+	/* A newly created post is not published, so there is nothing live for a
+	 * changeset to protect — the whole thing IS the pending item, and staff
+	 * review it by publishing it. Uploads therefore attach immediately. */
+	gwcpp_attach_uploads( $upload['uploaded'], (int) $post_id );
 
 	gwcpp_bail(
 		gwcpp_portal_url(
@@ -570,18 +616,79 @@ function gwcpp_render_edit_view( int $user_id ): void {
 		return;
 	}
 
-	$stash  = gwcpp_take_stash( $user_id, $post_id );
-	$values = null !== $stash
-		? array_merge( gwcpp_current_values( $post_id, $post->post_type ), $stash['values'] )
-		: gwcpp_current_values( $post_id, $post->post_type );
-	$errors = null !== $stash ? $stash['errors'] : array();
+	$current = gwcpp_current_values( $post_id, $post->post_type );
+	$stash   = gwcpp_take_stash( $user_id, $post_id );
+	$pending = gwcpp_get_changeset( $post_id );
+
+	/* Three sources, in order of how recently the person touched them: a
+	 * submission that was just refused, then changes they sent for review, then
+	 * what is actually stored.
+	 *
+	 * Showing the pending values rather than the live ones matters more than it
+	 * sounds. Someone who submits a corrected phone number and comes back an
+	 * hour later would otherwise see the old number still in the box, conclude
+	 * their edit was lost, and submit it again — which is how a review queue
+	 * fills up with duplicates of the same change. */
+	if ( null !== $stash ) {
+		$values = array_merge( $current, $stash['values'] );
+		$errors = $stash['errors'];
+	} elseif ( null !== $pending ) {
+		$values = array_merge( $current, $pending['values'] );
+		$errors = array();
+	} else {
+		$values = $current;
+		$errors = array();
+	}
 
 	printf(
 		'<h1 class="gwcpp-title">%s</h1>',
 		esc_html( '' !== trim( (string) $post->post_title ) ? $post->post_title : __( '(no title yet)', 'groundwork-common-post-portal' ) )
 	);
 
+	if ( null !== $pending && null === $stash ) {
+		gwcpp_render_pending_banner( $pending, $post_id );
+	}
+
 	gwcpp_render_edit_form( $post, $values, $errors );
+}
+
+/**
+ * The "waiting for review" banner.
+ *
+ * Says what is on the public site right now as well as what is waiting,
+ * because the question somebody actually has is "can people see my change
+ * yet" — and a banner that only says "submitted" leaves them to guess.
+ *
+ * @param array $pending The changeset.
+ * @param int   $post_id Post ID.
+ */
+function gwcpp_render_pending_banner( array $pending, int $post_id ): void {
+	$when = $pending['time'] > 0
+		? sprintf(
+			/* translators: %s: a length of time, e.g. "2 hours". */
+			__( 'You sent changes for review %s ago.', 'groundwork-common-post-portal' ),
+			human_time_diff( $pending['time'] )
+		)
+		: __( 'You have changes waiting for review.', 'groundwork-common-post-portal' );
+
+	$count = count( gwcpp_changeset_diff( $post_id ) );
+
+	printf(
+		'<div class="gwcpp-notice gwcpp-notice--pending" role="status"><p><strong>%s</strong></p><p>%s</p></div>',
+		esc_html( $when ),
+		esc_html(
+			sprintf(
+				/* translators: %d: how many fields were changed. */
+				_n(
+					'One field is different from what the public sees. The form below shows what you sent — edit it again if you need to, and it will replace what is waiting.',
+					'%d fields are different from what the public sees. The form below shows what you sent — edit it again if you need to, and it will replace what is waiting.',
+					max( 1, $count ),
+					'groundwork-common-post-portal'
+				),
+				$count
+			)
+		)
+	);
 }
 
 /**

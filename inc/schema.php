@@ -76,6 +76,24 @@ function gwcpp_synthetic_fields(): array {
 			'label'  => __( 'Short description', 'groundwork-common-post-portal' ),
 			'column' => 'post_excerpt',
 		),
+		/* Unlocked now that the rich text type exists. It was deliberately
+		 * absent while the only text types were plain, because rendering an
+		 * existing post body into a textarea and saving it back through
+		 * sanitize_textarea_field() strips every tag out of content the portal
+		 * user never meant to touch.
+		 *
+		 * Worth an admin knowing before they map it: the allow-list in
+		 * field-richtext.php applies to whatever comes back, so if staff wrote
+		 * the body using anything outside it — an embed, a shortcode-rendered
+		 * block, styling — a portal user saving this field will remove it. That
+		 * is the price of letting somebody else edit the body, and it is why
+		 * this is a field an admin adds on purpose rather than one that is
+		 * there by default. */
+		'__content' => array(
+			'type'   => 'richtext',
+			'label'  => __( 'Main text', 'groundwork-common-post-portal' ),
+			'column' => 'post_content',
+		),
 	);
 
 	return $fields;
@@ -401,18 +419,31 @@ function gwcpp_sanitize_field_key( string $key ): string {
 function gwcpp_sanitize_field( array $raw ): ?array {
 	$field = array_merge( gwcpp_field_defaults(), array() );
 
-	$key = (string) ( $raw['key'] ?? '' );
-	// A synthetic key passes through as-is; anything else is sanitized.
-	$field['key'] = gwcpp_is_synthetic( $key ) ? $key : gwcpp_sanitize_field_key( $key );
-	if ( '' === $field['key'] ) {
-		return null;
-	}
-
 	$type = sanitize_key( (string) ( $raw['type'] ?? '' ) );
 	if ( null === gwcpp_field_type( $type ) ) {
 		return null;
 	}
 	$field['type'] = $type;
+
+	$key = (string) ( $raw['key'] ?? '' );
+
+	if ( gwcpp_is_synthetic( $key ) ) {
+		// A synthetic key names a post column and passes through as-is.
+		$field['key'] = $key;
+	} elseif ( gwcpp_type_is_taxonomy( $type ) ) {
+		/* Not a meta key at all — it is a taxonomy slug, so the meta-key rules
+		 * do not apply to it. Dashes in particular are ordinary in a taxonomy
+		 * slug and are exactly what gwcpp_sanitize_field_key() would replace,
+		 * turning `service-type` into `service_type` and pointing the field at
+		 * a taxonomy that does not exist. */
+		$field['key'] = sanitize_key( $key );
+	} else {
+		$field['key'] = gwcpp_sanitize_field_key( $key );
+	}
+
+	if ( '' === $field['key'] ) {
+		return null;
+	}
 
 	$field['label']       = sanitize_text_field( (string) ( $raw['label'] ?? '' ) );
 	$field['description'] = sanitize_text_field( (string) ( $raw['description'] ?? '' ) );
@@ -455,7 +486,23 @@ function gwcpp_sanitize_field_settings( array $raw ): array {
 		}
 	}
 
-	foreach ( array( 'maxlength', 'rows', 'max_choices' ) as $key ) {
+	/* Multi-line, so sanitize_textarea_field rather than sanitize_text_field —
+	 * the latter collapses newlines to spaces, which for a definition that is
+	 * one column per line means every column merging into the first. */
+	if ( isset( $raw['subfields_raw'] ) && is_scalar( $raw['subfields_raw'] ) ) {
+		$value = sanitize_textarea_field( (string) $raw['subfields_raw'] );
+		if ( '' !== trim( $value ) ) {
+			$out['subfields_raw'] = $value;
+		}
+	}
+
+	foreach ( array( 'allow_new' ) as $key ) {
+		if ( ! empty( $raw[ $key ] ) ) {
+			$out[ $key ] = true;
+		}
+	}
+
+	foreach ( array( 'maxlength', 'rows', 'max_choices', 'max_rows', 'max_mb' ) as $key ) {
 		if ( isset( $raw[ $key ] ) && is_numeric( $raw[ $key ] ) ) {
 			$value = (int) $raw[ $key ];
 			if ( $value > 0 ) {
