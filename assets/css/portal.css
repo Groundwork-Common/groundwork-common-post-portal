@@ -388,3 +388,110 @@
 		transition: border-color 120ms ease;
 	}
 }
+
+/* ── Pending review ─────────────────────────────────────────────────────── */
+
+.gwcpp-notice--pending {
+	border-left-color: #b7791f;
+	background: color-mix(in srgb, #b7791f 8%, var(--gwcpp-surface));
+}
+
+.gwcpp-notice--pending p + p {
+	margin-top: 6px;
+	font-size: 0.9375rem;
+}
+
+/* ── Sub-labels, used inside repeaters and beside the new-term box ──────── */
+
+.gwcpp-label--sub {
+	margin-top: 8px;
+	font-size: 0.875rem;
+	font-weight: 500;
+}
+
+.gwcpp-field__hint {
+	margin: 6px 0 0;
+	font-size: 0.875rem;
+	color: var(--gwcpp-muted);
+}
+
+/* ── Media ──────────────────────────────────────────────────────────────── */
+
+.gwcpp-media__current {
+	margin-bottom: 12px;
+	padding: 12px;
+	border: 1px solid var(--gwcpp-line);
+	border-radius: var(--gwcpp-radius);
+	background: var(--gwcpp-surface);
+}
+
+.gwcpp-media__thumb {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	margin-bottom: 8px;
+	border-radius: calc(var(--gwcpp-radius) / 2);
+}
+
+.gwcpp-media__file {
+	display: inline-block;
+	margin-bottom: 8px;
+	word-break: break-all;
+}
+
+.gwcpp-field--media input[type="file"] {
+	display: block;
+	width: 100%;
+	font: inherit;
+}
+
+/* ── Repeater ───────────────────────────────────────────────────────────── */
+
+.gwcpp-repeater__row {
+	display: grid;
+	/* Columns on a wide screen, stacked on a phone. auto-fit rather than a
+	   fixed count, because the number of columns comes from the schema and this
+	   file cannot know it. */
+	grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)) auto;
+	gap: 12px;
+	align-items: end;
+	padding: 12px;
+	margin-bottom: 10px;
+	border: 1px solid var(--gwcpp-line);
+	border-radius: var(--gwcpp-radius);
+	background: var(--gwcpp-surface);
+}
+
+.gwcpp-repeater__cell {
+	min-width: 0;
+}
+
+.gwcpp-repeater__cell .gwcpp-label--sub {
+	margin-top: 0;
+}
+
+.gwcpp-repeater__remove {
+	flex: none;
+	width: 2.25rem;
+	height: 2.25rem;
+	border: 1px solid var(--gwcpp-line);
+	border-radius: var(--gwcpp-radius);
+	background: transparent;
+	color: var(--gwcpp-error);
+	font-size: 1.25rem;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.gwcpp-repeater__remove:hover {
+	border-color: var(--gwcpp-error);
+}
+
+.gwcpp-repeater__actions {
+	margin: 0;
+}
+
+.gwcpp-repeater__actions button[disabled] {
+	opacity: 0.5;
+	cursor: not-allowed;
+}

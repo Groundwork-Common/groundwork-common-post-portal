@@ -110,11 +110,66 @@ Register your own with the `gwcpp_field_types` filter.
 | `gwcpp_portal_post_types` | filter | The enabled post types, after settings. |
 | `gwcpp_editable_posts` | filter | The list of posts shown to a user. |
 | `gwcpp_field_label` | filter | A field's label at render time. |
+| `gwcpp_validation_errors` | filter | Problems found in a submission. |
 | `gwcpp_token_ttl` | filter | Sign-in token lifetime, in seconds. |
 | `gwcpp_rate_limits` | filter | The three rate-limit windows. |
 | `gwcpp_load_assets` | filter | Force portal CSS/JS on or off. |
+| `gwcpp_allowed_upload_types` | filter | What a portal user may upload. |
+| `gwcpp_richtext_allowed_html` | filter | The HTML a portal user may write. |
+| `gwcpp_schema_migrations` | filter | Schema migration steps, keyed by version. |
+| `gwcpp_schema_saved` | action | After the field schema is written. |
+| `gwcpp_fields_saved` | action | After values are written to a post. |
+| `gwcpp_changeset_stored` | action | A submission was queued for review. |
+| `gwcpp_changeset_applied` | action | A submission was approved. |
+| `gwcpp_changeset_rejected` | action | A submission was rejected. |
 
 Every hook in the plugin is in this table. If you add one, add its row.
+
+Two of these are security surfaces rather than conveniences.
+`gwcpp_allowed_upload_types` decides what can be written into the webroot and
+served back over HTTP; `gwcpp_richtext_allowed_html` decides what markup a
+person with no wp-admin access can put on a page the site owns. Widen either
+only on purpose.
+
+## Approval
+
+When a post type has **Changes need staff approval** on, a submission is stored
+whole in one post meta row and the published post keeps showing exactly what it
+showed before. Staff see an old-against-new comparison under **Portal → Pending
+Changes** and approve or reject.
+
+- **One changeset per post, not a queue.** Submitting again replaces what was
+  waiting. A queue would let staff approve edit 1, then approve edit 2 written
+  against the pre-edit-1 values, silently reverting the first.
+- **The diff is computed, never stored.** If staff edit the post while a
+  changeset waits, the *old* side updates to match, so what they approve is what
+  they were shown.
+- **Approving replays through `gwcpp_save_fields()`** — the same path an
+  immediate save uses. A field retired from the schema between submission and
+  approval is therefore never written.
+- The portal form prefills from the pending changeset, not the live post, so
+  somebody returning an hour later sees their own submitted values rather than
+  concluding the edit was lost and sending it again.
+
+The alternative — flipping `post_status` to `pending` — takes a live listing off
+the public site the moment somebody corrects a typo in it. That is not a trade
+anyone would agree to if asked.
+
+## Uploads
+
+`inc/field-media.php` is the most dangerous file here, and its header explains
+the six checks in order. The short version: an explicit MIME allow-list that is
+*not* `get_allowed_mime_types()`, a size cap, `wp_check_filetype_and_ext()`
+reading the file's actual bytes, a second check that what it reports is still on
+our list, `is_uploaded_file()` on the temp path, and EXIF stripping by
+re-encoding through `WP_Image_Editor`.
+
+Under approval an upload is created immediately — there is nowhere else to put a
+file — flagged `_gwcpp_pending_for`, and only attached on approve. Rejecting
+deletes it, and a daily cron reaps anything whose changeset vanished by some
+other route. `gwcpp_discard_attachments()` refuses to touch an attachment
+without that flag, so neither a reject nor the cron can delete media somebody
+else put there.
 
 ## Tests
 

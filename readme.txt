@@ -5,7 +5,7 @@ Tags: front-end editing, portal, passwordless, custom post types, moderation
 Requires at least: 6.3
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -97,6 +97,17 @@ one costs nothing and is the expected path, not an error.
 Yes. Add them both to the organisation that owns it, or grant them each access
 on the post directly.
 
+= What can a portal user write in a formatted text field? =
+
+Paragraphs, bold, italic, lists, links and small headings. Everything else —
+embeds, scripts, styling, anything that could imitate your site's own chrome —
+is removed when they save, regardless of what role the account holds.
+
+= What files can they upload? =
+
+Images and PDFs, up to a size you set. The file's actual contents are checked,
+not just its name, so a script renamed to .jpg is refused.
+
 = Does this work with ACF? =
 
 Field values stored as ordinary post meta work, and the Fields screen can
@@ -118,6 +129,16 @@ directly. The "author may edit their own" path is off by default.
 
 == Changelog ==
 
+= 0.2.0 =
+* Changes can now be held for staff approval. The published entry keeps showing
+  what it showed before until somebody approves, and staff see an old-against-new
+  comparison in wp-admin.
+* Staff are emailed a diff of every submission; the person who submitted it is
+  told when it is approved or rejected, with the reason.
+* New field types: formatted text, image or file upload, repeating rows, and
+  categories or tags bound to a real taxonomy.
+* The post's main text can now be mapped as a field.
+
 = 0.1.0 =
 * First release. Post type selection, the Fields screen and its field type
   registry, organisations and direct grants, passwordless sign-in with optional
@@ -125,6 +146,9 @@ directly. The "author may edit their own" path is off by default.
   portal users.
 
 == Upgrade Notice ==
+
+= 0.2.0 =
+Adds the approval queue and four new field types, including file uploads.
 
 = 0.1.0 =
 First release.

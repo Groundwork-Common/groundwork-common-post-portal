@@ -37,6 +37,18 @@ function gwcpp_register_front_assets(): void {
 		array(),
 		GWCPP_VERSION
 	);
+
+	/* Deferred, and with no dependencies. It attaches on DOMContentLoaded and
+	 * touches nothing outside its own repeater, so there is no reason for it to
+	 * block rendering — and a portal user on a bad connection should see the
+	 * form before they can add a row to it. */
+	wp_register_script(
+		'gwcpp-repeater',
+		GWCPP_URL . 'assets/js/repeater.js',
+		array(),
+		GWCPP_VERSION,
+		array( 'strategy' => 'defer', 'in_footer' => true )
+	);
 }
 
 /**
@@ -68,6 +80,7 @@ function gwcpp_enqueue_portal_assets(): void {
 	}
 
 	wp_enqueue_style( 'gwcpp-portal' );
+	wp_enqueue_script( 'gwcpp-repeater' );
 
 	$css = gwcpp_appearance_css();
 	if ( '' !== $css ) {

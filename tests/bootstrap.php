@@ -27,6 +27,7 @@ define( 'ABSPATH', __DIR__ . '/' );
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'HOUR_IN_SECONDS', 3600 );
 define( 'DAY_IN_SECONDS', 86400 );
+define( 'MB_IN_BYTES', 1048576 );
 
 define( 'GWCPP_DIR', dirname( __DIR__ ) . '/' );
 define( 'GWCPP_URL', 'https://example.test/wp-content/plugins/groundwork-common-post-portal/' );
@@ -53,7 +54,8 @@ $GLOBALS['gwcpp_test'] = array(
 	'posts'      => array(),
 	'users'      => array(),
 	'types'      => array( 'post', 'page', 'gwcpp_org' ),
-	'filters'    => array(),
+	'taxonomies' => array(),
+	'terms'      => array(),
 );
 
 /**
@@ -70,7 +72,8 @@ function gwcpp_test_reset(): void {
 	$GLOBALS['gwcpp_test']['posts']      = array();
 	$GLOBALS['gwcpp_test']['users']      = array();
 	$GLOBALS['gwcpp_test']['types']      = array( 'post', 'page', 'gwcpp_org' );
-	$GLOBALS['gwcpp_test']['filters']    = array();
+	$GLOBALS['gwcpp_test']['taxonomies'] = array();
+	$GLOBALS['gwcpp_test']['terms']      = array();
 
 	gwcpp_settings_cache( null, true );
 	gwcpp_schema_cache( null, true );
@@ -315,6 +318,64 @@ function post_type_exists( $type ) {
 	return in_array( (string) $type, $GLOBALS['gwcpp_test']['types'], true );
 }
 
+function wp_update_post( $postarr = array(), $wp_error = false ) {
+	$id = (int) ( is_array( $postarr ) ? ( $postarr['ID'] ?? 0 ) : 0 );
+
+	if ( $id <= 0 || ! isset( $GLOBALS['gwcpp_test']['posts'][ $id ] ) ) {
+		return 0;
+	}
+
+	foreach ( $postarr as $key => $value ) {
+		if ( 'ID' === $key ) {
+			continue;
+		}
+		// Mirrors wp_insert_post, which unslashes everything it is given —
+		// which is exactly why gwcpp_save_fields wp_slash()es first.
+		$GLOBALS['gwcpp_test']['posts'][ $id ]->$key = wp_unslash( $value );
+	}
+
+	return $id;
+}
+
+/* Deliberately NOT a working wp_kses. A stub that implements the filtering
+ * itself would be testing this file's idea of KSES rather than WordPress's, and
+ * would pass no matter what the plugin's allow-list said. It returns its input
+ * untouched, so any unit test that depended on filtering would fail loudly
+ * rather than pass falsely — and the filtering itself is checked against real
+ * WordPress in tests/integration/richtext.php. */
+function wp_kses( $string, $allowed_html, $allowed_protocols = array() ) {
+	return $string;
+}
+
+function wp_get_object_terms( $object_ids, $taxonomies, $args = array() ) {
+	return $GLOBALS['gwcpp_test']['terms'][ (int) $object_ids ][ (string) $taxonomies ] ?? array();
+}
+
+function wp_set_object_terms( $object_id, $terms, $taxonomy, $append = false ) {
+	$GLOBALS['gwcpp_test']['terms'][ (int) $object_id ][ (string) $taxonomy ] = array_map( 'intval', (array) $terms );
+	return $terms;
+}
+
+function taxonomy_exists( $taxonomy ) {
+	return in_array( (string) $taxonomy, $GLOBALS['gwcpp_test']['taxonomies'] ?? array(), true );
+}
+
+function size_format( $bytes, $decimals = 0 ) {
+	return round( (int) $bytes / 1048576 ) . ' MB';
+}
+
+function wp_max_upload_size() {
+	return 64 * MB_IN_BYTES;
+}
+
+function wp_next_scheduled( $hook, $args = array() ) {
+	return false;
+}
+
+function wp_schedule_event( $timestamp, $recurrence, $hook, $args = array() ) {
+	return true;
+}
+
 function get_userdata( $id ) {
 	return $GLOBALS['gwcpp_test']['users'][ (int) $id ] ?? false;
 }
@@ -332,17 +393,23 @@ function get_posts( $args = array() ) {
 }
 
 /* ── Hooks ───────────────────────────────────────────────────────────────────
- * add_action and add_filter are no-ops: nothing under test depends on a hook
- * firing, and a real dispatcher here would be a second implementation of
- * WordPress's to keep correct. apply_filters returns its value unchanged, which
- * is what happens on a site with nothing hooked — the case the plugin's own
- * behaviour is specified against. */
+ * add_filter and apply_filters are REAL, priority-ordered and all, because the
+ * plugin's field type registry is built by filter: field-taxonomy.php and its
+ * three siblings register themselves onto `gwcpp_field_types` rather than being
+ * listed anywhere.
+ *
+ * An earlier version of this file made apply_filters a no-op that returned its
+ * value untouched. Every test still passed, and every one of them was testing a
+ * registry containing only the built-in types — the four richest types, the
+ * ones most worth testing, were invisible to the whole suite. Two tests that
+ * should have failed passed because gwcpp_field_call() fell through to its
+ * unknown-type fallback.
+ *
+ * add_action and do_action stay no-ops: nothing under test depends on an action
+ * firing, and unlike the filters above, none of them build anything.
+ * ─────────────────────────────────────────────────────────────────────────── */
 
 function add_action( ...$args ) {
-	return true;
-}
-
-function add_filter( ...$args ) {
 	return true;
 }
 
@@ -350,7 +417,32 @@ function do_action( ...$args ) {
 	return null;
 }
 
+function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
+	$GLOBALS['gwcpp_test_filters'][ $hook ][ (int) $priority ][] = array(
+		'cb'   => $callback,
+		'args' => (int) $accepted_args,
+	);
+	return true;
+}
+
 function apply_filters( $hook, $value, ...$rest ) {
+	if ( empty( $GLOBALS['gwcpp_test_filters'][ $hook ] ) ) {
+		return $value;
+	}
+
+	$by_priority = $GLOBALS['gwcpp_test_filters'][ $hook ];
+	ksort( $by_priority );
+
+	foreach ( $by_priority as $callbacks ) {
+		foreach ( $callbacks as $entry ) {
+			if ( ! is_callable( $entry['cb'] ) ) {
+				continue;
+			}
+			$args  = array_merge( array( $value ), $rest );
+			$value = call_user_func_array( $entry['cb'], array_slice( $args, 0, max( 1, $entry['args'] ) ) );
+		}
+	}
+
 	return $value;
 }
 
@@ -528,11 +620,16 @@ function wp_generate_password( $length = 12, $special = true, $extra = false ) {
 require GWCPP_DIR . 'inc/i18n.php';
 require GWCPP_DIR . 'inc/settings.php';
 require GWCPP_DIR . 'inc/field-types.php';
+require GWCPP_DIR . 'inc/field-taxonomy.php';
+require GWCPP_DIR . 'inc/field-richtext.php';
+require GWCPP_DIR . 'inc/field-repeater.php';
+require GWCPP_DIR . 'inc/field-media.php';
 require GWCPP_DIR . 'inc/schema.php';
 require GWCPP_DIR . 'inc/org-cpt.php';
 require GWCPP_DIR . 'inc/access.php';
 require GWCPP_DIR . 'inc/validate.php';
 require GWCPP_DIR . 'inc/save.php';
+require GWCPP_DIR . 'inc/changeset.php';
 require GWCPP_DIR . 'inc/auth.php';
 
 /* admin-screen.php declares gwcpp_colophon_snoozed(), which is pure and worth a
