@@ -570,6 +570,16 @@ function gwcpp_reviewable_post_ids(): array {
  * @return array{checked:int,mailed:int,expired:int}
  */
 function gwcpp_run_daily_review(): array {
+	$nothing = array(
+		'checked' => 0,
+		'mailed'  => 0,
+		'expired' => 0,
+	);
+
+	if ( ! gwcpp_review_claim_lock() ) {
+		return $nothing;
+	}
+
 	update_option( 'gwcpp_review_last_run', time(), false );
 
 	$batches     = array();
@@ -657,11 +667,72 @@ function gwcpp_run_daily_review(): array {
 	// expires them for us. Sweep the ones nobody clicked.
 	gwcpp_purge_expired_durable_tokens();
 
+	gwcpp_review_release_lock();
+
 	return array(
 		'checked' => $checked,
 		'mailed'  => $mailed,
 		'expired' => count( $expired_now ),
 	);
+}
+
+/* ── The run lock ────────────────────────────────────────────────────────────
+ * Two things can start this run: the cron event, and gwcpp_review_catch_up() on
+ * admin_init. The catch-up checks gwcpp_review_last_run first, but the cron
+ * hook does not, and in any case both can read that option before either writes
+ * it. The result is two walks over the same five hundred entries, each deciding
+ * the same owners are due and each sending them mail.
+ *
+ * gwcpp_review_record_notices() narrows that — a rung already recorded is not
+ * sent again — but it is written after the send, so it does not close the
+ * window it sits inside. A lock does.
+ *
+ * add_option() is the primitive because the options table has a unique key on
+ * option_name: the insert either happens or it does not, which is the closest
+ * thing WordPress offers to an atomic test-and-set without reaching for $wpdb.
+ * A transient would not do, since on a site with a persistent object cache two
+ * web nodes can hold different ideas of one.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/** Option: held while a review run is in progress. */
+const GWCPP_REVIEW_LOCK_OPTION = 'gwcpp_review_running';
+
+/** How long before a held lock is assumed to belong to a run that died.
+ *  Comfortably longer than any real run, and short enough that a process killed
+ *  mid-walk does not stop the reminders for a day. */
+const GWCPP_REVIEW_LOCK_TTL = 30 * MINUTE_IN_SECONDS;
+
+/**
+ * Take the lock, or report that somebody else has it.
+ *
+ * @return bool True when this process may proceed.
+ */
+function gwcpp_review_claim_lock(): bool {
+	if ( add_option( GWCPP_REVIEW_LOCK_OPTION, time(), '', false ) ) {
+		return true;
+	}
+
+	$held = (int) get_option( GWCPP_REVIEW_LOCK_OPTION, 0 );
+
+	/* Still warm: a run really is in progress. Refusing is the whole point —
+	 * the cost of skipping is that reminders go out on the next run instead,
+	 * and the cost of not skipping is that somebody gets the same email twice. */
+	if ( $held > 0 && ( time() - $held ) < GWCPP_REVIEW_LOCK_TTL ) {
+		return false;
+	}
+
+	// Stale. An FPM timeout or a fatal killed the previous run before it could
+	// release, and nothing else is ever going to clear this.
+	update_option( GWCPP_REVIEW_LOCK_OPTION, time(), false );
+
+	return true;
+}
+
+/**
+ * Release the lock.
+ */
+function gwcpp_review_release_lock(): void {
+	delete_option( GWCPP_REVIEW_LOCK_OPTION );
 }
 
 /**
@@ -721,7 +792,13 @@ function gwcpp_review_mail_owner( int $user_id, array $items ): bool {
 	 * things are fine and one is about to disappear, in a message headed "a
 	 * reminder", buries the only part that matters. */
 	$worst = 'due';
-	$order = array( 'due' => 1, 'named' => 2, 'overdue' => 3, 'final_15' => 4, 'expired' => 5 );
+	$order = array(
+		'due'      => 1,
+		'named'    => 2,
+		'overdue'  => 3,
+		'final_15' => 4,
+		'expired'  => 5,
+	);
 	foreach ( $items as $item ) {
 		if ( ( $order[ $item['rung'] ] ?? 0 ) > ( $order[ $worst ] ?? 0 ) ) {
 			$worst = (string) $item['rung'];

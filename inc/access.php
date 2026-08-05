@@ -222,20 +222,49 @@ function gwcpp_editable_post_ids( int $user_id ): array {
 	}
 
 	// Authorship, for the post types where it grants anything.
-	$author_types = array_values( array_filter( $types, static function ( $type ) {
-		return (bool) gwcpp_type_setting( $type, 'author_grant' );
-	} ) );
+	$author_types = array_values(
+		array_filter(
+			$types,
+			static function ( $type ) {
+				return (bool) gwcpp_type_setting( $type, 'author_grant' );
+			}
+		)
+	);
 
 	if ( $author_types ) {
 		$ids = array_merge(
 			$ids,
 			get_posts(
-				array_merge( $base, array( 'post_type' => $author_types, 'author' => $user_id ) )
+				array_merge(
+					$base,
+					array(
+						'post_type' => $author_types,
+						'author'    => $user_id,
+					)
+				)
 			)
 		);
 	}
 
 	$ids = array_values( array_unique( array_map( 'intval', $ids ) ) );
+
+	/* ── Prime once, before the re-check walks the whole list ────────────────
+	 * The three queries above ask for `fields => 'ids'` with the meta cache
+	 * off, which is right for the queries and leaves nothing in the cache. The
+	 * re-check below then calls gwcpp_user_can_edit_post() per ID, and each of
+	 * those does a get_post(), two get_post_meta() reads and a get_post_type()
+	 * on the organisation — so an organisation with three hundred entries meant
+	 * something like fifteen hundred individual round trips to render a list of
+	 * twenty, and the renderer then called get_post() on all of them again.
+	 *
+	 * Two queries here make every one of those a cache hit. The re-check itself
+	 * stays exactly as it was: it is the choke point, and it is deliberately
+	 * redundant with the queries that produced this list. It was never the
+	 * problem — paying full price for uncached objects was. */
+	if ( $ids ) {
+		_prime_post_caches( $ids, false, false );
+		update_meta_cache( 'post', $ids );
+	}
 
 	// The redundant re-check described above.
 	$ids = array_values(

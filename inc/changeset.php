@@ -44,6 +44,9 @@ const GWCPP_QUEUE_SLUG = 'gwcpp-pending';
 /** Post meta, single: the last few applied changes, for staff. */
 const GWCPP_LOG_META = '_gwcpp_change_log';
 
+/** Transient: the queue count for the menu bubble. See gwcpp_pending_count(). */
+const GWCPP_PENDING_COUNT_TRANSIENT = 'gwcpp_pending_count';
+
 /** How many entries the log keeps. */
 const GWCPP_LOG_LENGTH = 10;
 
@@ -307,11 +310,52 @@ function gwcpp_pending_post_ids(): array {
 /**
  * How many posts are waiting, for the menu bubble.
  *
+ * ── Why this one is cached and gwcpp_pending_post_ids() is not ───────────────
+ * Because of where it is called from. gwcpp_admin_menu() runs on `admin_menu`,
+ * which fires on every single wp-admin request — the Dashboard, Media, Users,
+ * somebody else's plugin's settings screen — and all it wants is a number for
+ * the bubble. Uncached, that put a filesort over a meta join on every admin
+ * page load on the site, to draw a digit that is usually zero.
+ *
+ * The queue screen itself still calls gwcpp_pending_post_ids() directly and
+ * still sees the truth, because a stale list there would be somebody approving
+ * a change that is not there any more.
+ *
+ * A minute is short enough that the bubble is never meaningfully wrong, and the
+ * three changeset actions clear it immediately anyway — so the only way to see
+ * a stale count is for a changeset to appear through some path this plugin does
+ * not know about, and then only until the minute is up.
+ *
  * @return int
  */
 function gwcpp_pending_count(): int {
-	return count( gwcpp_pending_post_ids() );
+	$cached = get_transient( GWCPP_PENDING_COUNT_TRANSIENT );
+
+	if ( false !== $cached ) {
+		return (int) $cached;
+	}
+
+	$count = count( gwcpp_pending_post_ids() );
+
+	set_transient( GWCPP_PENDING_COUNT_TRANSIENT, $count, MINUTE_IN_SECONDS );
+
+	return $count;
 }
+
+/**
+ * Forget the cached count.
+ *
+ * Hooked to the three actions this plugin fires when the queue changes, so the
+ * bubble is right the instant staff approve something rather than up to a
+ * minute later.
+ */
+function gwcpp_flush_pending_count(): void {
+	delete_transient( GWCPP_PENDING_COUNT_TRANSIENT );
+}
+
+add_action( 'gwcpp_changeset_stored', 'gwcpp_flush_pending_count' );
+add_action( 'gwcpp_changeset_applied', 'gwcpp_flush_pending_count' );
+add_action( 'gwcpp_changeset_rejected', 'gwcpp_flush_pending_count' );
 
 /* ── The change log ──────────────────────────────────────────────────────────
  * A short history on the post itself, because six months later somebody asks
