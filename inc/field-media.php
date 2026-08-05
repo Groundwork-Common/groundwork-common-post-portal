@@ -644,12 +644,33 @@ function gwcpp_schedule_upload_reaper(): void {
  * @return int How many were deleted.
  */
 function gwcpp_reap_orphan_uploads(): int {
+	/*
+	 * ── Oldest first, and the cap is why ────────────────────────────────────
+	 * A hundred at a time is right: this is cron, it force-deletes files, and a
+	 * sweep that walks an entire media library in one request is a sweep that
+	 * times out halfway.
+	 *
+	 * But a cap needs an order, and WordPress's default is newest first — which
+	 * pointed this query at exactly the wrong end. Only attachments past
+	 * GWCPP_ORPHAN_AGE are ever deleted, and the ones a pending changeset still
+	 * claims are skipped while still occupying a slot. So a site holding a
+	 * hundred flagged uploads newer than thirty days re-examined the same recent
+	 * files every night, forever, and the real orphans behind them were never
+	 * reached. The sweep ran daily, reported nothing, and never converged.
+	 *
+	 * Ordered by ID rather than by date for the same reason
+	 * gwcpp_every_pending_post_id() is: this run writes to the rows it walks, so
+	 * ordering by anything a concurrent request can change lets rows shift
+	 * between one night's page and the next.
+	 */
 	$candidates = get_posts(
 		array(
 			'post_type'      => 'attachment',
 			'post_status'    => 'inherit',
 			'posts_per_page' => 100,
 			'fields'         => 'ids',
+			'orderby'        => 'ID',
+			'order'          => 'ASC',
 			'no_found_rows'  => true,
 			'meta_key'       => GWCPP_PENDING_ATTACHMENT_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- EXISTS on an indexed key, in cron, bounded to 100.
 			'meta_compare'   => 'EXISTS',

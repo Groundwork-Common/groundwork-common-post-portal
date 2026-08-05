@@ -355,7 +355,21 @@ function gwcpp_save_fields( int $post_id, array $values ): bool {
 		}
 
 		if ( gwcpp_field_call( $field, 'is_empty', array( $value, $field ) ) ) {
-			if ( '' !== (string) get_post_meta( $post_id, $key, true ) || is_array( get_post_meta( $post_id, $key, true ) ) ) {
+			$stored = get_post_meta( $post_id, $key, true );
+
+			/*
+			 * The array test comes FIRST, and the order is the whole point. A
+			 * multi-value field — multiselect, checkbox, repeater, a taxonomy
+			 * type stored as meta — holds an array, and `(string) $array` is a
+			 * PHP warning rather than a comparison. Written the other way round
+			 * the cast ran before anything could stop it, so every save that
+			 * cleared one of those fields emitted "Array to string conversion"
+			 * into the log, or into the middle of the page on a host with
+			 * display_errors on. The is_array() call was already here; it was
+			 * simply on the wrong side of the ||, where short-circuiting can
+			 * never reach it.
+			 */
+			if ( is_array( $stored ) || '' !== (string) $stored ) {
 				delete_post_meta( $post_id, $key );
 				$changed = true;
 			}

@@ -227,4 +227,87 @@ final class RichTextTest extends TestCase {
 
 		$this->assertNotSame( '', gwcpp_sanitize_richtext( '<p>Short.</p>', $field ) );
 	}
+
+	/* ── Length, counted in characters ───────────────────────────────────────
+	 * Every test above this line is ASCII, where a byte and a character are the
+	 * same thing — which is precisely why the limit was able to be measured in
+	 * the wrong one for as long as it was. The setting is labelled "Character
+	 * limit" and the refusal says "under %d characters", so these pin it to what
+	 * it claims, and to what gwcpp_sanitize_text() has always done.
+	 * ─────────────────────────────────────────────────────────────────────── */
+
+	public function test_the_limit_counts_characters_not_bytes(): void {
+		$field = array(
+			'type'     => 'richtext',
+			'settings' => array( 'maxlength' => 100 ),
+		);
+
+		// 60 characters, 180 bytes. Comfortably inside a limit of 100 characters
+		// and comfortably outside the same number of bytes.
+		$body = '<p>' . str_repeat( 'あ', 60 ) . '</p>';
+
+		$this->assertNotSame(
+			'',
+			gwcpp_sanitize_richtext( $body, $field ),
+			'A 60-character body was refused by a 100-character limit because the check was counting bytes.'
+		);
+	}
+
+	public function test_multibyte_text_over_the_limit_is_still_refused(): void {
+		$field = array(
+			'type'     => 'richtext',
+			'settings' => array( 'maxlength' => 100 ),
+		);
+
+		// 150 characters: over the limit whichever unit you count in, so this is
+		// the test that stops the fix above from simply switching the check off.
+		$body = '<p>' . str_repeat( 'あ', 150 ) . '</p>';
+
+		$this->assertSame( '', gwcpp_sanitize_richtext( $body, $field ) );
+	}
+
+	public function test_the_boundary_is_the_character_count(): void {
+		$field = array(
+			'type'     => 'richtext',
+			'settings' => array( 'maxlength' => 10 ),
+		);
+
+		$this->assertNotSame( '', gwcpp_sanitize_richtext( '<p>' . str_repeat( 'あ', 10 ) . '</p>', $field ) );
+		$this->assertSame( '', gwcpp_sanitize_richtext( '<p>' . str_repeat( 'あ', 11 ) . '</p>', $field ) );
+	}
+
+	/* ── The display cut, which feeds the diff and the review emails ─────── */
+
+	public function test_the_display_cut_leaves_valid_utf8(): void {
+		/*
+		 * The preview is cut at 300. Prefixed with one ASCII character so that
+		 * offset lands mid-character rather than on a boundary — cutting on a
+		 * byte offset splits a multibyte character roughly two times in three,
+		 * and the result is not merely an odd-looking cut. The string stops
+		 * being valid UTF-8, and WordPress's escaping will not pass invalid
+		 * UTF-8 through, so the diff row and the review email showed nothing at
+		 * all where the changed text should have been.
+		 */
+		$text = gwcpp_display_richtext( '<p>x' . str_repeat( 'あ', 400 ) . '</p>' );
+
+		$this->assertTrue(
+			mb_check_encoding( $text, 'UTF-8' ),
+			'The preview was cut on a byte offset and left a dangling continuation byte.'
+		);
+	}
+
+	public function test_the_display_cut_keeps_300_characters(): void {
+		$text = gwcpp_display_richtext( '<p>' . str_repeat( 'あ', 400 ) . '</p>' );
+
+		// 300 characters plus the ellipsis this appends.
+		$this->assertSame( 301, mb_strlen( $text ) );
+		$this->assertStringEndsWith( '…', $text );
+	}
+
+	public function test_short_multibyte_text_is_not_cut_at_all(): void {
+		$text = gwcpp_display_richtext( '<p>' . str_repeat( 'あ', 50 ) . '</p>' );
+
+		$this->assertSame( 50, mb_strlen( $text ) );
+		$this->assertStringEndsNotWith( '…', $text );
+	}
 }

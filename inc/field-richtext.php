@@ -141,8 +141,21 @@ function gwcpp_sanitize_richtext( $raw, array $field = array() ): string {
 	// the submitter wrote one, which is why rel is not in the allow-list.
 	$html = gwcpp_harden_links( $html );
 
+	/*
+	 * Characters, not bytes. The setting is labelled "Character limit" on the
+	 * Fields screen and the refusal below says "under %d characters", and
+	 * strlen() counts neither — it counts bytes, so a limit of 300 refused
+	 * Japanese or Cyrillic text at about a hundred characters and then told the
+	 * person they had written too much. gwcpp_sanitize_text() has always used
+	 * mb_substr for exactly this reason; this is the same rule, applied to the
+	 * one type that was still measuring the other thing.
+	 *
+	 * mb_strlen unguarded because WordPress polyfills it in wp-includes/compat.php
+	 * on any build without mbstring, which is why blocked-words.php calls it the
+	 * same way.
+	 */
 	$max = (int) gwcpp_field_setting( $field, 'maxlength', 0 );
-	if ( $max > 0 && strlen( wp_strip_all_tags( $html ) ) > $max ) {
+	if ( $max > 0 && mb_strlen( wp_strip_all_tags( $html ) ) > $max ) {
 		/*
 		 * Truncating HTML by length breaks tags in half and produces markup
 		 * that closes elements the page never opened. Refusing is the honest
@@ -295,10 +308,20 @@ function gwcpp_display_richtext( $value, array $field = array() ): string {
 	$text = trim( wp_strip_all_tags( (string) $value ) );
 	$text = (string) preg_replace( '/\s+/', ' ', $text );
 
-	// Long bodies make an email diff unreadable. The reviewer opens the post to
-	// read it properly; this is for spotting that it changed.
-	if ( strlen( $text ) > 300 ) {
-		$text = substr( $text, 0, 300 ) . '…';
+	/*
+	 * Long bodies make an email diff unreadable. The reviewer opens the post to
+	 * read it properly; this is for spotting that it changed.
+	 *
+	 * Cut on characters rather than bytes, because substr() at a fixed byte
+	 * offset lands in the middle of a multibyte character roughly two times in
+	 * three and leaves a dangling continuation byte. The result is not merely
+	 * an odd-looking cut: the string is no longer valid UTF-8, and WordPress's
+	 * escaping refuses to pass invalid UTF-8 through — so the diff row and the
+	 * review email showed nothing at all where the changed text should have
+	 * been, on precisely the entries whose text is not Latin.
+	 */
+	if ( mb_strlen( $text ) > 300 ) {
+		$text = mb_substr( $text, 0, 300 ) . '…';
 	}
 
 	return $text;

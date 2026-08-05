@@ -49,15 +49,18 @@ define( 'GWCPP_VERSION', $gwcpp_m[1] ?? '0.0.0' );
 /* ── The in-memory store ─────────────────────────────────────────────────── */
 
 $GLOBALS['gwcpp_test'] = array(
-	'options'    => array(),
-	'transients' => array(),
-	'post_meta'  => array(),
-	'user_meta'  => array(),
-	'posts'      => array(),
-	'users'      => array(),
-	'types'      => array( 'post', 'page', 'gwcpp_org' ),
-	'taxonomies' => array(),
-	'terms'      => array(),
+	'options'             => array(),
+	'transients'          => array(),
+	'post_meta'           => array(),
+	'user_meta'           => array(),
+	'posts'               => array(),
+	'users'               => array(),
+	'types'               => array( 'post', 'page', 'gwcpp_org' ),
+	'taxonomies'          => array(),
+	'terms'               => array(),
+	'post_queries'        => array(),
+	'post_results'        => array(),
+	'deleted_attachments' => array(),
 );
 
 /**
@@ -76,6 +79,12 @@ function gwcpp_test_reset(): void {
 	$GLOBALS['gwcpp_test']['types']      = array( 'post', 'page', 'gwcpp_org' );
 	$GLOBALS['gwcpp_test']['taxonomies'] = array();
 	$GLOBALS['gwcpp_test']['terms']      = array();
+
+	// What get_posts() was asked, what it should answer, and what the reaper
+	// deleted. See the note on the get_posts() stub below.
+	$GLOBALS['gwcpp_test']['post_queries']        = array();
+	$GLOBALS['gwcpp_test']['post_results']        = array();
+	$GLOBALS['gwcpp_test']['deleted_attachments'] = array();
 
 	gwcpp_settings_cache( null, true );
 	gwcpp_schema_cache( null, true );
@@ -485,8 +494,88 @@ function maybe_serialize_test( $value ) {
 	return is_scalar( $value ) ? (string) $value : (string) wp_json_encode( $value );
 }
 
+/**
+ * Records every query, and answers from a per-post-type queue of pages.
+ *
+ * It used to return array() unconditionally, which meant nothing that reaches
+ * the database was reachable from a test at all — including the orphan-upload
+ * reaper, whose whole defect was in the arguments it passed rather than in what
+ * it did with the answer. Recording $args is what lets a test assert on the
+ * query itself.
+ *
+ * Keyed by post type rather than by call order, because a single run of the
+ * reaper issues two quite different queries — its own candidates, and the
+ * pending-changeset walk underneath gwcpp_claimed_attachment_ids() — and a flat
+ * queue would make every test depend on the order those happen to fire in.
+ *
+ * A type with nothing queued returns an empty page, which is also what ends the
+ * do/while loops in gwcpp_every_pending_post_id() and gwcpp_reviewable_post_ids().
+ */
 function get_posts( $args = array() ) {
-	return array();
+	$GLOBALS['gwcpp_test']['post_queries'][] = $args;
+
+	$type = $args['post_type'] ?? '';
+	$type = is_array( $type ) ? ( $type[0] ?? '' ) : (string) $type;
+
+	if ( empty( $GLOBALS['gwcpp_test']['post_results'][ $type ] ) ) {
+		return array();
+	}
+
+	return array_shift( $GLOBALS['gwcpp_test']['post_results'][ $type ] );
+}
+
+/**
+ * Queue one page of results for a post type.
+ *
+ * @param string $type Post type.
+ * @param array  $ids  Post IDs that page returns.
+ */
+function gwcpp_test_queue_posts( string $type, array $ids ): void {
+	$GLOBALS['gwcpp_test']['post_results'][ $type ][] = $ids;
+}
+
+/**
+ * Every get_posts() call made since the last reset.
+ *
+ * @param string $type Only calls for this post type.
+ * @return array<int, array>
+ */
+function gwcpp_test_queries_for( string $type ): array {
+	return array_values(
+		array_filter(
+			$GLOBALS['gwcpp_test']['post_queries'],
+			static function ( $args ) use ( $type ) {
+				$asked = $args['post_type'] ?? '';
+				$asked = is_array( $asked ) ? ( $asked[0] ?? '' ) : (string) $asked;
+				return $asked === $type;
+			}
+		)
+	);
+}
+
+/**
+ * Delete an attachment, and remember that it happened.
+ *
+ * The reaper's only observable effect, so a test that cannot see this cannot
+ * tell a sweep that deleted the right file from one that deleted nothing.
+ *
+ * @param int  $id    Attachment ID.
+ * @param bool $force Whether to bypass the trash. Always true from this plugin.
+ * @return bool
+ */
+function wp_delete_attachment( $id, $force = false ) {
+	unset( $force );
+
+	$id = (int) $id;
+	if ( ! isset( $GLOBALS['gwcpp_test']['posts'][ $id ] ) ) {
+		return false;
+	}
+
+	$GLOBALS['gwcpp_test']['deleted_attachments'][] = $id;
+	unset( $GLOBALS['gwcpp_test']['posts'][ $id ] );
+	unset( $GLOBALS['gwcpp_test']['post_meta'][ $id ] );
+
+	return true;
 }
 
 /* Genuinely no-ops here, and that is honest rather than lazy: the in-memory
