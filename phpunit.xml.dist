@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Run with a downloaded phar; there is no Composer dependency:
+  composer install && composer run test
 
-    curl -sLO https://phar.phpunit.de/phpunit-11.phar
-    php phpunit-11.phar
+  Or `composer run check` for the standards and PHP-compatibility passes too,
+  which is what .github/workflows/test.yml runs.
 
   tests/bootstrap.php stubs the dozen WordPress string helpers the pure logic
   touches, so this needs no database and no WordPress checkout. Integration
   behaviour is verified under wp-env instead.
+
+  PHPUnit 11 needs PHP 8.2, while the plugin itself supports 7.4. That gap is
+  deliberate and is covered by the `compat` job rather than by the tests — see
+  the note in test.yml.
 -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"

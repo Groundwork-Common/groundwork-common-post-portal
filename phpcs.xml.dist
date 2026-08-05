@@ -1,0 +1,143 @@
+<?xml version="1.0"?>
+<ruleset name="Groundwork Common Post Portal">
+
+	<description>
+		The standard a WordPress.org reviewer runs, so the same output is
+		available here before they see it.
+
+		There are around twenty phpcs:ignore annotations across inc/, each with
+		a written justification for why the rule is wrong in that one place.
+		Until this file existed nothing verified that any of them still silenced
+		something real — an annotation nobody can reproduce is a comment.
+	</description>
+
+	<!--
+		The shipped plugin, and only that. tests/ is in .distignore, never
+		reaches a user or a reviewer, and is written against a different set of
+		constraints — its whole job is to declare functions named after core's
+		and echo "PASS" to a terminal, both of which this standard rightly
+		objects to in a plugin and wrongly objects to in a test.
+	-->
+	<file>.</file>
+
+	<exclude-pattern>/vendor/</exclude-pattern>
+	<exclude-pattern>/node_modules/</exclude-pattern>
+	<exclude-pattern>/languages/</exclude-pattern>
+	<exclude-pattern>/.wordpress-org/</exclude-pattern>
+	<exclude-pattern>/tests/</exclude-pattern>
+
+	<!--
+		`edit.asset.php` is the filename @wordpress/scripts generates and the one
+		register_block_type() looks for. Not ours to rename.
+	-->
+	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
+		<exclude-pattern>*.asset.php</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.Files.FileName.NotHyphenatedLowercase">
+		<exclude-pattern>*.asset.php</exclude-pattern>
+	</rule>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg name="basepath" value="."/>
+	<arg name="parallel" value="8"/>
+	<arg value="ps"/>
+
+	<rule ref="WordPress-Extra"/>
+	<rule ref="WordPress-Docs"/>
+
+	<!--
+		Everything the sniffs need to know about this plugin, declared once so
+		the prefix, domain and version rules actually have something to check
+		against rather than passing vacuously.
+	-->
+	<config name="minimum_wp_version" value="6.3"/>
+	<config name="testVersion" value="7.4-"/>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="gwcpp"/>
+				<element value="GWCPP"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="groundwork-common-post-portal"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!--
+		── Turned off, and why ──────────────────────────────────────────────
+
+		Each of these is a house-style rule rather than a correctness one, and
+		each fights a convention this codebase applies deliberately and
+		everywhere. A standard that reports five hundred findings is a standard
+		nobody runs, and the point of this file is that somebody runs it — so
+		the noise is switched off by name, with the reason, rather than left to
+		be scrolled past.
+	-->
+
+	<!--
+		Squiz wants every block comment to open on the line after the `/*`. This
+		plugin's explanatory comments — which are the best documentation it has —
+		are written `/* Text starts here` throughout. Obeying this would rewrite
+		219 comments to say exactly what they already say.
+	-->
+	<rule ref="Squiz.Commenting.BlockComment.NoNewLine">
+		<severity>0</severity>
+	</rule>
+
+	<!--
+		Alignment of `=` and `=>` into columns. Cosmetic, auto-fixable, and
+		reformatting hundreds of lines for it would bury every real change in
+		the diff for a year.
+	-->
+	<rule ref="WordPress.Arrays.MultipleStatementAlignment">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Generic.Formatting.MultipleStatementAlignment">
+		<severity>0</severity>
+	</rule>
+
+	<!--
+		Yoda conditions. The codebase is consistently written the other way
+		round, and the sniff has nothing to say about whether the code is right.
+	-->
+	<rule ref="WordPress.PHP.YodaConditions.NotYoda">
+		<severity>0</severity>
+	</rule>
+
+	<!--
+		Unused parameters on callbacks whose signature is fixed by the hook or by
+		the field-type contract. The plugin `unset()`s them with a comment where
+		it matters; renaming them is not an option, because the signature is not
+		this plugin's to choose.
+	-->
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+		<severity>0</severity>
+	</rule>
+
+	<!--
+		`$default`, `$echo` and `$callable` as parameter names. Reserved-ish
+		words, and the right names for what they hold; two of the three are
+		named after the core function being mirrored.
+	-->
+	<rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+		<severity>0</severity>
+	</rule>
+
+	<!--
+		posts_per_page over 100. Every such query in this plugin is bounded on
+		purpose, with the bound and its reasoning written beside it, and runs on
+		an admin screen or in cron rather than on a front-end request.
+	-->
+	<rule ref="WordPress.WP.PostsPerPage">
+		<severity>0</severity>
+	</rule>
+
+</ruleset>

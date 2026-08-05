@@ -61,10 +61,11 @@ jobs:
 
       # The four values that must agree, checked before anything is published
       # rather than discovered afterwards by somebody reading a plugin page.
-      # VersionTest already enforces three of them against each other on every
-      # push; this adds the one it cannot see — that they match the tag being
-      # released. Getting this wrong ships a version WordPress will not offer as
-      # an update, and fixing it means another release.
+      # VersionTest enforces three of them against each other, and test.yml runs
+      # it on every push and pull request; this adds the one it cannot see —
+      # that they match the tag being released. Getting this wrong ships a
+      # version WordPress will not offer as an update, and fixing it means
+      # another release.
       - name: Check the tag matches the plugin
         if: github.event_name == 'release'
         run: |

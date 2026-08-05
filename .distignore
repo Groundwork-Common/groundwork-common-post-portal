@@ -14,7 +14,16 @@ phpunit.xml.dist
 phpunit.phar
 phpunit-*.phar
 tests
+phpcs.xml.dist
+.phpcs.xml.dist
+composer.json
+composer.lock
 
+# vendor/ holds dev tooling only — this plugin has no runtime dependencies and
+# loads no autoloader. It is listed here as well as in .gitignore because
+# `wp dist-archive` reads the working directory rather than git, so a local
+# `composer install` before packaging would otherwise ship the whole tree.
+vendor
 node_modules
 README.md
 .DS_Store
