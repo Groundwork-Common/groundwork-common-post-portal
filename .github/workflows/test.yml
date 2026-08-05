@@ -149,8 +149,64 @@ jobs:
         with:
           node-version: '20'
 
+      # ── Mail, without which a third of these tests cannot mean anything ────
+      # The scripts assert that a reminder went out and that a handoff
+      # invitation was recorded — both of which go through wp_mail(), and
+      # wp_mail() returns false in a container with no MTA. The first CI run
+      # failed six assertions for exactly that reason, all of them about mail
+      # rather than about the plugin.
+      #
+      # The project already solves this locally with Mailpit and a mu-plugin
+      # pointing PHPMailer at it (see README.md). This is the same arrangement,
+      # built at run time: `.dev/` and `.wp-env.override.json` are gitignored
+      # precisely so each environment can supply its own.
+      #
+      # Mailpit joins wp-env's own Docker network afterwards and answers to the
+      # hostname `mailpit`, which avoids guessing at a bridge gateway address —
+      # a user-defined network does not put the host on 172.17.0.1.
+      - name: Route mail to Mailpit
+        run: |
+          mkdir -p .dev/mu-plugins
+          cat > .dev/mu-plugins/mailpit.php <<'PHP'
+          <?php
+          /**
+           * Send this environment's mail to Mailpit rather than nowhere.
+           *
+           * Without it wp_mail() returns false in CI and every assertion about
+           * a reminder or an invitation fails for a reason that has nothing to
+           * do with the plugin.
+           */
+          add_action(
+              'phpmailer_init',
+              static function ( $phpmailer ) {
+                  $phpmailer->isSMTP();
+                  $phpmailer->Host        = 'mailpit';
+                  $phpmailer->Port        = 1025;
+                  $phpmailer->SMTPAuth    = false;
+                  $phpmailer->SMTPAutoTLS = false;
+                  $phpmailer->SMTPSecure  = '';
+              }
+          );
+
+          add_filter( 'wp_mail_from', static fn() => 'ci@example.test' );
+          add_filter( 'wp_mail_from_name', static fn() => 'CI' );
+          PHP
+          printf '{ "mappings": { "wp-content/mu-plugins": "./.dev/mu-plugins" } }\n' > .wp-env.override.json
+
       - name: Start WordPress
         run: npx --yes @wordpress/env start
+
+      - name: Attach Mailpit to the wp-env network
+        run: |
+          net=$(docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' \
+            "$(docker ps -q --filter 'name=tests-wordpress' | head -1)")
+          echo "wp-env network: $net"
+          docker run -d --name mailpit --network "$net" --network-alias mailpit axllent/mailpit
+          # Give it a moment to bind 1025 before anything tries to send.
+          for _ in $(seq 1 20); do
+            docker exec mailpit /mailpit version >/dev/null 2>&1 && break
+            sleep 1
+          done
 
       # Each script exits non-zero on failure, so the shell's own error handling
       # is the assertion. Run one at a time rather than globbed, so a failure
