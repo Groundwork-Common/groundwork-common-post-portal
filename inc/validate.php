@@ -181,10 +181,17 @@ function gwcpp_error_summary( array $errors ): string {
 		return '';
 	}
 
+	/* The placeholder is in the singular too, even though English would rather
+	 * say "One thing". Plenty of languages need the number in every form, and a
+	 * singular without it gives translators nowhere to put it.
+	 *
+	 * This note sits above the sprintf rather than beside the _n, because a
+	 * translators comment has to be the LAST comment before the gettext call —
+	 * anything between them and the extractor drops it. */
 	return sprintf(
 		/* translators: %d: how many fields have a problem. */
 		_n(
-			'One thing needs fixing before this can be saved. It is marked below.',
+			'%d thing needs fixing before this can be saved. It is marked below.',
 			'%d things need fixing before this can be saved. They are marked below.',
 			$count,
 			'groundwork-common-post-portal'

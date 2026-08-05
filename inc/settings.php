@@ -50,6 +50,11 @@ function gwcpp_setting_defaults(): array {
 		'from_email'        => '',
 		'staff_email'       => '',
 
+		/* Empty, and it stays empty. Shipping a word list would mean this
+		 * plugin deciding which words are unacceptable on every site that
+		 * installs it, in a language it does not know the site is written in. */
+		'blocked_words'     => '',
+
 		/* Appearance. Empty means "inherit the theme-matched default already in
 		 * portal.css" — nothing here is required for the portal to look
 		 * reasonable, and a site that never opens the Appearance tab behaves
@@ -96,6 +101,17 @@ function gwcpp_type_setting_defaults(): array {
 		 * unpublish to draft, reversible in one click. There is no setting
 		 * anywhere that grants a portal user deletion. */
 		'allow_unpublish'  => true,
+
+		/* Off. Handing over is the one action where a portal user can cause an
+		 * account to be created, and a site should decide it is wanted before
+		 * that becomes possible. */
+		'allow_handoff'    => false,
+
+		/* Zero means the review cycle is off for this post type, which is the
+		 * default: a plugin that started emailing a site's partners because
+		 * somebody switched a post type on would be doing something nobody
+		 * asked for. Six is the usual answer once it is wanted. */
+		'review_months'    => 0,
 
 		/* What a portal-created post starts as. Never 'publish': a create flow
 		 * that publishes on submit makes require_approval a lie for exactly the

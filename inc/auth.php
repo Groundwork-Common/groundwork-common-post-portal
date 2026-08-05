@@ -216,6 +216,183 @@ function gwcpp_consume_token( string $token, string $purpose = 'signin' ): int {
 	return $user_id;
 }
 
+/* ── Durable tokens ──────────────────────────────────────────────────────────
+ * Sign-in links live in a transient for fifteen minutes, which is right: they
+ * are minted on demand and requesting another costs nothing.
+ *
+ * Review reminders are not like that. They are sent by cron, they sit in an
+ * inbox for weeks, and the person receiving one did not ask for it — so when
+ * they finally click, there is no "ask for a new one" they were expecting to
+ * need. A transient is the wrong home for those, and not because of the TTL:
+ * `wp transient delete --all` is a routine deploy step and a standard first
+ * move when debugging a caching problem, and running it would silently
+ * invalidate every reminder link in every inbox at once. An external object
+ * cache evicting under memory pressure does the same thing.
+ *
+ * So these live in user meta, where nothing sweeps them but us, and they carry
+ * their own expiry because that means we have to sweep them ourselves — which
+ * the daily review run does.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/** User meta, single: durable tokens, keyed by hash. */
+const GWCPP_TOKENS_META = '_gwcpp_tokens';
+
+/** How long a review-reminder link lasts. */
+const GWCPP_DURABLE_TTL = 7 * DAY_IN_SECONDS;
+
+/**
+ * Mint a token that survives a cache flush.
+ *
+ * @param int    $user_id User ID.
+ * @param string $purpose What it is for.
+ * @param int    $ttl     Lifetime in seconds.
+ * @return string
+ */
+function gwcpp_mint_durable_token( int $user_id, string $purpose = 'review', int $ttl = GWCPP_DURABLE_TTL ): string {
+	$token = bin2hex( random_bytes( 32 ) );
+
+	$stored = get_user_meta( $user_id, GWCPP_TOKENS_META, true );
+	$stored = is_array( $stored ) ? $stored : array();
+
+	/* Only the hash is kept, exactly as with the transient tokens: read access
+	 * to the database should yield hashes rather than working links. */
+	$stored[ hash( 'sha256', $token ) ] = array(
+		'purpose' => $purpose,
+		'expires' => time() + max( MINUTE_IN_SECONDS, $ttl ),
+	);
+
+	/* Bounded per user. A partner who is reminded about four entries every week
+	 * for a year would otherwise accumulate a meta row nobody ever looks at,
+	 * and the oldest are the ones already expired. */
+	if ( count( $stored ) > 20 ) {
+		uasort(
+			$stored,
+			static function ( $a, $b ) {
+				return (int) ( $b['expires'] ?? 0 ) <=> (int) ( $a['expires'] ?? 0 );
+			}
+		);
+		$stored = array_slice( $stored, 0, 20, true );
+	}
+
+	update_user_meta( $user_id, GWCPP_TOKENS_META, $stored );
+
+	return $token;
+}
+
+/**
+ * Spend a durable token and sign its user in.
+ *
+ * @param string $token   Token from the URL.
+ * @param string $purpose Expected purpose.
+ * @return int User ID, or 0.
+ */
+function gwcpp_consume_durable_token( string $token, string $purpose = 'review' ): int {
+	if ( ! preg_match( '/^[a-f0-9]{64}$/', $token ) ) {
+		return 0;
+	}
+
+	$hash = hash( 'sha256', $token );
+
+	/* The token does not name its user, so the user has to be found by it. A
+	 * meta_query on the serialized array is the only way, and it is a LIKE — but
+	 * on a 64-character hex hash, which cannot collide with anything and cannot
+	 * be a prefix of another hash. */
+	$users = get_users(
+		array(
+			'number'     => 2,
+			'meta_key'   => GWCPP_TOKENS_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- The token does not carry its user; a hash lookup is the only route.
+			'meta_value' => $hash,             // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- As above.
+			'meta_compare' => 'LIKE',
+			'fields'     => 'ID',
+		)
+	);
+
+	if ( count( $users ) !== 1 ) {
+		return 0;
+	}
+
+	$user_id = (int) $users[0];
+	$stored  = get_user_meta( $user_id, GWCPP_TOKENS_META, true );
+	$stored  = is_array( $stored ) ? $stored : array();
+
+	$entry = $stored[ $hash ] ?? null;
+
+	// Single use, whatever happens next.
+	unset( $stored[ $hash ] );
+	update_user_meta( $user_id, GWCPP_TOKENS_META, $stored );
+
+	if ( ! is_array( $entry ) || ( $entry['purpose'] ?? '' ) !== $purpose ) {
+		return 0;
+	}
+	if ( (int) ( $entry['expires'] ?? 0 ) < time() ) {
+		return 0;
+	}
+	if ( ! gwcpp_user_is_portal_user( $user_id ) ) {
+		return 0;
+	}
+
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return 0;
+	}
+
+	wp_set_auth_cookie( $user_id, false );
+	wp_set_current_user( $user_id );
+	do_action( 'wp_login', $user->user_login, $user );
+
+	return $user_id;
+}
+
+/**
+ * Drop durable tokens nobody clicked.
+ *
+ * Called from the daily review run, because nothing else will: these are the
+ * one kind of token in the plugin with no storage layer expiring them.
+ *
+ * @return int How many were dropped.
+ */
+function gwcpp_purge_expired_durable_tokens(): int {
+	$users = get_users(
+		array(
+			'number'     => 500,
+			'meta_key'   => GWCPP_TOKENS_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- EXISTS on an indexed key, in cron.
+			'meta_compare' => 'EXISTS',
+			'fields'     => 'ID',
+		)
+	);
+
+	$now     = time();
+	$dropped = 0;
+
+	foreach ( $users as $user_id ) {
+		$stored = get_user_meta( (int) $user_id, GWCPP_TOKENS_META, true );
+		if ( ! is_array( $stored ) ) {
+			continue;
+		}
+
+		$kept = array();
+		foreach ( $stored as $hash => $entry ) {
+			if ( is_array( $entry ) && (int) ( $entry['expires'] ?? 0 ) >= $now ) {
+				$kept[ $hash ] = $entry;
+				continue;
+			}
+			++$dropped;
+		}
+
+		if ( count( $kept ) === count( $stored ) ) {
+			continue;
+		}
+
+		if ( $kept ) {
+			update_user_meta( (int) $user_id, GWCPP_TOKENS_META, $kept );
+		} else {
+			delete_user_meta( (int) $user_id, GWCPP_TOKENS_META );
+		}
+	}
+
+	return $dropped;
+}
+
 /* ── Rate limiting ───────────────────────────────────────────────────────────
  * Three fixed windows in one non-autoloaded option: by address, by email, and
  * site-wide.

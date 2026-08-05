@@ -495,3 +495,31 @@
 	opacity: 0.5;
 	cursor: not-allowed;
 }
+
+/* ── Review and handoff ─────────────────────────────────────────────────── */
+
+.gwcpp-review form {
+	margin: 12px 0 0;
+}
+
+.gwcpp-handoff {
+	margin-top: calc(var(--gwcpp-gap) * 2);
+	padding: 16px 20px;
+	border: 1px solid var(--gwcpp-line);
+	border-radius: var(--gwcpp-radius);
+}
+
+.gwcpp-handoff__title {
+	margin: 0 0 6px;
+	font-size: 1rem;
+}
+
+.gwcpp-handoff p {
+	margin: 0 0 12px;
+	font-size: 0.9375rem;
+	color: var(--gwcpp-muted);
+}
+
+.gwcpp-handoff form {
+	margin: 0;
+}

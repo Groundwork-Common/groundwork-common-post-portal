@@ -281,6 +281,24 @@ function gwcpp_tab_general(): void {
 	);
 
 	echo '</td></tr></tbody></table>';
+
+	echo '<h2>' . esc_html__( 'Words to refuse', 'groundwork-common-post-portal' ) . '</h2>';
+	echo '<table class="form-table" role="presentation"><tbody><tr><th scope="row">';
+	printf( '<label for="gwcpp-blocked">%s</label>', esc_html__( 'Blocked words', 'groundwork-common-post-portal' ) );
+	echo '</th><td>';
+	printf(
+		'<textarea id="gwcpp-blocked" name="gwcpp_settings[blocked_words]" rows="4" class="large-text code">%s</textarea>',
+		esc_textarea( (string) gwcpp_setting( 'blocked_words' ) )
+	);
+	printf(
+		'<p class="description">%s</p>',
+		esc_html__( 'One per line, or separated by commas. A submission containing one is refused and the person is told which word. Only fields they actually changed are checked, so an existing entry containing one of these stays editable.', 'groundwork-common-post-portal' )
+	);
+	printf(
+		'<p class="description">%s</p>',
+		esc_html__( 'Matched on whole words, including obvious plurals. Anything under three characters is ignored. This catches mistakes, not determined people.', 'groundwork-common-post-portal' )
+	);
+	echo '</td></tr></tbody></table>';
 }
 
 /**
@@ -293,6 +311,7 @@ function gwcpp_render_type_flags( string $post_type ): void {
 		'require_approval' => __( 'Changes need staff approval before going live', 'groundwork-common-post-portal' ),
 		'allow_create'     => __( 'Portal users may add new ones', 'groundwork-common-post-portal' ),
 		'allow_unpublish'  => __( 'Portal users may take their own off the site (reversible)', 'groundwork-common-post-portal' ),
+		'allow_handoff'    => __( 'Portal users may invite a replacement to take over', 'groundwork-common-post-portal' ),
 		'author_grant'     => __( 'The post author may edit their own, without an organisation', 'groundwork-common-post-portal' ),
 	);
 
@@ -314,6 +333,29 @@ function gwcpp_render_type_flags( string $post_type ): void {
 			esc_attr( $key ),
 			checked( (bool) gwcpp_type_setting( $post_type, $key ), true, false ),
 			esc_html( $label )
+		);
+	}
+
+	printf(
+		'<p class="gwcpp-cadence"><label for="gwcpp-cadence-%1$s">%2$s</label> <input type="number" id="gwcpp-cadence-%1$s" name="gwcpp_settings[types][%1$s][review_months]" value="%3$d" min="0" max="120" class="small-text" /> %4$s</p>',
+		esc_attr( $post_type ),
+		esc_html__( 'Ask owners to confirm their details every', 'groundwork-common-post-portal' ),
+		(int) gwcpp_type_setting( $post_type, 'review_months' ),
+		esc_html__( 'months (0 = never ask)', 'groundwork-common-post-portal' )
+	);
+
+	$cadence = gwcpp_review_cadence( $post_type );
+	if ( $cadence > 0 ) {
+		printf(
+			'<p class="description">%s</p>',
+			esc_html(
+				sprintf(
+					/* translators: 1: months until the first nudge, 2: months until it is hidden. */
+					__( 'Reminders start at %1$d months and the entry stops being shown at %2$d if nobody ever confirms. Nothing is deleted, and confirming puts it straight back.', 'groundwork-common-post-portal' ),
+					max( 1, $cadence - 1 ),
+					$cadence * 2
+				)
+			)
 		);
 	}
 
@@ -547,7 +589,7 @@ function gwcpp_sanitize_settings( array $raw, array $stored, string $tab ): arra
 
 		$out['portal_page'] = isset( $raw['portal_page'] ) ? (int) $raw['portal_page'] : 0;
 
-		$flags = array( 'require_approval', 'allow_create', 'allow_unpublish', 'author_grant' );
+		$flags = array( 'require_approval', 'allow_create', 'allow_unpublish', 'allow_handoff', 'author_grant' );
 		$rows  = isset( $raw['types'] ) && is_array( $raw['types'] ) ? $raw['types'] : array();
 
 		$type_settings = isset( $out['types'] ) && is_array( $out['types'] ) ? $out['types'] : array();
@@ -563,6 +605,9 @@ function gwcpp_sanitize_settings( array $raw, array $stored, string $tab ): arra
 				$clean[ $flag ] = ! empty( $row[ $flag ] );
 			}
 
+			// Not a checkbox, so it is read rather than inferred from absence.
+			$clean['review_months'] = max( 0, min( 120, isset( $row['review_months'] ) ? (int) $row['review_months'] : 0 ) );
+
 			// Not on the form; preserved rather than reset to the default.
 			$clean['create_status'] = isset( $type_settings[ $post_type ]['create_status'] )
 				? (string) $type_settings[ $post_type ]['create_status']
@@ -572,6 +617,8 @@ function gwcpp_sanitize_settings( array $raw, array $stored, string $tab ): arra
 		}
 
 		$out['types'] = $type_settings;
+
+		$out['blocked_words'] = sanitize_textarea_field( (string) ( $raw['blocked_words'] ?? '' ) );
 	}
 
 	if ( 'signin' === $tab && ! empty( $raw['_tab_signin'] ) ) {

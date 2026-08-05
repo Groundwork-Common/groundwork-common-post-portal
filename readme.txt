@@ -5,7 +5,7 @@ Tags: front-end editing, portal, passwordless, custom post types, moderation
 Requires at least: 6.3
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -108,6 +108,21 @@ is removed when they save, regardless of what role the account holds.
 Images and PDFs, up to a size you set. The file's actual contents are checked,
 not just its name, so a script renamed to .jpg is refused.
 
+= Will this email my partners without me setting it up? =
+
+No. The review cycle is off for every post type until you set a number of
+months, and until you do, nothing is ever sent to a portal user except the
+sign-in link they asked for.
+
+= What happens when nobody confirms their details? =
+
+They are reminded several times, and staff are warned 30 days before anything
+happens. If it is still not confirmed, the entry stops being shown — it is not
+deleted, its owner can still sign in, and confirming puts it straight back.
+
+An entry nobody has been given access to is never hidden, because there is
+nobody who could have prevented it. Those are listed in a weekly email instead.
+
 = Does this work with ACF? =
 
 Field values stored as ordinary post meta work, and the Fields screen can
@@ -129,6 +144,17 @@ directly. The "author may edit their own" path is off by default.
 
 == Changelog ==
 
+= 0.3.0 =
+* Entries can be put on a review cycle: owners are reminded to confirm their
+  details, and an entry nobody ever confirms stops being shown. Nothing is
+  deleted, and confirming puts it straight back.
+* Portal users can hand over to a replacement by email, without needing staff to
+  do it for them. Nobody is ever removed by a handover.
+* An optional list of words that a submission may not contain. Only fields
+  somebody actually changed are checked.
+* Review state is shown as a column and a filter on the post list.
+* Translation template added.
+
 = 0.2.0 =
 * Changes can now be held for staff approval. The published entry keeps showing
   what it showed before until somebody approves, and staff see an old-against-new
@@ -146,6 +172,10 @@ directly. The "author may edit their own" path is off by default.
   portal users.
 
 == Upgrade Notice ==
+
+= 0.3.0 =
+Adds the review cycle, handover, and blocked-word screening. The review cycle is
+off until you set a cadence per post type.
 
 = 0.2.0 =
 Adds the approval queue and four new field types, including file uploads.

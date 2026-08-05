@@ -39,6 +39,20 @@ function gwcpp_dispatch(): void {
 		return;
 	}
 
+	if ( 'GET' === $method && isset( $_GET['gwcpp_review_token'] ) ) {
+		gwcpp_handle_review_link();
+		return;
+	}
+
+	/* Handoff acceptance is deliberately handled before the POST branch and
+	 * outside every signed-in check below: whoever accepts a handoff is a
+	 * different person from whoever sent it, and usually has no account at all
+	 * until this runs. */
+	if ( 'GET' === $method && isset( $_GET['gwcpp_handoff_token'] ) ) {
+		gwcpp_handle_handoff_link();
+		return;
+	}
+
 	if ( 'POST' !== $method ) {
 		return;
 	}
@@ -64,6 +78,12 @@ function gwcpp_dispatch(): void {
 		gwcpp_handle_unpublish();
 	} elseif ( isset( $_POST['gwcpp_republish'] ) ) {
 		gwcpp_handle_republish();
+	} elseif ( isset( $_POST['gwcpp_confirm_review'] ) ) {
+		gwcpp_handle_confirm_review();
+	} elseif ( isset( $_POST['gwcpp_handoff'] ) ) {
+		gwcpp_handle_handoff_request();
+	} elseif ( isset( $_POST['gwcpp_handoff_cancel'] ) ) {
+		gwcpp_handle_handoff_cancel();
 	}
 	// phpcs:enable WordPress.Security.NonceVerification.Missing
 }
@@ -647,9 +667,17 @@ function gwcpp_render_edit_view( int $user_id ): void {
 
 	if ( null !== $pending && null === $stash ) {
 		gwcpp_render_pending_banner( $pending, $post_id );
+	} else {
+		/* Not shown while something is already waiting for review. Asking
+		 * somebody to confirm details they submitted an hour ago, which staff
+		 * have not looked at yet, is asking them to vouch for a version of the
+		 * entry that does not exist. */
+		gwcpp_render_review_panel( $post );
 	}
 
 	gwcpp_render_edit_form( $post, $values, $errors );
+
+	gwcpp_render_handoff_panel( $post, $user_id );
 }
 
 /**
@@ -680,7 +708,7 @@ function gwcpp_render_pending_banner( array $pending, int $post_id ): void {
 			sprintf(
 				/* translators: %d: how many fields were changed. */
 				_n(
-					'One field is different from what the public sees. The form below shows what you sent — edit it again if you need to, and it will replace what is waiting.',
+					'%d field is different from what the public sees. The form below shows what you sent — edit it again if you need to, and it will replace what is waiting.',
 					'%d fields are different from what the public sees. The form below shows what you sent — edit it again if you need to, and it will replace what is waiting.',
 					max( 1, $count ),
 					'groundwork-common-post-portal'
@@ -719,7 +747,7 @@ function gwcpp_render_new_view( int $user_id ): void {
 		'<h1 class="gwcpp-title">%s</h1>',
 		esc_html(
 			sprintf(
-				/* translators: %s: a post type's singular name. */
+				/* translators: %s: a post type's singular name, e.g. "Location". */
 				__( 'Add a %s', 'groundwork-common-post-portal' ),
 				$object ? $object->labels->singular_name : $post_type
 			)
@@ -731,4 +759,112 @@ function gwcpp_render_new_view( int $user_id ): void {
 		null !== $stash ? $stash['values'] : array(),
 		null !== $stash ? $stash['errors'] : array()
 	);
+}
+
+/* ── Review confirmation ─────────────────────────────────────────────────── */
+
+/**
+ * Handle a review-reminder link arriving.
+ *
+ * The same shape as a sign-in link, using a durable token instead — see the
+ * note in auth.php about why these do not live in a transient.
+ */
+function gwcpp_handle_review_link(): void {
+	$token = isset( $_GET['gwcpp_review_token'] ) ? sanitize_text_field( wp_unslash( $_GET['gwcpp_review_token'] ) ) : '';
+
+	if ( gwcpp_request_is_automated() ) {
+		return;
+	}
+
+	if ( gwcpp_consume_durable_token( $token, 'review' ) <= 0 ) {
+		wp_safe_redirect(
+			gwcpp_flash_url(
+				gwcpp_portal_url(),
+				'warn',
+				__( 'That link has expired or has already been used. Please ask for a new sign-in link below.', 'groundwork-common-post-portal' )
+			)
+		);
+		exit;
+	}
+
+	wp_safe_redirect( gwcpp_portal_url() );
+	exit;
+}
+
+/**
+ * Confirm an entry is still right, without changing anything.
+ */
+function gwcpp_handle_confirm_review(): void {
+	$post_id = gwcpp_guard_post( 'gwcpp_confirm_nonce', 'gwcpp_confirm_' );
+
+	gwcpp_record_review( $post_id, get_current_user_id() );
+
+	gwcpp_bail(
+		gwcpp_portal_url(
+			array(
+				'gwcpp_view' => 'edit',
+				'gwcpp_post' => $post_id,
+			)
+		),
+		__( 'Thank you — that is noted as up to date.', 'groundwork-common-post-portal' ),
+		'ok'
+	);
+}
+
+/**
+ * The "is this still right?" panel.
+ *
+ * Shown only when there is something to say. An entry reviewed last week gets
+ * nothing, because a portal that always has a box asking you to confirm
+ * something is a portal where that box is furniture.
+ *
+ * @param WP_Post $post The post.
+ */
+function gwcpp_render_review_panel( WP_Post $post ): void {
+	$state = gwcpp_review_state( $post->ID );
+
+	if ( empty( $state['enabled'] ) || ! empty( $state['exempt'] ) ) {
+		return;
+	}
+
+	if ( 'current' === $state['stage'] && empty( $state['hidden'] ) ) {
+		return;
+	}
+
+	$hidden = ! empty( $state['hidden'] );
+
+	if ( $hidden ) {
+		$title = __( 'This is not being shown at the moment', 'groundwork-common-post-portal' );
+		$body  = __( 'Nobody confirmed these details, so the entry came off the site. Nothing has been deleted — confirm below and it goes straight back.', 'groundwork-common-post-portal' );
+	} elseif ( 'expired' === $state['stage'] ) {
+		$title = __( 'These details need confirming', 'groundwork-common-post-portal' );
+		$body  = __( 'They have not been checked for a long time.', 'groundwork-common-post-portal' );
+	} else {
+		$title = __( 'Are these details still right?', 'groundwork-common-post-portal' );
+		$body  = sprintf(
+			/* translators: %s: a length of time, e.g. "3 weeks". */
+			__( 'If everything here is correct, just confirm it — you do not need to change anything. Otherwise the entry stops being shown in %s.', 'groundwork-common-post-portal' ),
+			human_time_diff( time(), (int) strtotime( (string) $state['expires_on'] ) )
+		);
+	}
+
+	printf(
+		'<div class="gwcpp-notice gwcpp-notice--%s gwcpp-review" role="status"><p><strong>%s</strong></p><p>%s</p>',
+		esc_attr( $hidden || 'expired' === $state['stage'] ? 'error' : 'pending' ),
+		esc_html( $title ),
+		esc_html( $body )
+	);
+
+	echo '<form method="post" action="' . esc_url( gwcpp_portal_url() ) . '">';
+	wp_nonce_field( 'gwcpp_confirm_' . $post->ID, 'gwcpp_confirm_nonce' );
+	printf( '<input type="hidden" name="gwcpp_post_id" value="%d" />', (int) $post->ID );
+	printf(
+		'<button type="submit" name="gwcpp_confirm_review" value="1" class="gwcpp-button gwcpp-button--primary">%s</button>',
+		esc_html(
+			$hidden
+				? __( 'Yes, this is right — put it back', 'groundwork-common-post-portal' )
+				: __( 'Yes, this is all still right', 'groundwork-common-post-portal' )
+		)
+	);
+	echo '</form></div>';
 }
