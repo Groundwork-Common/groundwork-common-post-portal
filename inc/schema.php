@@ -234,7 +234,21 @@ function gwcpp_get_schema(): array {
 function gwcpp_save_schema( array $schema ): bool {
 	$schema['version'] = GWCPP_SCHEMA_VERSION;
 
-	$saved = update_option( GWCPP_SCHEMA_OPTION, $schema, true );
+	/* Not autoloaded, unlike gwcpp_settings.
+	 *
+	 * The settings option is small and is read on every front-end request, by
+	 * gwcpp_is_portal(); autoloading it is right. This one is the whole field
+	 * map for every enabled post type — labels, descriptions, choice lists,
+	 * repeater sub-field trees — and it is read on the portal page, the Fields
+	 * screen and the queue, and nowhere else. Autoloaded, an ordinary blog post
+	 * request was unserializing tens of kilobytes to answer a question nothing
+	 * on the page was going to ask.
+	 *
+	 * WordPress updates the autoload flag when the value is written, so an
+	 * install upgraded from an earlier version keeps the old flag until its
+	 * schema is next saved — which is the first time anybody touches the Fields
+	 * screen. Costing what it already cost until then is not worth a migration. */
+	$saved = update_option( GWCPP_SCHEMA_OPTION, $schema, false );
 	gwcpp_reset_schema_cache();
 
 	/**

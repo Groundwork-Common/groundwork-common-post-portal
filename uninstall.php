@@ -70,8 +70,37 @@ function gwcpp_uninstall_site() {
 		)
 	);
 
-	delete_option( 'gwcpp_rate_limits' );
-	delete_option( 'gwcpp_needs_rewrite_flush' );
+	/* The bookkeeping options. None of these holds anything a site owner would
+	 * miss, and every one of them is meaningless the moment the code that reads
+	 * it is gone.
+	 *
+	 * gwcpp_needs_rewrite_flush is no longer written by anything — the flush it
+	 * scheduled turned out to be a no-op, see the note in the main plugin file —
+	 * but installs upgraded from an earlier version still have the row, so it
+	 * stays on this list. */
+	foreach ( array(
+		'gwcpp_rate_limits',
+		'gwcpp_review_last_run',
+		'gwcpp_review_running',
+		'gwcpp_needs_rewrite_flush',
+	) as $gwcpp_option ) {
+		delete_option( $gwcpp_option );
+	}
+
+	delete_transient( 'gwcpp_pending_count' );
+
+	/* Two rows of interface state per user: when they last signed in, and
+	 * whether they have collapsed the colophon. Deleted with the site-wide
+	 * helper rather than by iterating users, which on a large site would be a
+	 * query per account to remove something nobody will ever look at.
+	 *
+	 * Not covered by the destructive flag: these are not anybody's data, they
+	 * are this plugin's notes about its own screens. */
+	// Named as literals because uninstall.php runs standalone: the plugin's own
+	// files are never loaded here, so its constants do not exist.
+	foreach ( array( 'gwcpp_last_login', 'gwcpp_colophon_collapsed_at' ) as $gwcpp_user_meta ) {
+		delete_metadata( 'user', 0, $gwcpp_user_meta, '', true );
+	}
 
 	if ( ! get_option( 'gwcpp_allow_destructive_uninstall' ) ) {
 		return;

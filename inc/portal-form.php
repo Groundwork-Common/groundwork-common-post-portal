@@ -38,8 +38,8 @@ function gwcpp_field_label_mode( string $type ): string {
 /**
  * Render one field: label, control, help text, error.
  *
- * @param array $field  Field definition.
- * @param mixed $value  Current value.
+ * @param array  $field Field definition.
+ * @param mixed  $value Current value.
  * @param string $error Message for this field, or ''.
  */
 function gwcpp_render_field( array $field, $value, string $error = '' ): void {

@@ -24,6 +24,17 @@ function gwcpp_queue_screen(): void {
 
 	gwcpp_render_admin_notice();
 
+	/* Shown here rather than as a site-wide nag: this is the screen the warning
+	 * is about, and somebody standing on it is the person who needs to know that
+	 * the queue has been filling up without anybody being told. */
+	if ( gwcpp_staff_mail_in_trouble() ) {
+		printf(
+			'<div class="notice notice-warning"><p><strong>%s</strong> %s</p></div>',
+			esc_html__( 'We could not email you about a recent change.', 'groundwork-common-post-portal' ),
+			esc_html__( 'Submissions still arrive here, but nobody is being notified about them. This usually means the site cannot send mail at all — worth checking before somebody waits weeks for an answer.', 'groundwork-common-post-portal' )
+		);
+	}
+
 	if ( ! $pending ) {
 		printf(
 			'<div class="gwcpp-empty-state"><p><strong>%s</strong></p><p>%s</p></div>',
@@ -137,7 +148,7 @@ function gwcpp_render_queue_actions( int $post_id ): void {
 	echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 	wp_nonce_field( 'gwcpp_approve_' . $post_id );
 	echo '<input type="hidden" name="action" value="gwcpp_approve" />';
-	printf( '<input type="hidden" name="post" value="%d" />', $post_id );
+	printf( '<input type="hidden" name="post" value="%d" />', (int) $post_id );
 	printf(
 		'<button type="submit" class="button button-primary">%s</button>',
 		esc_html__( 'Approve and publish', 'groundwork-common-post-portal' )
@@ -147,10 +158,10 @@ function gwcpp_render_queue_actions( int $post_id ): void {
 	echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="gwcpp-queue-reject">';
 	wp_nonce_field( 'gwcpp_reject_' . $post_id );
 	echo '<input type="hidden" name="action" value="gwcpp_reject" />';
-	printf( '<input type="hidden" name="post" value="%d" />', $post_id );
+	printf( '<input type="hidden" name="post" value="%d" />', (int) $post_id );
 	printf(
 		'<label class="screen-reader-text" for="gwcpp-note-%1$d">%2$s</label><input type="text" id="gwcpp-note-%1$d" name="note" class="regular-text" placeholder="%3$s" />',
-		$post_id,
+		(int) $post_id,
 		esc_html__( 'Why not', 'groundwork-common-post-portal' ),
 		esc_attr__( 'Why not — they will be sent this', 'groundwork-common-post-portal' )
 	);

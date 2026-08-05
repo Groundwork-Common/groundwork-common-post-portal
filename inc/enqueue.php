@@ -21,14 +21,31 @@ defined( 'ABSPATH' ) || exit;
  * a flash of unstyled form rather than a broken page.
  *
  * wp_enqueue_style() is idempotent, so calling it twice costs a hash lookup.
+ *
+ * ── And why registration is on enqueue_block_assets ──────────────────────────
+ * blocks/portal/block.json names `gwcpp-portal` as the block's `style`, which
+ * means core calls wp_enqueue_style( 'gwcpp-portal' ) in the editor as well as
+ * on the front end. Registration used to be on wp_enqueue_scripts, which does
+ * not fire in wp-admin — so in the editor core was enqueueing a handle nobody
+ * had registered. That is a silent no-op, and the symptom was the block preview
+ * rendering unstyled with nothing in the console to explain it.
+ *
+ * enqueue_block_assets fires in both contexts, which is exactly the set of
+ * places a block's style has to exist. The priority-5 registration still runs
+ * before the priority-10 enqueue below.
  * ─────────────────────────────────────────────────────────────────────────── */
 
+add_action( 'enqueue_block_assets', 'gwcpp_register_front_assets', 5 );
 add_action( 'wp_enqueue_scripts', 'gwcpp_register_front_assets', 5 );
 add_action( 'wp_enqueue_scripts', 'gwcpp_maybe_enqueue_portal', 10 );
 add_action( 'admin_enqueue_scripts', 'gwcpp_admin_assets' );
 
 /**
  * Register the front-end stylesheet.
+ *
+ * Runs on both wp_enqueue_scripts and enqueue_block_assets, so it has to be
+ * safe to call twice. wp_register_style() and wp_register_script() both return
+ * false and change nothing when the handle already exists, so it is.
  */
 function gwcpp_register_front_assets(): void {
 	wp_register_style(
@@ -47,7 +64,10 @@ function gwcpp_register_front_assets(): void {
 		GWCPP_URL . 'assets/js/repeater.js',
 		array(),
 		GWCPP_VERSION,
-		array( 'strategy' => 'defer', 'in_footer' => true )
+		array(
+			'strategy'  => 'defer',
+			'in_footer' => true,
+		)
 	);
 }
 

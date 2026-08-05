@@ -268,8 +268,9 @@ function gwcpp_tab_general(): void {
 		array(
 			'name'              => 'gwcpp_settings[portal_page]',
 			'id'                => 'gwcpp-portal-page',
-			'selected'          => gwcpp_portal_page_id(),
-			'show_option_none'  => __( '— none chosen —', 'groundwork-common-post-portal' ),
+			'selected'          => (int) gwcpp_portal_page_id(),
+			// wp_dropdown_pages() echoes, so its label goes out as-is.
+			'show_option_none'  => esc_html__( '— none chosen —', 'groundwork-common-post-portal' ),
 			'option_none_value' => '0',
 			'post_status'       => 'publish',
 		)

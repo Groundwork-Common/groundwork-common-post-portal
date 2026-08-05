@@ -174,8 +174,13 @@ function gwcpp_review_filter_query( $query ): void {
 		return;
 	}
 
-	$post_type = (string) $query->get( 'post_type' );
-	if ( '' === $post_type || ! gwcpp_review_enabled( $post_type ) ) {
+	/* Checked for an array rather than cast straight to string. A post list
+	 * screen sets one post type, but 'post_type' can hold an array on any query
+	 * this filter is handed, and (string) on an array is the notice "Array to
+	 * string conversion" followed by the literal filter running against a post
+	 * type named "Array". */
+	$post_type = $query->get( 'post_type' );
+	if ( ! is_string( $post_type ) || '' === $post_type || ! gwcpp_review_enabled( $post_type ) ) {
 		return;
 	}
 

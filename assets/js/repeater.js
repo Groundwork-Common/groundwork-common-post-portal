@@ -68,6 +68,35 @@
 		add.disabled = count >= max;
 	}
 
+	/**
+	 * Say what just happened, for anybody not watching the screen.
+	 *
+	 * The wording comes off data attributes because PHP put it there already
+	 * translated — see the note beside the live region in inc/field-repeater.php.
+	 * A missing region is not an error: the announcement is an improvement on
+	 * silence, not something the repeater depends on.
+	 *
+	 * @param {Element} repeater The repeater.
+	 * @param {string}  which    'added' or 'removed'.
+	 */
+	function announce( repeater, which ) {
+		var status = repeater.querySelector( '[data-gwcpp-status]' );
+		if ( ! status ) {
+			return;
+		}
+
+		var text = status.getAttribute( 'data-gwcpp-' + which ) || '';
+		var rows = repeater.querySelector( '[data-gwcpp-rows]' );
+		var count = rows ? rows.querySelectorAll( '[data-gwcpp-row]' ).length : 0;
+
+		/* Cleared first, then set. A live region whose text does not change is
+		 * not re-announced, so removing two rows in a row would say nothing the
+		 * second time. The row count varies anyway, but not when the limit is
+		 * reached — and that is exactly when somebody is pressing repeatedly. */
+		status.textContent = '';
+		status.textContent = text + ' ' + count;
+	}
+
 	function init( repeater ) {
 		var rows = repeater.querySelector( '[data-gwcpp-rows]' );
 		var template = repeater.querySelector( '[data-gwcpp-row-template]' );
@@ -94,6 +123,8 @@
 			if ( first ) {
 				first.focus();
 			}
+
+			announce( repeater, 'added' );
 		} );
 
 		// Delegated, so it applies to rows added after this runs.
@@ -114,6 +145,7 @@
 			 * rather than counting. */
 			row.parentNode.removeChild( row );
 			updateAdd( repeater );
+			announce( repeater, 'removed' );
 		} );
 
 		updateAdd( repeater );

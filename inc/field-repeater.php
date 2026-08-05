@@ -99,7 +99,7 @@ function gwcpp_repeater_subfields( array $field ): array {
 
 		$options = array();
 		if ( 'select' === $type && isset( $parts[3] ) ) {
-			// day|Day|select|mon=Monday;tue=Tuesday
+			// For example: day|Day|select|mon=Monday;tue=Tuesday.
 			foreach ( explode( ';', $parts[3] ) as $pair ) {
 				$bits = array_map( 'trim', explode( '=', $pair, 2 ) );
 				if ( '' === ( $bits[0] ?? '' ) ) {
@@ -171,6 +171,20 @@ function gwcpp_render_repeater( array $field, $value, string $name, array $ctx =
 	printf(
 		'<p class="gwcpp-repeater__actions"><button type="button" class="gwcpp-button gwcpp-button--quiet" data-gwcpp-add>%s</button></p>',
 		esc_html__( '+ Add another', 'groundwork-common-post-portal' )
+	);
+
+	/* Where the script says what just happened. Adding a row moves focus into
+	 * it, so that announces itself; removing one does not, and without this a
+	 * screen-reader user presses Remove and hears nothing at all.
+	 *
+	 * Rendered by PHP rather than created in JavaScript for two reasons: the
+	 * strings are translatable here and would otherwise need
+	 * wp_set_script_translations for one sentence, and a live region has to be
+	 * in the document before the text goes into it or nothing is announced. */
+	printf(
+		'<p class="screen-reader-text" role="status" aria-live="polite" data-gwcpp-status data-gwcpp-removed="%s" data-gwcpp-added="%s"></p>',
+		esc_attr__( 'Row removed.', 'groundwork-common-post-portal' ),
+		esc_attr__( 'Row added.', 'groundwork-common-post-portal' )
 	);
 
 	printf(

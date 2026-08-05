@@ -72,6 +72,33 @@ function gwcpp_status_label( string $status ): string {
 }
 
 /**
+ * Shown when a nonce has expired.
+ *
+ * The one guard failure that is nobody's fault: WordPress nonces last a day, and
+ * somebody who left the portal open overnight has done nothing wrong.
+ *
+ * This was a `const` in auth.php until it turned out to be the only user-facing
+ * string in the plugin that never reached the .pot — which is the whole of the
+ * argument at the top of this file, demonstrated. A const cannot call __(), so
+ * the string was frozen in English on every site in the world.
+ *
+ * @return string
+ */
+function gwcpp_stale_form_message(): string {
+	static $message = null;
+	if ( null !== $message ) {
+		return $message;
+	}
+
+	$message = __(
+		'That form had been open too long to submit safely, so nothing was saved. Please make your change again.',
+		'groundwork-common-post-portal'
+	);
+
+	return $message;
+}
+
+/**
  * The groups the Fields screen sorts field types into.
  *
  * @return array<string, string>

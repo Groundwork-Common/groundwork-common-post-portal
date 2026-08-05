@@ -598,8 +598,9 @@ function gwcpp_sanitize_number( $raw, array $field = array() ): string {
 /**
  * A URL.
  *
- * esc_url_raw strips a javascript: scheme and anything else not in the allowed
- * list, so the stored value is safe to put in an href without further work.
+ * Sanitized with esc_url_raw, which strips a javascript: scheme and anything
+ * else not in the allowed list, so the stored value is safe to put in an href
+ * without further work.
  *
  * @param mixed $raw   Raw value.
  * @param array $field Field definition.
