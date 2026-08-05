@@ -90,6 +90,12 @@ class WP_Post { // phpcs:ignore
 	public $post_author  = 0;
 	public $post_title   = '';
 	public $post_excerpt = '';
+	public $post_content = '';
+	/* The review cycle counts from this when an entry has never been confirmed.
+	 * Omitting it from the double produced an undefined-property warning and a
+	 * strtotime(null) deprecation that no real site could ever hit — the double
+	 * was wrong, not the code reading it. */
+	public $post_date    = '';
 }
 
 /** The shape of the error object the provisioning path returns. */
@@ -131,6 +137,7 @@ function gwcpp_test_post( int $id, string $type = 'post', string $status = 'publ
 	$post->post_status = $status;
 	$post->post_author = $author;
 	$post->post_title  = $title;
+	$post->post_date   = gmdate( 'Y-m-d H:i:s' );
 
 	$GLOBALS['gwcpp_test']['posts'][ $id ] = $post;
 
@@ -368,14 +375,6 @@ function wp_max_upload_size() {
 	return 64 * MB_IN_BYTES;
 }
 
-function wp_next_scheduled( $hook, $args = array() ) {
-	return false;
-}
-
-function wp_schedule_event( $timestamp, $recurrence, $hook, $args = array() ) {
-	return true;
-}
-
 function get_userdata( $id ) {
 	return $GLOBALS['gwcpp_test']['users'][ (int) $id ] ?? false;
 }
@@ -384,8 +383,53 @@ function wp_get_current_user() {
 	return $GLOBALS['gwcpp_test']['users'][ $GLOBALS['gwcpp_test']['current_user'] ?? 0 ] ?? false;
 }
 
+/* A real query against the in-memory user meta, not an empty array. The
+ * previous stub returned nothing, which silently made every organisation look
+ * empty — so gwcpp_post_has_owner() could never be true and the "managed"
+ * branch of the review cycle was untestable. Same lesson as the apply_filters
+ * stub above: a double that always returns nothing makes its tests prove
+ * nothing. */
 function get_users( $args = array() ) {
-	return array();
+	$key     = $args['meta_key'] ?? '';
+	$value   = $args['meta_value'] ?? null;
+	$compare = strtoupper( (string) ( $args['meta_compare'] ?? '=' ) );
+	$out     = array();
+
+	foreach ( array_keys( $GLOBALS['gwcpp_test']['users'] ) as $user_id ) {
+		if ( '' !== $key ) {
+			$rows = $GLOBALS['gwcpp_test']['user_meta'][ $user_id ][ $key ] ?? array();
+
+			if ( 'EXISTS' === $compare ) {
+				if ( ! $rows ) {
+					continue;
+				}
+			} elseif ( 'LIKE' === $compare ) {
+				$found = false;
+				foreach ( $rows as $row ) {
+					if ( false !== strpos( maybe_serialize_test( $row ), (string) $value ) ) {
+						$found = true;
+						break;
+					}
+				}
+				if ( ! $found ) {
+					continue;
+				}
+			} elseif ( ! in_array( (string) $value, array_map( 'strval', $rows ), true ) ) {
+				continue;
+			}
+		}
+
+		$out[] = 'ID' === ( $args['fields'] ?? '' )
+			? (int) $user_id
+			: $GLOBALS['gwcpp_test']['users'][ $user_id ];
+	}
+
+	return $out;
+}
+
+/** Enough of maybe_serialize for the LIKE branch above. */
+function maybe_serialize_test( $value ) {
+	return is_scalar( $value ) ? (string) $value : (string) wp_json_encode( $value );
 }
 
 function get_posts( $args = array() ) {
@@ -631,6 +675,9 @@ require GWCPP_DIR . 'inc/validate.php';
 require GWCPP_DIR . 'inc/save.php';
 require GWCPP_DIR . 'inc/changeset.php';
 require GWCPP_DIR . 'inc/auth.php';
+require GWCPP_DIR . 'inc/review.php';
+require GWCPP_DIR . 'inc/handoff.php';
+require GWCPP_DIR . 'inc/blocked-words.php';
 
 /* admin-screen.php declares gwcpp_colophon_snoozed(), which is pure and worth a
  * test. It also declares gwcpp_require_admin_caps(), which calls wp_die() — the
@@ -687,5 +734,49 @@ function add_role( ...$args ) {
 function human_time_diff( $from, $to = 0 ) {
 	return '1 day';
 }
+
+/* current_time and wp_timezone are what all the review date maths runs on, so
+ * they are honest rather than stubbed to a constant: tests move the clock by
+ * writing a review date in the past, exactly as a real site would. */
+function wp_timezone() {
+	return new DateTimeZone( 'UTC' );
+}
+
+function current_time( $type = 'mysql', $gmt = 0 ) {
+	return 'Y-m-d' === $type ? gmdate( 'Y-m-d' ) : gmdate( 'Y-m-d H:i:s' );
+}
+
+function wp_next_scheduled( $hook, $args = array() ) {
+	return false;
+}
+
+function wp_schedule_event( $timestamp, $recurrence, $hook, $args = array() ) {
+	return true;
+}
+
+function wp_schedule_single_event( $timestamp, $hook, $args = array() ) {
+	return true;
+}
+
+function spawn_cron( $gmt_time = 0 ) {
+	return true;
+}
+
+function wp_doing_ajax() {
+	return false;
+}
+
+function wp_doing_cron() {
+	return false;
+}
+
+function is_admin() {
+	return false;
+}
+
+function sanitize_file_name( $name ) {
+	return preg_replace( '/[^A-Za-z0-9._-]/', '', (string) $name );
+}
+
 
 require GWCPP_DIR . 'inc/admin-screen.php';

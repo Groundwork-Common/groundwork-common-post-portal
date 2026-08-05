@@ -335,7 +335,7 @@ final class ValidateTest extends TestCase {
 		$this->assertSame( '', gwcpp_error_summary( array() ) );
 
 		$one = gwcpp_error_summary( array( 'a' => 'x' ) );
-		$this->assertStringContainsString( 'One thing', $one );
+		$this->assertStringContainsString( '1 thing needs', $one );
 
 		$three = gwcpp_error_summary(
 			array(

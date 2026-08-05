@@ -177,3 +177,42 @@
 .gwcpp-button-reject {
 	color: #b32d2e;
 }
+
+/* ── Review state ───────────────────────────────────────────────────────── */
+
+.gwcpp-state {
+	font-weight: 600;
+}
+
+.gwcpp-state--overdue,
+.gwcpp-state--expired,
+.gwcpp-state--unmanaged {
+	color: #b32d2e;
+}
+
+.gwcpp-state--due {
+	color: #996800;
+}
+
+.gwcpp-state--current {
+	color: #007017;
+}
+
+.gwcpp-state--exempt,
+.gwcpp-state--off {
+	color: #646970;
+	font-weight: 400;
+}
+
+.gwcpp-state__when {
+	color: #646970;
+	font-size: 12px;
+}
+
+.gwcpp-cadence {
+	margin: 10px 0 4px;
+}
+
+.gwcpp-cadence label {
+	font-weight: 400;
+}

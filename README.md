@@ -122,6 +122,10 @@ Register your own with the `gwcpp_field_types` filter.
 | `gwcpp_changeset_stored` | action | A submission was queued for review. |
 | `gwcpp_changeset_applied` | action | A submission was approved. |
 | `gwcpp_changeset_rejected` | action | A submission was rejected. |
+| `gwcpp_blocked_words` | filter | Words that stop a submission. |
+| `gwcpp_reviewed` | action | An entry was confirmed as current. |
+| `gwcpp_review_expired` | action | The cycle hid an entry. |
+| `gwcpp_handoff_accepted` | action | Somebody accepted a handover. |
 
 Every hook in the plugin is in this table. If you add one, add its row.
 
@@ -221,10 +225,90 @@ Do **not** point this at a public disposable-inbox service. Those inboxes are
 readable by anyone, and a sign-in link is a credential — the whole design of
 this plugin is that possession of the link *is* the authentication.
 
+## The review cycle
+
+Off for every post type until somebody sets a cadence in months, because a
+plugin that starts emailing a site's partners on activation is doing something
+nobody asked for.
+
+Four thresholds, all derived from that one number rather than configured
+separately: nudge at **cadence − 1** so somebody signing in for another reason
+sees it before it is late, name the date at **cadence**, warn hard at
+**cadence + 1**, and hide at **cadence × 2**. The original had these as four
+independent constants, which is four numbers to keep in step.
+
+Two things can never be hidden:
+
+- An entry marked exempt.
+- An entry **nobody has access to**. There is no owner to chase, so hiding it
+  would punish a partner for a gap on the site's own side. Those escalate to the
+  weekly staff digest instead, until somebody invites an owner.
+
+Hiding sets `post_status` to `draft` and marks `_gwcpp_auto_expired`. That
+marker is what makes it reversible and attributable — confirming puts the entry
+straight back, and a post staff drafted by hand has no marker and is never
+touched.
+
+### The ladder, and the ordering that matters
+
+Each entry walks the rungs once per cycle, and the runner takes the **last**
+rung passed, so an entry that arrives already deep into the ladder — which every
+entry does on the day a site switches the cycle on — gets one email, not six.
+
+Rungs are recorded as delivered **only once the message carrying them is away**.
+Marking them before sending looks equivalent and is not: the two are separated
+by every remaining entry in the batch, and a run that dies in between leaves
+those rungs recorded as sent forever. The ladder never revisits a rung it
+believes it has delivered, so somebody loses their final warning and has their
+entry hidden having been told nothing. A duplicate reminder is a far cheaper
+mistake than a silently skipped one.
+
+### Review links are not transients
+
+Sign-in links live in a transient for fifteen minutes, which is right. Review
+reminders are sent by cron, sit in an inbox for weeks, and the recipient did not
+ask for one — so `wp transient delete --all`, a routine deploy step and the
+standard first move when debugging a cache, would silently invalidate every
+reminder link in every inbox at once.
+
+They live in user meta instead, carrying their own expiry, swept by the daily
+run. There is an integration test that flushes every transient on the site and
+then uses the link.
+
+## Handover
+
+A portal user can invite their replacement by email; accepting joins that person
+to the organisation. Off by default per post type, because it is the one action
+where a portal user can cause an account to be created.
+
+Accepting is handled **before every signed-in branch** of the dispatcher —
+whoever clicks is a different person from whoever sent it and usually has no
+account at all. The token authenticates, so it is single use, hashed at rest,
+and expires in three days.
+
+A handover **never removes anybody**. Somebody mistyping an address, or being
+talked into "confirming" one by a stranger, must not be able to lock their own
+organisation out of its own entries. Removal stays a staff action in wp-admin
+where a human can see who they are removing.
+
+## Blocked words
+
+An optional list. It catches mistakes, copy-paste and the occasional forgotten
+test message; it does not stop a determined person, and nothing here should be
+mistaken for content moderation. Empty by default — shipping a list would mean
+deciding which words are unacceptable on every site that installs this, in a
+language it does not know the site is written in.
+
+Matched on word boundaries with a suffix group that allows a doubled final
+consonant, so `scam` catches `scams`, `scamming` and `scammer` without catching
+`scampi`.
+
+**A field whose value has not changed is never screened.** That sounds like a
+loophole and is the opposite: without it, adding a word to the list can make an
+existing entry unsavable — its owner opens the form, changes a phone number, and
+is told they cannot save because of a word in a field they never touched. The
+original hit exactly this, with an organisation whose real name matched.
+
 ## Still to come
 
-Phase 2: the approval queue and its diff, the staff notification email, media
-upload, rich text, repeaters and taxonomy pickers.
-
-Phase 3: the periodic re-review and auto-expiry cycle, handoff to a replacement
-contact, and blocked-word screening.
+Nothing planned. The three phases in the original plan have all landed.

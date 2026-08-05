@@ -3,7 +3,7 @@
  * Plugin Name:       Groundwork Common Post Portal
  * Plugin URI:        https://github.com/Groundwork-Common/groundwork-common-post-portal
  * Description:       Let the people who own your content edit it from the front end, without ever handing them a wp-admin login. You choose the post types, you map the fields, they sign in with a link in their email.
- * Version:           0.2.0
+ * Version:           0.3.0
  * Requires at least: 6.3
  * Requires PHP:      7.4
  * Author:            Groundwork Common LLC
@@ -38,7 +38,7 @@ defined( 'ABSPATH' ) || exit;
  * which is the one property an authorization check must never have.
  * ─────────────────────────────────────────────────────────────────────────── */
 
-const GWCPP_VERSION        = '0.2.0';
+const GWCPP_VERSION        = '0.3.0';
 const GWCPP_SCHEMA_VERSION = 1;
 
 /*
@@ -132,6 +132,15 @@ if ( ! function_exists( 'gwcpp_save_fields' ) ) {
 if ( ! function_exists( 'gwcpp_get_changeset' ) ) {
 	require GWCPP_DIR . 'inc/changeset.php';
 }
+if ( ! function_exists( 'gwcpp_review_state' ) ) {
+	require GWCPP_DIR . 'inc/review.php';
+}
+if ( ! function_exists( 'gwcpp_get_handoff' ) ) {
+	require GWCPP_DIR . 'inc/handoff.php';
+}
+if ( ! function_exists( 'gwcpp_blocked_words' ) ) {
+	require GWCPP_DIR . 'inc/blocked-words.php';
+}
 if ( ! function_exists( 'gwcpp_render_edit_form' ) ) {
 	require GWCPP_DIR . 'inc/portal-form.php';
 }
@@ -158,6 +167,9 @@ if ( ! function_exists( 'gwcpp_fields_screen' ) ) {
 
 	// The approval queue, which hangs off that shell's menu.
 	require GWCPP_DIR . 'inc/admin-queue.php';
+
+	// Review state where staff look for it: the post list and the post itself.
+	require GWCPP_DIR . 'inc/admin-review.php';
 
 	/* Contextual help for the settings screens. Loaded after both because it
 	 * describes what they do. */
@@ -210,9 +222,11 @@ register_deactivation_hook(
 		 * cron event pointing at a function that no longer exists — harmless in
 		 * WordPress, which skips unknown hooks, and a permanent entry in every
 		 * cron listing a site owner ever looks at. */
-		$next = wp_next_scheduled( 'gwcpp_reap_orphan_uploads' );
-		if ( $next ) {
-			wp_unschedule_event( $next, 'gwcpp_reap_orphan_uploads' );
+		foreach ( array( 'gwcpp_reap_orphan_uploads', 'gwcpp_daily_review', 'gwcpp_weekly_review_digest' ) as $event ) {
+			$next = wp_next_scheduled( $event );
+			if ( $next ) {
+				wp_unschedule_event( $next, $event );
+			}
 		}
 	}
 );
