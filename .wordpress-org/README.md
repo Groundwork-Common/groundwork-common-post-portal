@@ -35,7 +35,14 @@ The captions currently expected, in order:
 
 ## Taking the screenshots
 
-`.dev/seed.php` builds a demo site with all twelve field types, three
-organisations and three portal users — see the "Seeing the emails" section of
-the main README for the local setup. Take the portal shots signed in as
+`tests/seed.php` builds a demo site covering every state the portal can be in —
+all field types, three organisations, and entries that are up to date, due,
+overdue, hidden by the review cycle, waiting for approval and mid-handover:
+
+```bash
+npx @wordpress/env run cli wp eval-file wp-content/plugins/groundwork-common-post-portal/tests/seed.php
+```
+
+It prints the URL for each scenario. See the "Seeing the emails" section of the
+main README for the mail setup. Take the portal shots signed in as
 `jane@shelter.test` in a private window at 1280px wide.

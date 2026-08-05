@@ -250,16 +250,22 @@ So route mail to a local sink. Start one:
 docker run -d --name gwcpp-mailpit -p 8027:8025 -p 1027:1025 axllent/mailpit
 ```
 
-Then create `.dev/mu-plugins/mailpit.php` fixing `wp_mail_from` and pointing
-`phpmailer_init` at `host.docker.internal:1027` with `SMTPAuth` and
-`SMTPAutoTLS` both off, and mount it in `.wp-env.override.json`:
+`tests/mu-plugins/mailpit.php` already does this — it fixes `wp_mail_from` and
+points `phpmailer_init` at `host.docker.internal:1027` with `SMTPAuth` and
+`SMTPAutoTLS` both off. Mount it by creating `.wp-env.override.json`:
 
 ```json
-{ "mappings": { "wp-content/mu-plugins": "./.dev/mu-plugins" } }
+{ "mappings": { "wp-content/mu-plugins": "./tests/mu-plugins" } }
 ```
 
-Read the inbox at http://localhost:8027. `.dev/` and
-`.wp-env.override.json` are both ignored by git and by `wp dist-archive`.
+Read the inbox at http://localhost:8027.
+
+It lives in `tests/` rather than somewhere gitignored on purpose. An earlier
+version sat in `.dev/`, and was lost the first time the working tree was
+cleaned — taking the seed script with it. `tests` is already excluded from the
+release zip by `.distignore`, so everything in there is committed *and* absent
+from what anybody downloads. `.wp-env.override.json` is still ignored, because
+it holds ports that are specific to one machine.
 
 Do **not** point this at a public disposable-inbox service. Those inboxes are
 readable by anyone, and a sign-in link is a credential — the whole design of
