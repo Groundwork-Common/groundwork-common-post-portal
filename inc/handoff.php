@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── The problem this solves ─────────────────────────────────────────────────
+/*
+ * ── The problem this solves ─────────────────────────────────────────────────
  * People leave. The person who set up a partner's listing moves on, and the
  * address on their portal account is a mailbox nobody reads any more. Every
  * reminder the review cycle sends goes into it, the entry expires, and the
@@ -32,14 +33,16 @@ defined( 'ABSPATH' ) || exit;
  * lock their own organisation out of its own entries. Accepting ADDS a member;
  * removing one stays a staff action in wp-admin, where somebody can see who
  * they are removing.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** Post meta, single: a handoff invitation in flight. */
 const GWCPP_HANDOFF_META = '_gwcpp_handoff';
 
 /** How long an invitation lasts. Longer than a sign-in link, because the
  *  recipient is not sitting waiting for it, and shorter than a review link,
- *  because it grants access rather than merely restoring it. */
+ *  because it grants access rather than merely restoring it.
+ */
 const GWCPP_HANDOFF_TTL = 3 * DAY_IN_SECONDS;
 
 /**
@@ -88,6 +91,20 @@ function gwcpp_send_handoff( int $post_id, int $by, string $email ) {
 		return new WP_Error( 'gwcpp_handoff_post', __( 'That entry no longer exists.', 'groundwork-common-post-portal' ) );
 	}
 
+	/*
+	 * Re-checked here rather than left to gwcpp_render_handoff_panel(), which is
+	 * the only other place it is asked. A handler that relies on the renderer
+	 * having declined to draw a control can be replayed from a form that was open
+	 * when the setting was still on — and of everything a portal user can do,
+	 * this is the one that ends with a WordPress account being created.
+	 */
+	if ( ! gwcpp_type_setting( $post->post_type, 'allow_handoff' ) ) {
+		return new WP_Error(
+			'gwcpp_handoff_off',
+			__( 'Handing entries over is not available here.', 'groundwork-common-post-portal' )
+		);
+	}
+
 	$org = gwcpp_post_org( $post_id );
 	if ( $org <= 0 ) {
 		return new WP_Error(
@@ -96,9 +113,37 @@ function gwcpp_send_handoff( int $post_id, int $by, string $email ) {
 		);
 	}
 
-	/* Refused for the same reason gwcpp_grant_access() refuses it: an address
+	/*
+	 * ── Only a member of the organisation may invite into it ────────────────
+	 * Accepting an invitation calls gwcpp_grant_access( $org, … ), which joins
+	 * the new account to the whole organisation — every post it owns, not the
+	 * one post the invitation was sent from.
+	 *
+	 * Access to that one post, though, can come from three places: membership of
+	 * the organisation, a direct grant on the post, or being its author. The
+	 * last two say nothing about the organisation. Without this check, somebody
+	 * given one post to edit could add an account of their choosing to an
+	 * organisation holding hundreds — a wider grant than the person making it
+	 * has themselves, which is the shape of a privilege escalation whatever the
+	 * intent behind it.
+	 *
+	 * So the two questions are separated: gwcpp_guard_post() decided they may
+	 * edit this post, and this decides they may speak for its organisation.
+	 * Staff hand over on somebody's behalf from the organisation screen in
+	 * wp-admin, which is unaffected.
+	 */
+	if ( ! in_array( $org, gwcpp_user_orgs( $by ), true ) ) {
+		return new WP_Error(
+			'gwcpp_handoff_member',
+			__( 'Only somebody who belongs to this organisation can hand its entries over. Please ask us to do it for you.', 'groundwork-common-post-portal' )
+		);
+	}
+
+	/*
+	 * Refused for the same reason gwcpp_grant_access() refuses it: an address
 	 * that already belongs to somebody with another role on this site must not
-	 * be quietly turned into a portal account by a person who is not staff. */
+	 * be quietly turned into a portal account by a person who is not staff.
+	 */
 	$existing = get_user_by( 'email', $email );
 	if ( $existing instanceof WP_User && ! gwcpp_user_is_portal_user( $existing->ID ) ) {
 		return new WP_Error(
@@ -154,9 +199,11 @@ function gwcpp_accept_handoff( int $post_id, string $token ) {
 		return new WP_Error( 'gwcpp_handoff_gone', __( 'That invitation has expired or has already been used.', 'groundwork-common-post-portal' ) );
 	}
 
-	/* hash_equals, not ===. This compares a secret against attacker-supplied
+	/*
+	 * hash_equals, not ===. This compares a secret against attacker-supplied
 	 * input, and a timing-variable comparison on a hash is the textbook place
-	 * to leak it one byte at a time. */
+	 * to leak it one byte at a time.
+	 */
 	if ( ! hash_equals( $handoff['hash'], hash( 'sha256', $token ) ) ) {
 		return new WP_Error( 'gwcpp_handoff_gone', __( 'That invitation has expired or has already been used.', 'groundwork-common-post-portal' ) );
 	}
@@ -197,11 +244,34 @@ function gwcpp_accept_handoff( int $post_id, string $token ) {
  */
 function gwcpp_handle_handoff_request(): void {
 	$post_id = gwcpp_guard_post( 'gwcpp_handoff_nonce', 'gwcpp_handoff_' );
+	$user_id = get_current_user_id();
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in the guard above.
 	$email = isset( $_POST['gwcpp_handoff_email'] ) ? sanitize_email( wp_unslash( $_POST['gwcpp_handoff_email'] ) ) : '';
 
-	$result = gwcpp_send_handoff( $post_id, get_current_user_id(), $email );
+	/*
+	 * Two emails go out per submission, one of them to an address the submitter
+	 * typed. Unthrottled that is a way to send mail from this site's domain to
+	 * anybody, repeatedly, which costs the site its sending reputation and
+	 * whoever is on the receiving end their patience.
+	 *
+	 * Counted against the person, not the address they typed: changing the
+	 * address is free, and being somebody else is not.
+	 */
+	if ( gwcpp_handoff_rate_limited( $user_id ) ) {
+		gwcpp_bail(
+			gwcpp_portal_url(
+				array(
+					'gwcpp_view' => 'edit',
+					'gwcpp_post' => $post_id,
+				)
+			),
+			__( 'That is several invitations in a short time. Please give it a little while, or let us know if something is stuck.', 'groundwork-common-post-portal' ),
+			'warn'
+		);
+	}
+
+	$result = gwcpp_send_handoff( $post_id, $user_id, $email );
 
 	$url = gwcpp_portal_url(
 		array(
@@ -252,8 +322,10 @@ function gwcpp_handle_handoff_link(): void {
 		return;
 	}
 
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- A single-use token in the URL is the authentication here; whoever accepts a handoff has no account yet, let alone a session to mint a nonce against.
 	$token   = isset( $_GET['gwcpp_handoff_token'] ) ? sanitize_text_field( wp_unslash( $_GET['gwcpp_handoff_token'] ) ) : '';
 	$post_id = isset( $_GET['gwcpp_post'] ) ? (int) $_GET['gwcpp_post'] : 0;
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 	if ( ! preg_match( '/^[a-f0-9]{64}$/', $token ) || $post_id <= 0 ) {
 		gwcpp_bail( gwcpp_portal_url(), __( 'That invitation link is not valid.', 'groundwork-common-post-portal' ), 'warn' );
@@ -270,12 +342,14 @@ function gwcpp_handle_handoff_link(): void {
 		gwcpp_bail();
 	}
 
-	/* Signed straight in. They have just proved they hold a token sent to their
+	/*
+	 * Signed straight in. They have just proved they hold a token sent to their
 	 * address, which is the same proof a magic link gives — asking them to now
-	 * request a sign-in link would be asking for the same thing twice. */
+	 * request a sign-in link would be asking for the same thing twice.
+	 */
 	wp_set_auth_cookie( (int) $user_id, false );
 	wp_set_current_user( (int) $user_id );
-	do_action( 'wp_login', $user->user_login, $user );
+	do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core's own hook, fired on purpose: see the note above.
 
 	wp_safe_redirect(
 		gwcpp_flash_url(
@@ -300,7 +374,19 @@ function gwcpp_render_handoff_panel( WP_Post $post, int $user_id ): void {
 		return;
 	}
 
-	if ( gwcpp_post_org( $post->ID ) <= 0 ) {
+	$org = gwcpp_post_org( $post->ID );
+	if ( $org <= 0 ) {
+		return;
+	}
+
+	/*
+	 * Not shown to somebody who reached this post by a direct grant or by
+	 * authorship rather than through the organisation — gwcpp_send_handoff()
+	 * would refuse them, and a form that always fails is worse than no form.
+	 * The refusal there is still the thing that decides it; this only keeps the
+	 * page honest.
+	 */
+	if ( ! in_array( $org, gwcpp_user_orgs( $user_id ), true ) ) {
 		return;
 	}
 

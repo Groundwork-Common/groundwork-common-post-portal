@@ -74,6 +74,48 @@ final class RichTextTest extends TestCase {
 		}
 	}
 
+	public function test_no_tag_may_carry_an_id(): void {
+		foreach ( gwcpp_richtext_allowed_html() as $tag => $attrs ) {
+			if ( ! is_array( $attrs ) ) {
+				continue;
+			}
+
+			$this->assertArrayNotHasKey(
+				'id',
+				$attrs,
+				$tag . ' must not accept an id: it is DOM clobbering, anchor hijacking, and a hook for the site\'s own CSS.'
+			);
+		}
+	}
+
+	/**
+	 * The trap that let `id` through for a whole release.
+	 *
+	 * The list said `'id' => false`, which reads as "not allowed" and is not.
+	 * wp_kses_attr_check() rejects on `! isset( $allowed[ $name ] ) || '' ===
+	 * $allowed[ $name ]` — isset() is true for false, and '' === false is false,
+	 * so the attribute passed the gate; is_array( false ) then skipped the value
+	 * check and it was allowed unconditionally.
+	 *
+	 * An attribute is excluded by not appearing in the array at all. Nothing in
+	 * this list should ever be a bare false, and asserting that catches the next
+	 * person who reaches for the same intuitive-but-wrong spelling.
+	 */
+	public function test_no_attribute_is_spelled_as_a_bare_false(): void {
+		foreach ( gwcpp_richtext_allowed_html() as $tag => $attrs ) {
+			if ( ! is_array( $attrs ) ) {
+				continue;
+			}
+
+			foreach ( $attrs as $attr => $rule ) {
+				$this->assertNotFalse(
+					$rule,
+					$tag . '/' . $attr . ' => false does not deny the attribute, it allows it. Remove the key instead.'
+				);
+			}
+		}
+	}
+
 	public function test_no_tag_may_carry_an_event_handler(): void {
 		foreach ( gwcpp_richtext_allowed_html() as $tag => $attrs ) {
 			if ( ! is_array( $attrs ) ) {

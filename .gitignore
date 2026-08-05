@@ -1,8 +1,13 @@
-# PHPUnit, fetched rather than committed — see the note in tests/bootstrap.php.
+# PHPUnit comes from Composer now. The phar entries stay because a stray one in
+# a working copy should not be committed by accident.
 phpunit.phar
 phpunit-*.phar
 .phpunit.cache/
 .phpunit.result.cache
+
+# composer.lock IS committed, deliberately: it is what makes a CI run and a
+# developer's run install the same PHPCS and the same sniffs. Without it, a new
+# WPCS release changes the standard under everybody with no commit to point at.
 
 # wp-env writes this when a developer overrides ports or mounts locally.
 .wp-env.override.json

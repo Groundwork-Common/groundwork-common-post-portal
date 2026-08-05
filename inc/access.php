@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── The role holds no real capabilities, on purpose ──────────────────────────
+/*
+ * ── The role holds no real capabilities, on purpose ──────────────────────────
  * `read`, and one marker capability that nothing ever checks for authorization.
  *
  * The temptation is to give the role edit_posts, or a custom capability_type's
@@ -29,13 +30,15 @@ defined( 'ABSPATH' ) || exit;
  * a capability check further down, because there is no capability check further
  * down. That is why the guards in portal.php end the request rather than
  * returning a value a caller has to remember to test.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 const GWCPP_ROLE = 'gwcpp_portal_user';
 
 /** Held by the role, checked by nothing. It exists so `user_can( $u, … )` has a
  *  truthful answer for other plugins, and so the role is not capability-less in
- *  a way that some admin screens render as broken. */
+ *  a way that some admin screens render as broken.
+ */
 const GWCPP_MARKER_CAP = 'gwcpp_use_portal';
 
 /** Non-persistent, and the comment below is the reason. */
@@ -62,8 +65,8 @@ function gwcpp_ensure_role(): void {
 		GWCPP_ROLE,
 		__( 'Portal User', 'groundwork-common-post-portal' ),
 		array(
-			'read'                => true,
-			GWCPP_MARKER_CAP      => true,
+			'read'           => true,
+			GWCPP_MARKER_CAP => true,
 		)
 	);
 }
@@ -114,18 +117,22 @@ function gwcpp_user_can_edit_post( int $user_id, int $post_id ): bool {
 		return false;
 	}
 
-	/* The post type gate is first and is not negotiable. Everything below grants
+	/*
+	 * The post type gate is first and is not negotiable. Everything below grants
 	 * access to a specific post; this is what stops any of it from applying to
 	 * a post type nobody switched on. A direct grant left on a post whose type
-	 * was later disabled must stop working the moment it was disabled. */
+	 * was later disabled must stop working the moment it was disabled.
+	 */
 	if ( ! gwcpp_type_enabled( $post->post_type ) ) {
 		return false;
 	}
 
-	/* Trashed and auto-draft are excluded for different reasons. A trashed post
+	/*
+	 * Trashed and auto-draft are excluded for different reasons. A trashed post
 	 * is on its way out and staff own that decision; an auto-draft is a row
 	 * WordPress created when somebody clicked Add New and is not a record of
-	 * anything. Neither should appear in a portal list or be editable from one. */
+	 * anything. Neither should appear in a portal list or be editable from one.
+	 */
 	if ( in_array( $post->post_status, array( 'trash', 'auto-draft' ), true ) ) {
 		return false;
 	}
@@ -180,7 +187,7 @@ function gwcpp_editable_post_ids( int $user_id ): array {
 	$base = array(
 		'post_type'              => $types,
 		'post_status'            => array( 'publish', 'draft', 'pending', 'private', 'future' ),
-		'posts_per_page'         => 500,
+		'posts_per_page'         => 500, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- The cap on what one portal user may reach. Deliberately finite: the list is paginated at twenty, and an unbounded query here is reachable by anybody signed in.
 		'fields'                 => 'ids',
 		'no_found_rows'          => true,
 		'update_post_meta_cache' => false,
@@ -222,20 +229,51 @@ function gwcpp_editable_post_ids( int $user_id ): array {
 	}
 
 	// Authorship, for the post types where it grants anything.
-	$author_types = array_values( array_filter( $types, static function ( $type ) {
-		return (bool) gwcpp_type_setting( $type, 'author_grant' );
-	} ) );
+	$author_types = array_values(
+		array_filter(
+			$types,
+			static function ( $type ) {
+				return (bool) gwcpp_type_setting( $type, 'author_grant' );
+			}
+		)
+	);
 
 	if ( $author_types ) {
 		$ids = array_merge(
 			$ids,
 			get_posts(
-				array_merge( $base, array( 'post_type' => $author_types, 'author' => $user_id ) )
+				array_merge(
+					$base,
+					array(
+						'post_type' => $author_types,
+						'author'    => $user_id,
+					)
+				)
 			)
 		);
 	}
 
 	$ids = array_values( array_unique( array_map( 'intval', $ids ) ) );
+
+	/*
+	 * ── Prime once, before the re-check walks the whole list ────────────────
+	 * The three queries above ask for `fields => 'ids'` with the meta cache
+	 * off, which is right for the queries and leaves nothing in the cache. The
+	 * re-check below then calls gwcpp_user_can_edit_post() per ID, and each of
+	 * those does a get_post(), two get_post_meta() reads and a get_post_type()
+	 * on the organisation — so an organisation with three hundred entries meant
+	 * something like fifteen hundred individual round trips to render a list of
+	 * twenty, and the renderer then called get_post() on all of them again.
+	 *
+	 * Two queries here make every one of those a cache hit. The re-check itself
+	 * stays exactly as it was: it is the choke point, and it is deliberately
+	 * redundant with the queries that produced this list. It was never the
+	 * problem — paying full price for uncached objects was.
+	 */
+	if ( $ids ) {
+		_prime_post_caches( $ids, false, false );
+		update_meta_cache( 'post', $ids );
+	}
 
 	// The redundant re-check described above.
 	$ids = array_values(
@@ -265,7 +303,8 @@ function gwcpp_editable_post_ids( int $user_id ): array {
 	return $ids;
 }
 
-/* ── Cache invalidation ──────────────────────────────────────────────────────
+/*
+ * ── Cache invalidation ──────────────────────────────────────────────────────
  * The group is registered non-persistent, which on a site with Redis or
  * Memcached means these entries live for one request and never reach the shared
  * store. That is the point. Every entry here is the answer to an access-control
@@ -278,7 +317,8 @@ function gwcpp_editable_post_ids( int $user_id ): array {
  *
  * The hooks below then handle the case that actually bites during a single
  * request — staff revoking access and immediately reloading the page.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 add_action(
 	'init',
 	static function (): void {
@@ -337,12 +377,14 @@ function gwcpp_flush_access_cache(): void {
 		return;
 	}
 
-	/* No wp_cache_flush_group before WP 6.1, and wp_cache_flush() would clear
+	/*
+	 * No wp_cache_flush_group before WP 6.1, and wp_cache_flush() would clear
 	 * every group on the site including core's. Bumping a salt is the standard
 	 * workaround; here the group is non-persistent and single-request, so the
 	 * honest cheap option is to leave it and let the request end. The one case
 	 * this misses — a revoke and a re-read inside one request on WP 6.0 — is
-	 * narrow enough to accept rather than flush somebody's whole object cache. */
+	 * narrow enough to accept rather than flush somebody's whole object cache.
+	 */
 	unset( $GLOBALS['gwcpp_noop'] );
 }
 

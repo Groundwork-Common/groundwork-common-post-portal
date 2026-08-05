@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── Why these are functions and not constants ───────────────────────────────
+/*
+ * ── Why these are functions and not constants ───────────────────────────────
  * Every table in this file is a function with a static memo rather than a
  * `const` array, and the reason is load order rather than taste.
  *
@@ -24,7 +25,8 @@ defined( 'ABSPATH' ) || exit;
  * Tables with no strings in them stay `const` — GWCPP_PORTAL_VIEWS below — for
  * exactly the same reason inverted: there is nothing to translate, so there is
  * nothing to defer.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** The views the portal can be in. Order is the order of the nav. */
 const GWCPP_PORTAL_VIEWS = array( 'list', 'edit', 'new', 'account' );
@@ -69,6 +71,33 @@ function gwcpp_status_labels(): array {
 function gwcpp_status_label( string $status ): string {
 	$labels = gwcpp_status_labels();
 	return $labels[ $status ] ?? $status;
+}
+
+/**
+ * Shown when a nonce has expired.
+ *
+ * The one guard failure that is nobody's fault: WordPress nonces last a day, and
+ * somebody who left the portal open overnight has done nothing wrong.
+ *
+ * This was a `const` in auth.php until it turned out to be the only user-facing
+ * string in the plugin that never reached the .pot — which is the whole of the
+ * argument at the top of this file, demonstrated. A const cannot call __(), so
+ * the string was frozen in English on every site in the world.
+ *
+ * @return string
+ */
+function gwcpp_stale_form_message(): string {
+	static $message = null;
+	if ( null !== $message ) {
+		return $message;
+	}
+
+	$message = __(
+		'That form had been open too long to submit safely, so nothing was saved. Please make your change again.',
+		'groundwork-common-post-portal'
+	);
+
+	return $message;
 }
 
 /**

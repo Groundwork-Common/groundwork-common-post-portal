@@ -9,10 +9,12 @@ defined( 'ABSPATH' ) || exit;
 
 add_action( 'init', 'gwcpp_register_block' );
 
-/* The shortcode is not a deprecation path and is not going away. A block is
+/*
+ * The shortcode is not a deprecation path and is not going away. A block is
  * the right default and is unreachable from a widget, a page builder, a theme
  * template, or a site still on the classic editor — all of which exist on the
- * kind of site this plugin is for. */
+ * kind of site this plugin is for.
+ */
 add_shortcode( 'post_portal', 'gwcpp_shortcode' );
 
 /**
@@ -29,10 +31,12 @@ function gwcpp_register_block(): void {
 		return;
 	}
 
-	/* The editor script's handle is generated from the block name and the
+	/*
+	 * The editor script's handle is generated from the block name and the
 	 * field it came from, and the exact string has changed between WordPress
 	 * versions. Reading it back off the registered type is the only way to
-	 * attach anything to it that does not break on an upgrade. */
+	 * attach anything to it that does not break on an upgrade.
+	 */
 	$handles = (array) ( $type->editor_script_handles ?? array() );
 	if ( ! $handles ) {
 		return;
@@ -42,10 +46,12 @@ function gwcpp_register_block(): void {
 
 	wp_set_script_translations( $handle, 'groundwork-common-post-portal', GWCPP_DIR . 'languages' );
 
-	/* Two booleans, because they are the two ways this block can be placed and
+	/*
+	 * Two booleans, because they are the two ways this block can be placed and
 	 * do nothing at all. Telling somebody in the editor is worth far more than
 	 * telling them on the front end, where the symptom is an empty page and the
-	 * cause is on a settings screen they have not opened. */
+	 * cause is on a settings screen they have not opened.
+	 */
 	wp_add_inline_script(
 		$handle,
 		'window.GWCPP_EDITOR = ' . wp_json_encode(

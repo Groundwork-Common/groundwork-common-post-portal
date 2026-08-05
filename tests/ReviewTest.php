@@ -252,7 +252,8 @@ final class ReviewTest extends TestCase {
 	 * from expiry in days. Which lands first depends on the cadence, and the
 	 * runner takes the last rung in the array that has passed — so the array
 	 * order has to BE the date order or it sends the wrong message.
-	 * ─────────────────────────────────────────────────────────────────────── */
+	 * ───────────────────────────────────────────────────────────────────────
+	 */
 
 	/**
 	 * @param int $cadence Months between reviews.
@@ -342,7 +343,8 @@ final class ReviewTest extends TestCase {
 		/* The rung that was actually being lost. Without this the assertions above
 		 * are satisfied by final_15 and expired alone — an owner whose first word
 		 * on the subject is that their entry goes in a fortnight, which is the
-		 * opposite of nudging them early enough to act. */
+		 * opposite of nudging them early enough to act.
+		 */
 		$this->assertNotEmpty(
 			array_intersect( $sent, array( 'due', 'named' ) ),
 			'The owner is nudged well before the final warning, at every cadence.'
@@ -400,5 +402,68 @@ final class ReviewTest extends TestCase {
 		$GLOBALS['gwcpp_test']['posts'][ self::POST ]->post_status = 'draft';
 
 		$this->assertFalse( gwcpp_review_expire( self::POST ) );
+	}
+
+	/* ── The run lock ────────────────────────────────────────────────────────
+	 * Two things start the daily run — the cron event and the admin_init
+	 * catch-up — and both can read gwcpp_review_last_run before either writes
+	 * it. Without a lock that is two walks over the same entries, each deciding
+	 * the same owners are due, each sending them the same email.
+	 * ───────────────────────────────────────────────────────────────────────
+	 */
+
+	public function test_the_first_run_takes_the_lock(): void {
+		$this->assertTrue( gwcpp_review_claim_lock() );
+	}
+
+	public function test_a_second_run_is_refused_while_the_first_holds_it(): void {
+		gwcpp_review_claim_lock();
+
+		$this->assertFalse(
+			gwcpp_review_claim_lock(),
+			'An overlapping run must decline rather than send everybody a second copy.'
+		);
+	}
+
+	public function test_releasing_lets_the_next_run_in(): void {
+		gwcpp_review_claim_lock();
+		gwcpp_review_release_lock();
+
+		$this->assertTrue( gwcpp_review_claim_lock() );
+	}
+
+	public function test_a_lock_left_behind_by_a_killed_run_is_broken(): void {
+		gwcpp_review_claim_lock();
+
+		// An FPM timeout or a fatal took the previous run out before it could
+		// release. Nothing else is ever going to clear this.
+		update_option( GWCPP_REVIEW_LOCK_OPTION, time() - ( GWCPP_REVIEW_LOCK_TTL + 60 ) );
+
+		$this->assertTrue(
+			gwcpp_review_claim_lock(),
+			'A stale lock must not stop the reminders for good.'
+		);
+	}
+
+	public function test_the_daily_run_declines_when_the_lock_is_held(): void {
+		gwcpp_review_claim_lock();
+
+		$this->assertSame(
+			array(
+				'checked' => 0,
+				'mailed'  => 0,
+				'expired' => 0,
+			),
+			gwcpp_run_daily_review()
+		);
+	}
+
+	public function test_the_daily_run_releases_the_lock_when_it_finishes(): void {
+		gwcpp_run_daily_review();
+
+		$this->assertTrue(
+			gwcpp_review_claim_lock(),
+			'A completed run must leave the lock free for the next one.'
+		);
 	}
 }

@@ -7,31 +7,43 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── The guard, and why it is on wp_mail ─────────────────────────────────────
+/*
+ * ── The guard, and why it is on wp_mail ─────────────────────────────────────
  * A staging copy of a site is a full copy: the same partners, the same
  * addresses, the same cron. Point it at a real mail server and the first time
  * somebody tests the review reminders, two hundred real organisations get an
  * email telling them their listing is about to be hidden.
  *
- * So outbound mail has three modes, and the default on any host that is not the
- * configured production host is `restricted` — mail is sent only to addresses
- * on the allow list, everything else is dropped.
- *
- * The filter is on `wp_mail` rather than on this plugin's own send function, on
- * purpose. Hooking our own function would guard our own mail and let a stray
- * wp_mail() from a handler, a plugin, or a copied snippet straight through. The
- * point of a guard is that it cannot be walked around by accident.
- *
- * Configure in wp-config.php:
+ * So outbound mail has three modes, set by a constant in wp-config.php:
  *
  *   define( 'GWCPP_MAIL_MODE', 'live' );          // live | restricted | off
  *   define( 'GWCPP_MAIL_ALLOW', 'example.com' );  // domain or address, comma separated
  *
- * A site that never defines either sends normally, because the default mode is
- * live when no production host is configured — this plugin cannot know that a
- * given hostname is somebody's staging server, and refusing to send by default
- * would break every install that never reads this comment.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ── The default is `live`, and that is a decision, not an oversight ──────────
+ * A site that defines neither constant sends normally. There is no host
+ * detection here and there is not going to be: this plugin cannot tell that a
+ * given hostname is somebody's staging server, and a guess that gets it wrong
+ * either silently swallows a production site's mail or lulls a staging site
+ * into thinking it is protected. Both are worse than doing nothing.
+ *
+ * So protecting a staging copy is one line in its wp-config.php, and it is a
+ * line somebody has to write. Setting `GWCPP_MAIL_MODE` to `restricted` or
+ * `off` is the first thing to do when cloning a site that has real partner
+ * addresses in it.
+ *
+ * ── Why the filter is on wp_mail and not on this plugin's own send ───────────
+ * Hooking our own function would guard our own mail and let a stray wp_mail()
+ * from a handler, a plugin, or a copied snippet straight through. The point of
+ * a guard is that it cannot be walked around by accident.
+ *
+ * The consequence is worth being explicit about, because it is broader than
+ * this plugin: in `restricted` or `off` mode this drops or narrows EVERY
+ * outgoing email on the site, including password resets and other plugins'
+ * notifications. That is the intent — a staging clone should be quiet, not
+ * selectively quiet — and it is why `live` passes straight through with no
+ * processing at all.
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 add_filter( 'wp_mail', 'gwcpp_guard_outbound_mail', 1 );
 
@@ -46,6 +58,7 @@ function gwcpp_guard_outbound_mail( $args ) {
 		return $args;
 	}
 
+	// Defaults to live. See the note above for why there is no host sniffing.
 	$mode = defined( 'GWCPP_MAIL_MODE' ) ? (string) GWCPP_MAIL_MODE : 'live';
 
 	if ( 'live' === $mode ) {
@@ -78,13 +91,15 @@ function gwcpp_guard_outbound_mail( $args ) {
 
 	$args['to'] = $kept;
 
-	/* Cc and Bcc are stripped rather than filtered. They arrive as headers in a
+	/*
+	 * Cc and Bcc are stripped rather than filtered. They arrive as headers in a
 	 * shape that varies — a string, an array, folded lines — and a guard that
 	 * parses them almost correctly is a guard that lets one through. Nothing in
 	 * this plugin sets either, so removing them costs nothing here and closes
-	 * the hole for anything that does. */
+	 * the hole for anything that does.
+	 */
 	if ( ! empty( $args['headers'] ) ) {
-		$headers = is_array( $args['headers'] ) ? $args['headers'] : explode( "\n", (string) $args['headers'] );
+		$headers         = is_array( $args['headers'] ) ? $args['headers'] : explode( "\n", (string) $args['headers'] );
 		$args['headers'] = array_values(
 			array_filter(
 				$headers,
@@ -114,7 +129,16 @@ function gwcpp_send_email( string $to, string $subject, string $body ): bool {
 
 	if ( '' !== $from_email && is_email( $from_email ) ) {
 		$name = '' !== $from_name ? $from_name : get_bloginfo( 'name' );
-		$headers[] = sprintf( 'From: %s <%s>', $name, $from_email );
+
+		/*
+		 * Quoted, with any quote of its own removed. CRLF and angle brackets are
+		 * already gone — the setting is sanitized with sanitize_text_field when
+		 * it is saved, so header injection is closed before this runs — but a
+		 * perfectly ordinary name containing a comma ("Smith, Jones & Co") is a
+		 * malformed From header unquoted, and some receivers drop the message
+		 * rather than guess.
+		 */
+		$headers[] = sprintf( 'From: "%s" <%s>', str_replace( '"', '', $name ), $from_email );
 	}
 
 	return wp_mail( $to, $subject, $body, $headers );
@@ -247,20 +271,80 @@ function gwcpp_email_raw_link( string $url ): string {
 	);
 }
 
-/* ── Notifications about changes ─────────────────────────────────────────────
+/*
+ * ── Notifications about changes ─────────────────────────────────────────────
  * Three messages, and the split between them is deliberate. Staff hear about
  * every submission; the submitter hears only about a decision. Telling somebody
  * "we received your change" and then, a day later, "we applied your change" is
  * two emails for one event, and the first is the one people learn to ignore.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
+
+/*
+ * ── Why the staff notification's return value is not discarded ──────────────
+ * Every other failure in this plugin is visible to somebody. This one is not:
+ * the person who submitted the change is told it went for review — which is
+ * true, it did — and staff are told nothing, because the telling is the part
+ * that failed. A site with a broken SMTP configuration therefore has a review
+ * queue quietly filling up that nobody has been asked to look at, and the first
+ * report of it is a partner asking why their change is still not live weeks
+ * later.
+ *
+ * So a failure is recorded rather than dropped. gwcpp_note_staff_notification()
+ * is what the handlers call; it keeps a flag the plugin's own screens can show,
+ * and fires an action for sites that would rather send this somewhere real.
+ * ───────────────────────────────────────────────────────────────────────────
+ */
+
+/** Transient: set when the last attempt to notify staff failed. */
+const GWCPP_MAIL_TROUBLE_TRANSIENT = 'gwcpp_staff_mail_failed';
+
+/**
+ * Record whether staff were successfully told about a change.
+ *
+ * @param bool $sent What gwcpp_notify_staff_change() returned.
+ */
+function gwcpp_note_staff_notification( bool $sent ): void {
+	if ( $sent ) {
+		delete_transient( GWCPP_MAIL_TROUBLE_TRANSIENT );
+		return;
+	}
+
+	/*
+	 * A week, not forever. If mail starts working again the flag clears on the
+	 * next successful send, and if nothing is ever submitted again there is
+	 * nothing left to warn about anyway.
+	 */
+	set_transient( GWCPP_MAIL_TROUBLE_TRANSIENT, time(), WEEK_IN_SECONDS );
+
+	/**
+	 * Fires when this site could not tell staff about a submitted change.
+	 *
+	 * Worth hooking on any site where the review queue matters — wp_mail()
+	 * returning false means nobody has been asked to look at it.
+	 */
+	do_action( 'gwcpp_staff_notification_failed' );
+}
+
+/**
+ * True when the last attempt to notify staff failed.
+ *
+ * @return bool
+ */
+function gwcpp_staff_mail_in_trouble(): bool {
+	return false !== get_transient( GWCPP_MAIL_TROUBLE_TRANSIENT );
+}
 
 /**
  * Tell staff about a submission.
  *
- * @param int   $post_id  Post ID.
- * @param int   $user_id  Who submitted it.
- * @param array $diff     From gwcpp_changeset_diff().
- * @param bool  $pending  Whether it is waiting for approval or already live.
+ * Callers pass the result to gwcpp_note_staff_notification() rather than
+ * dropping it — see the note above.
+ *
+ * @param int   $post_id Post ID.
+ * @param int   $user_id Who submitted it.
+ * @param array $diff    From gwcpp_changeset_diff().
+ * @param bool  $pending Whether it is waiting for approval or already live.
  * @return bool
  */
 function gwcpp_notify_staff_change( int $post_id, int $user_id, array $diff, bool $pending ): bool {

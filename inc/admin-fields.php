@@ -159,9 +159,11 @@ function gwcpp_render_field_table( string $post_type ): void {
 
 		echo '<tr>';
 
-		/* A number input rather than up/down arrows. Arrows are one round trip
+		/*
+		 * A number input rather than up/down arrows. Arrows are one round trip
 		 * per move, which for a twelve-field form somebody is rearranging means
-		 * eleven page loads; typing the positions and saving once is one. */
+		 * eleven page loads; typing the positions and saving once is one.
+		 */
 		printf(
 			'<td><label class="screen-reader-text" for="gwcpp-order-%1$s">%2$s</label><input type="number" id="gwcpp-order-%1$s" name="gwcpp_order[%1$s]" value="%3$d" min="1" class="small-text" /></td>',
 			esc_attr( $key ),
@@ -432,8 +434,8 @@ function gwcpp_grouped_field_types(): array {
 		if ( null === gwcpp_field_type( $slug ) ) {
 			continue;
 		}
-		$group           = (string) ( $def['group'] ?? 'simple' );
-		$label           = (string) ( $groups[ $group ] ?? $group );
+		$group                  = (string) ( $def['group'] ?? 'simple' );
+		$label                  = (string) ( $groups[ $group ] ?? $group );
 		$out[ $label ][ $slug ] = (string) ( $def['label'] ?? $slug );
 	}
 
@@ -494,9 +496,11 @@ function gwcpp_handle_save_field(): void {
 		? (array) wp_unslash( $_POST['gwcpp_field'] )
 		: array();
 
-	/* A synthetic shortcut button submits only the key. Fill in what that key
+	/*
+	 * A synthetic shortcut button submits only the key. Fill in what that key
 	 * already knows about itself so the field is complete without the person
-	 * having to pick a type for something whose type is fixed. */
+	 * having to pick a type for something whose type is fixed.
+	 */
 	if ( isset( $raw['key'] ) && gwcpp_is_synthetic( (string) $raw['key'] ) && empty( $raw['type'] ) ) {
 		$spec         = gwcpp_synthetic_fields()[ (string) $raw['key'] ];
 		$raw['type']  = $spec['type'];
@@ -549,10 +553,12 @@ function gwcpp_handle_reorder_fields(): void {
 		$positions[ sanitize_text_field( (string) $key ) ] = (int) $position;
 	}
 
-	/* asort keeps the key association while sorting by position, and two fields
+	/*
+	 * asort keeps the key association while sorting by position, and two fields
 	 * given the same number keep the order they were already in rather than
 	 * swapping unpredictably. gwcpp_set_field_order() then drops anything
-	 * unknown and appends anything missing. */
+	 * unknown and appends anything missing.
+	 */
 	asort( $positions );
 
 	gwcpp_set_field_order( $post_type, array_keys( $positions ) );

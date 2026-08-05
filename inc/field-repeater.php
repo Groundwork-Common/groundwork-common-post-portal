@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── The __i__ template, and the marker ──────────────────────────────────────
+/*
+ * ── The __i__ template, and the marker ──────────────────────────────────────
  * A repeater needs a blank row to clone when somebody presses Add. Rendering
  * that row in JavaScript means the markup exists in two places — PHP for the
  * saved rows, JS for the new ones — and the day they drift is the day a new row
@@ -26,7 +27,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * Sub-fields come from the same registry as everything else, so a repeater of
  * text and select controls needs no code here beyond the loop.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 add_filter( 'gwcpp_field_types', 'gwcpp_register_repeater_type' );
 
@@ -73,8 +75,8 @@ function gwcpp_register_repeater_type( array $types ): array {
  * @return array<int, array>
  */
 function gwcpp_repeater_subfields( array $field ): array {
-	$raw = (string) gwcpp_field_setting( $field, 'subfields_raw', '' );
-	$out = array();
+	$raw  = (string) gwcpp_field_setting( $field, 'subfields_raw', '' );
+	$out  = array();
 	$seen = array();
 
 	$allowed = array( 'text', 'textarea', 'number', 'url', 'email', 'phone', 'date', 'select', 'boolean' );
@@ -99,7 +101,7 @@ function gwcpp_repeater_subfields( array $field ): array {
 
 		$options = array();
 		if ( 'select' === $type && isset( $parts[3] ) ) {
-			// day|Day|select|mon=Monday;tue=Tuesday
+			// For example: day|Day|select|mon=Monday;tue=Tuesday.
 			foreach ( explode( ';', $parts[3] ) as $pair ) {
 				$bits = array_map( 'trim', explode( '=', $pair, 2 ) );
 				if ( '' === ( $bits[0] ?? '' ) ) {
@@ -161,9 +163,11 @@ function gwcpp_render_repeater( array $field, $value, string $name, array $ctx =
 	}
 	echo '</div>';
 
-	/* The blank row, rendered by the same function as the saved ones. Inside a
+	/*
+	 * The blank row, rendered by the same function as the saved ones. Inside a
 	 * <template> so the browser does not treat its controls as part of the form
-	 * — an ordinary hidden div would submit __i__ as a real row on every save. */
+	 * — an ordinary hidden div would submit __i__ as a real row on every save.
+	 */
 	echo '<template data-gwcpp-row-template>';
 	gwcpp_render_repeater_row( $subfields, array(), $name, '__i__' );
 	echo '</template>';
@@ -171,6 +175,22 @@ function gwcpp_render_repeater( array $field, $value, string $name, array $ctx =
 	printf(
 		'<p class="gwcpp-repeater__actions"><button type="button" class="gwcpp-button gwcpp-button--quiet" data-gwcpp-add>%s</button></p>',
 		esc_html__( '+ Add another', 'groundwork-common-post-portal' )
+	);
+
+	/*
+	 * Where the script says what just happened. Adding a row moves focus into
+	 * it, so that announces itself; removing one does not, and without this a
+	 * screen-reader user presses Remove and hears nothing at all.
+	 *
+	 * Rendered by PHP rather than created in JavaScript for two reasons: the
+	 * strings are translatable here and would otherwise need
+	 * wp_set_script_translations for one sentence, and a live region has to be
+	 * in the document before the text goes into it or nothing is announced.
+	 */
+	printf(
+		'<p class="screen-reader-text" role="status" aria-live="polite" data-gwcpp-status data-gwcpp-removed="%s" data-gwcpp-added="%s"></p>',
+		esc_attr__( 'Row removed.', 'groundwork-common-post-portal' ),
+		esc_attr__( 'Row added.', 'groundwork-common-post-portal' )
 	);
 
 	printf(
@@ -245,10 +265,12 @@ function gwcpp_sanitize_repeater( $raw, array $field = array() ): array {
 	$out  = array();
 
 	foreach ( $rows as $index => $row ) {
-		/* The template's own row, if it ever reaches us. It should not — a
+		/*
+		 * The template's own row, if it ever reaches us. It should not — a
 		 * <template> element's contents are inert and are not submitted — but a
 		 * browser that does not support <template> would render it as ordinary
-		 * markup, and then every save would store a row of blanks. */
+		 * markup, and then every save would store a row of blanks.
+		 */
 		if ( '__i__' === (string) $index || ! is_array( $row ) ) {
 			continue;
 		}
@@ -269,9 +291,11 @@ function gwcpp_sanitize_repeater( $raw, array $field = array() ): array {
 			}
 		}
 
-		/* A row where every cell is blank is dropped rather than stored. People
+		/*
+		 * A row where every cell is blank is dropped rather than stored. People
 		 * press Add, change their mind, and leave the empty row sitting there —
-		 * storing it would put a blank line in whatever the theme renders. */
+		 * storing it would put a blank line in whatever the theme renders.
+		 */
 		if ( $any ) {
 			$out[] = $clean;
 		}

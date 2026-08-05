@@ -67,14 +67,14 @@ function gwcpp_grant_access( int $org_id, string $email ) {
 		array(
 			'user_login'   => gwcpp_unique_login( $email ),
 			'user_email'   => $email,
-			/* Never shown to anybody, never emailed, and never usable: sign-in
-			 * is a link, and wp_generate_password() at this length is not
-			 * something anyone guesses. It exists because WordPress requires a
-			 * password field, not because it is a credential.
-			 *
-			 * Note this is deliberately NOT an unusable hash. A site that turns
-			 * on password sign-in later needs these accounts to be able to hold
-			 * a real password once somebody sets one. */
+			// Never shown to anybody, never emailed, and never usable: sign-in
+			// is a link, and wp_generate_password() at this length is not
+			// something anyone guesses. It exists because WordPress requires a
+			// password field, not because it is a credential.
+			//
+			// Note this is deliberately NOT an unusable hash. A site that turns
+			// on password sign-in later needs these accounts to be able to hold
+			// a real password once somebody sets one.
 			'user_pass'    => wp_generate_password( 64, true, true ),
 			'display_name' => gwcpp_display_name_from_email( $email ),
 			'role'         => GWCPP_ROLE,
@@ -118,9 +118,11 @@ function gwcpp_unique_login( string $email ): string {
 		$login = $base . '-' . $n;
 		++$n;
 
-		/* A runaway here would be an infinite loop on a page load. Fifty
+		/*
+		 * A runaway here would be an infinite loop on a page load. Fifty
 		 * collisions on one local part means something is wrong that a counter
-		 * will not fix, so fall back to something that cannot collide. */
+		 * will not fix, so fall back to something that cannot collide.
+		 */
 		if ( $n > 50 ) {
 			$login = $base . '-' . wp_generate_password( 8, false, false );
 			break;
@@ -175,11 +177,13 @@ function gwcpp_revoke_access( int $user_id, int $org_id, bool $destroy_sessions 
 	$removed = gwcpp_remove_user_from_org( $user_id, $org_id );
 
 	if ( $removed && $destroy_sessions ) {
-		/* Without this the person keeps a working session for up to the
+		/*
+		 * Without this the person keeps a working session for up to the
 		 * configured session length. The access check would refuse every post
 		 * on the next request, so the exposure is an empty list rather than
 		 * anything readable — but "revoked" should mean signed out, because
-		 * that is what the person clicking Remove believes they did. */
+		 * that is what the person clicking Remove believes they did.
+		 */
 		$sessions = WP_Session_Tokens::get_instance( $user_id );
 		$sessions->destroy_all();
 	}

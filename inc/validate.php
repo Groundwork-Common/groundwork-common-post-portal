@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── Every error, every time ─────────────────────────────────────────────────
+/*
+ * ── Every error, every time ─────────────────────────────────────────────────
  * gwcpp_validate_submission() returns a map of field key to message, and it
  * always contains every problem in the submission. There is no early return in
  * it, and there must never be one.
@@ -25,7 +26,8 @@ defined( 'ABSPATH' ) || exit;
  * Hence the shape here: one return, at the bottom, of a map whose keys are
  * field keys. A test can assert on the exact key set, and a leftover early
  * return would fail it rather than hide in it.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * Check a submission.
@@ -49,11 +51,13 @@ function gwcpp_validate_submission( string $post_type, array $values, array $dro
 	foreach ( gwcpp_type_fields( $post_type ) as $field ) {
 		$key = (string) $field['key'];
 
-		/* A field the form did not submit is not validated. It is not that the
+		/*
+		 * A field the form did not submit is not validated. It is not that the
 		 * value was cleared — it is that this form never showed the field, and
 		 * a required field added to the schema this morning must not make every
 		 * form opened yesterday unsubmittable. The save path applies the same
-		 * rule from the other side and leaves such a field untouched. */
+		 * rule from the other side and leaves such a field untouched.
+		 */
 		if ( ! array_key_exists( $key, $values ) ) {
 			continue;
 		}
@@ -61,11 +65,13 @@ function gwcpp_validate_submission( string $post_type, array $values, array $dro
 		$value = $values[ $key ];
 		$empty = (bool) gwcpp_field_call( $field, 'is_empty', array( $value, $field ) );
 
-		/* Empty because it sanitized away, not because it was left blank. This
+		/*
+		 * Empty because it sanitized away, not because it was left blank. This
 		 * is checked before the required test on purpose: "please fill in
 		 * Website" is a confusing thing to tell somebody who just filled in
 		 * Website, and on an optional field there would otherwise be no message
-		 * at all and their input would simply have vanished. */
+		 * at all and their input would simply have vanished.
+		 */
 		if ( $empty && isset( $dropped[ $key ] ) ) {
 			$errors[ $key ] = gwcpp_dropped_message( $field, (string) $dropped[ $key ] );
 			continue;
@@ -181,13 +187,15 @@ function gwcpp_error_summary( array $errors ): string {
 		return '';
 	}
 
-	/* The placeholder is in the singular too, even though English would rather
+	/*
+	 * The placeholder is in the singular too, even though English would rather
 	 * say "One thing". Plenty of languages need the number in every form, and a
 	 * singular without it gives translators nowhere to put it.
 	 *
 	 * This note sits above the sprintf rather than beside the _n, because a
 	 * translators comment has to be the LAST comment before the gettext call —
-	 * anything between them and the extractor drops it. */
+	 * anything between them and the extractor drops it.
+	 */
 	return sprintf(
 		/* translators: %d: how many fields have a problem. */
 		_n(

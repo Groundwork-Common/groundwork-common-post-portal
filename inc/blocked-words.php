@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── What this is and is not ─────────────────────────────────────────────────
+/*
+ * ── What this is and is not ─────────────────────────────────────────────────
  * It is a configurable list of words that stop a submission and tell the person
  * why, so a directory of family services does not publish something nobody
  * meant to send. It exists because the approval queue is not always on, and
@@ -34,7 +35,8 @@ defined( 'ABSPATH' ) || exit;
  * whose real name matched a blocked word.
  *
  * Screening what changed is the only version of this that a person can act on.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * The site's blocked words.
@@ -48,10 +50,12 @@ function gwcpp_blocked_words(): array {
 	foreach ( preg_split( '/[\r\n,]+/', $raw ) as $word ) {
 		$word = trim( (string) $word );
 
-		/* Anything under three characters is dropped. A two-letter entry
+		/*
+		 * Anything under three characters is dropped. A two-letter entry
 		 * matches inside far more than anybody intends even with word
 		 * boundaries, and the one time somebody adds "hi" to a list the whole
-		 * directory stops saving. */
+		 * directory stops saving.
+		 */
 		if ( mb_strlen( $word ) < 3 ) {
 			continue;
 		}
@@ -132,9 +136,11 @@ function gwcpp_blocked_word_pattern( string $word ): string {
 	return '/\b' . preg_quote( $word, '/' ) . '(?:' . $double . '(?:s|es|ed|ing|er|ers))?\b/iu';
 }
 
-/* Screening runs as part of validation, on the filter every other check goes
+/*
+ * Screening runs as part of validation, on the filter every other check goes
  * through, so a blocked word is reported beside its own field exactly like a
- * bad phone number rather than as a separate kind of failure. */
+ * bad phone number rather than as a separate kind of failure.
+ */
 add_filter( 'gwcpp_validation_errors', 'gwcpp_screen_submission', 20, 3 );
 
 /**
@@ -190,16 +196,35 @@ function gwcpp_screen_submission( $errors, $values, $post_type ) {
  *
  * Read from the request rather than passed down, because the validation filter
  * is called from both the edit and create handlers and only one of them has a
- * post. Trusting it is safe here in a way it would not be elsewhere: the value
- * only ever widens what is screened. Naming somebody else's post would compare
- * against their values and, at worst, screen a field that did not need it —
- * never skip one that did, because a mismatch always screens.
+ * post.
+ *
+ * ── Why it is checked and not merely read ────────────────────────────────────
+ * This used to be read straight out of $_POST, on the reasoning that a wrong
+ * value "only ever widens what is screened" — compare against somebody else's
+ * values, screen a field that did not need it, never skip one that did.
+ *
+ * That is very nearly right, and the gap is the skip at the top of the loop: a
+ * field is left unscreened when the submitted value EQUALS the stored one. Name
+ * a post whose stored value happens to be the phrase you want to submit, and
+ * screening for that field is skipped rather than widened. It needs a blocked
+ * phrase to already exist somewhere on the site, so it is a narrow hole in a
+ * feature documented as catching mistakes rather than determined people — but
+ * the reasoning was wrong, and reasoning that is wrong outlives the code it was
+ * written about.
+ *
+ * So the ID is now put through the same choke point everything else is. A post
+ * the signed-in user cannot edit reads as 0, which screens every field — the
+ * safe direction, and the same answer a new submission gets.
  *
  * @return int
  */
 function gwcpp_screening_post_id(): int {
-	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only, and the guards verified the nonce before validation ran; see above for why a wrong value cannot weaken screening.
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only, and the handler guards verified a nonce bound to this same ID before validation ran.
 	$post_id = isset( $_POST['gwcpp_post_id'] ) ? (int) $_POST['gwcpp_post_id'] : 0;
 
-	return max( 0, $post_id );
+	if ( $post_id <= 0 ) {
+		return 0;
+	}
+
+	return gwcpp_user_can_edit_post( get_current_user_id(), $post_id ) ? $post_id : 0;
 }

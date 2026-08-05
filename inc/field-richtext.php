@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── Narrower than post KSES, and applied unconditionally ────────────────────
+/*
+ * ── Narrower than post KSES, and applied unconditionally ────────────────────
  * WordPress already has an answer to "what HTML may this user submit": KSES,
  * driven by the unfiltered_html capability. That answer is wrong here in both
  * directions.
@@ -29,7 +30,8 @@ defined( 'ABSPATH' ) || exit;
  * capability. There is no path through gwcpp_sanitize_richtext() that stores
  * what was submitted. The cost is that a portal user cannot write an embed. That
  * is the intended cost.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 add_filter( 'gwcpp_field_types', 'gwcpp_register_richtext_type' );
 
@@ -66,12 +68,20 @@ function gwcpp_register_richtext_type( array $types ): array {
  * @return array
  */
 function gwcpp_richtext_allowed_html(): array {
-	$common = array(
-		// Deliberately no `class` and no `style`. Both let submitted content
-		// borrow the site's own visual language, which is how a paragraph comes
-		// to look like an official notice.
-		'id' => false,
-	);
+	/*
+	 * Empty, and it has to be written this way. No `class` and no `style`,
+	 * because both let submitted content borrow the site's own visual language,
+	 * which is how a paragraph comes to look like an official notice — and no
+	 * `id` either, for the same reason plus DOM clobbering and anchor hijacking.
+	 *
+	 * This used to say `'id' => false`, which reads as "not allowed" and is not.
+	 * wp_kses_attr_check() rejects on `! isset( $allowed[ $name ] ) || '' ===
+	 * $allowed[ $name ]`; isset() is true for false and '' === false is false,
+	 * so the attribute passed the gate, and is_array( false ) then skipped the
+	 * value check — allowing `id` unconditionally on every tag below. An
+	 * attribute is excluded by not appearing here at all.
+	 */
+	$common = array();
 
 	/**
 	 * The HTML a portal user may submit.
@@ -99,8 +109,8 @@ function gwcpp_richtext_allowed_html(): array {
 			'h4'         => $common,
 			'blockquote' => $common,
 			'a'          => array(
-				'href'   => true,
-				'title'  => true,
+				'href'  => true,
+				'title' => true,
 				// rel and target are set by us below, not accepted from input.
 			),
 		)
@@ -121,8 +131,10 @@ function gwcpp_sanitize_richtext( $raw, array $field = array() ): string {
 		return '';
 	}
 
-	/* wp_kses with our own list, never wp_kses_post, and never conditional on
-	 * current_user_can( 'unfiltered_html' ) — see the note at the top. */
+	/*
+	 * wp_kses with our own list, never wp_kses_post, and never conditional on
+	 * current_user_can( 'unfiltered_html' ) — see the note at the top.
+	 */
 	$html = wp_kses( $html, gwcpp_richtext_allowed_html(), array( 'http', 'https', 'mailto', 'tel' ) );
 
 	// Links out of submitted content get rel="nofollow noopener" whether or not
@@ -131,9 +143,11 @@ function gwcpp_sanitize_richtext( $raw, array $field = array() ): string {
 
 	$max = (int) gwcpp_field_setting( $field, 'maxlength', 0 );
 	if ( $max > 0 && strlen( wp_strip_all_tags( $html ) ) > $max ) {
-		/* Truncating HTML by length breaks tags in half and produces markup
+		/*
+		 * Truncating HTML by length breaks tags in half and produces markup
 		 * that closes elements the page never opened. Refusing is the honest
-		 * option; the validator below turns this into a message. */
+		 * option; the validator below turns this into a message.
+		 */
 		return '';
 	}
 
@@ -161,7 +175,7 @@ function gwcpp_harden_links( string $html ): string {
 /**
  * The editor.
  *
- * teeny mode: bold, italic, lists, link, and nothing else. The full editor
+ * Teeny mode: bold, italic, lists, link, and nothing else. The full editor
  * offers controls for things the allow-list above silently removes on save,
  * and a toolbar button whose effect vanishes when you press Save is worse than
  * no button.
@@ -248,12 +262,14 @@ function gwcpp_empty_richtext( $value, array $field = array() ): bool {
 
 	$text = wp_strip_all_tags( (string) $value );
 
-	/* Entities decoded BEFORE the whitespace check, not after stripping tags
+	/*
+	 * Entities decoded BEFORE the whitespace check, not after stripping tags
 	 * and hoping. strip_tags leaves "&nbsp;" as those six literal characters,
 	 * which trim() considers perfectly good content — so without this, the
 	 * single most common thing TinyMCE submits for a field somebody just
 	 * emptied, "<p>&nbsp;</p>", is stored forever as a non-empty value that
-	 * renders as a blank line nobody can find or remove. */
+	 * renders as a blank line nobody can find or remove.
+	 */
 	$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
 	// The decoded non-breaking space is not whitespace to trim().

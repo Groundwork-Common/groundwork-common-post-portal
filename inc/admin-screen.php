@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── Hand-rolled rather than the Settings API ────────────────────────────────
+/*
+ * ── Hand-rolled rather than the Settings API ────────────────────────────────
  * The Settings API is the right tool for a flat bag of independent values, and
  * this is not one. Half the settings on this screen are a nested array keyed by
  * post type, whose keys are discovered at render time from what the site has
@@ -18,7 +19,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * So: admin_post_ handlers, an explicit capability check and an explicit nonce
  * as the first two lines of each, and Post/Redirect/Get with a message code.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** The Settings screen's tabs, in order. */
 const GWCPP_TABS = array( 'general', 'signin', 'appearance', 'fields' );
@@ -48,10 +50,12 @@ function gwcpp_require_admin_caps(): void {
  * Register the menu.
  */
 function gwcpp_admin_menu(): void {
-	/* The top level opens Pending Changes rather than Settings. Settings is a
+	/*
+	 * The top level opens Pending Changes rather than Settings. Settings is a
 	 * screen somebody visits when setting the portal up and then rarely again;
 	 * the queue is the one with other people's work waiting on it, and it is the
-	 * only screen here that is ever urgent. */
+	 * only screen here that is ever urgent.
+	 */
 	add_menu_page(
 		__( 'Post Portal', 'groundwork-common-post-portal' ),
 		__( 'Portal', 'groundwork-common-post-portal' ),
@@ -62,9 +66,11 @@ function gwcpp_admin_menu(): void {
 		58
 	);
 
-	/* The count in the menu label, in core's own bubble markup. Without it the
+	/*
+	 * The count in the menu label, in core's own bubble markup. Without it the
 	 * queue is a screen somebody has to remember to visit, and a submission
-	 * waits until a partner emails to ask why nothing happened. */
+	 * waits until a partner emails to ask why nothing happened.
+	 */
 	$waiting = gwcpp_pending_count();
 	$label   = __( 'Pending Changes', 'groundwork-common-post-portal' );
 
@@ -75,9 +81,11 @@ function gwcpp_admin_menu(): void {
 		);
 	}
 
-	/* WordPress makes the first submenu item a duplicate of the parent, labelled
+	/*
+	 * WordPress makes the first submenu item a duplicate of the parent, labelled
 	 * with the parent's name. Re-adding it with the label we want replaces that
-	 * rather than adding a second row. */
+	 * rather than adding a second row.
+	 */
 	$queue = add_submenu_page(
 		GWCPP_QUEUE_SLUG,
 		__( 'Pending Changes', 'groundwork-common-post-portal' ),
@@ -87,9 +95,11 @@ function gwcpp_admin_menu(): void {
 		'gwcpp_queue_screen'
 	);
 
-	/* Fields is a tab on this screen rather than a page of its own. It is part
+	/*
+	 * Fields is a tab on this screen rather than a page of its own. It is part
 	 * of configuring the portal, it is meaningless until a post type is switched
-	 * on one tab over, and as a sibling menu item it read as a separate feature. */
+	 * on one tab over, and as a sibling menu item it read as a separate feature.
+	 */
 	$settings = add_submenu_page(
 		GWCPP_QUEUE_SLUG,
 		__( 'Portal Settings', 'groundwork-common-post-portal' ),
@@ -166,10 +176,12 @@ function gwcpp_settings_screen(): void {
 	echo '<div class="wrap gwcpp-admin">';
 	printf( '<h1>%s</h1>', esc_html__( 'Post Portal', 'groundwork-common-post-portal' ) );
 
-	/* Between the page title and the tab bar, and on this screen only. Above the
+	/*
+	 * Between the page title and the tab bar, and on this screen only. Above the
 	 * tabs because it introduces the whole screen rather than any one section of
 	 * it, and because a colophon below four tabs of settings is one nobody
-	 * reaches. Same position it holds in Location Finder. */
+	 * reaches. Same position it holds in Location Finder.
+	 */
 	gwcpp_render_colophon();
 
 	gwcpp_render_admin_notice();
@@ -177,10 +189,12 @@ function gwcpp_settings_screen(): void {
 	gwcpp_render_setup_checklist();
 
 	if ( 'fields' === $tab ) {
-		/* Deliberately outside the settings form. The Fields tab is five separate
+		/*
+		 * Deliberately outside the settings form. The Fields tab is five separate
 		 * actions — add, edit, reorder, import, retire — each with its own nonce
 		 * and its own confirmation. Nested inside a form whose button reads "Save
-		 * settings", an Enter pressed in a field label would submit the wrong one. */
+		 * settings", an Enter pressed in a field label would submit the wrong one.
+		 */
 		gwcpp_render_fields_tab();
 	} else {
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
@@ -317,8 +331,9 @@ function gwcpp_tab_general(): void {
 		array(
 			'name'              => 'gwcpp_settings[portal_page]',
 			'id'                => 'gwcpp-portal-page',
-			'selected'          => gwcpp_portal_page_id(),
-			'show_option_none'  => __( '— none chosen —', 'groundwork-common-post-portal' ),
+			'selected'          => (int) gwcpp_portal_page_id(),
+			// wp_dropdown_pages() echoes, so its label goes out as-is.
+			'show_option_none'  => esc_html__( '— none chosen —', 'groundwork-common-post-portal' ),
 			'option_none_value' => '0',
 			'post_status'       => 'publish',
 		)
@@ -366,10 +381,12 @@ function gwcpp_render_type_flags( string $post_type ): void {
 
 	echo '<fieldset class="gwcpp-type-flags">';
 
-	/* A hidden marker so the handler can tell "every box unticked" from "this
+	/*
+	 * A hidden marker so the handler can tell "every box unticked" from "this
 	 * post type's row was not on the form". Without it a submission from a
 	 * screen rendered before a post type existed would write every flag on that
-	 * type to false. */
+	 * type to false.
+	 */
 	printf(
 		'<input type="hidden" name="gwcpp_settings[types][%s][_present]" value="1" />',
 		esc_attr( $post_type )
@@ -451,9 +468,12 @@ function gwcpp_candidate_post_types(): array {
 		if ( in_array( $object->name, $excluded, true ) ) {
 			continue;
 		}
-		/* show_ui rather than public: a post type staff cannot see in wp-admin
+
+		/*
+		 * show_ui rather than public: a post type staff cannot see in wp-admin
 		 * is one nobody can moderate, and the approval queue depends on staff
-		 * being able to open the thing they are approving. */
+		 * being able to open the thing they are approving.
+		 */
 		if ( ! $object->show_ui ) {
 			continue;
 		}
@@ -559,7 +579,7 @@ function gwcpp_tab_appearance(): void {
 
 	foreach ( $fields as $key => $spec ) {
 		list( $label, $type ) = $spec;
-		$value = (string) gwcpp_setting( $key );
+		$value                = (string) gwcpp_setting( $key );
 
 		echo '<tr><th scope="row">';
 		printf( '<label for="gwcpp-%1$s">%2$s</label>', esc_attr( $key ), esc_html( $label ) );
@@ -631,7 +651,7 @@ function gwcpp_sanitize_settings( array $raw, array $stored, string $tab ): arra
 	$out = $stored;
 
 	if ( 'general' === $tab ) {
-		$types = isset( $raw['post_types'] ) && is_array( $raw['post_types'] ) ? $raw['post_types'] : array();
+		$types             = isset( $raw['post_types'] ) && is_array( $raw['post_types'] ) ? $raw['post_types'] : array();
 		$out['post_types'] = array_values(
 			array_filter( array_map( 'sanitize_key', $types ), 'post_type_exists' )
 		);
@@ -740,12 +760,14 @@ function gwcpp_admin_messages(): array {
 	);
 }
 
-/* ── The colophon ────────────────────────────────────────────────────────────
+/*
+ * ── The colophon ────────────────────────────────────────────────────────────
  * On this plugin's own screens only, collapsible but never dismissible, and
  * snoozed for thirty days by storing WHEN it was collapsed rather than a
  * boolean. A boolean cannot expire, and "never show this again" on a support
  * ask is a decision somebody makes in one impatient second and cannot revisit.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * True when the colophon should be folded away.
@@ -761,10 +783,12 @@ function gwcpp_colophon_snoozed( int $collapsed_at, int $now ): bool {
 		return false;
 	}
 
-	/* A timestamp in the future means a clock changed, a database was moved
+	/*
+	 * A timestamp in the future means a clock changed, a database was moved
 	 * between servers, or somebody edited the row. Treating it as "snoozed
 	 * until then" could hide the panel for years, so an impossible value snoozes
-	 * for nothing. */
+	 * for nothing.
+	 */
 	if ( $collapsed_at > $now ) {
 		return false;
 	}
@@ -821,9 +845,11 @@ function gwcpp_handle_colophon_toggle(): void {
 		delete_user_meta( get_current_user_id(), GWCPP_COLOPHON_META );
 	}
 
-	/* Back to the same tab, minus the toggle. Without stripping the arguments a
+	/*
+	 * Back to the same tab, minus the toggle. Without stripping the arguments a
 	 * refresh would re-fire the toggle, and the nonce would outlive its
-	 * usefulness in the address bar. */
+	 * usefulness in the address bar.
+	 */
 	wp_safe_redirect( remove_query_arg( array( 'gwcpp_colophon', '_wpnonce' ) ) );
 	exit;
 }
@@ -903,10 +929,12 @@ function gwcpp_render_colophon(): void {
 
 			<p>
 				<?php
-				/* The anchor is built here rather than carried inside the
+				/*
+				 * The anchor is built here rather than carried inside the
 				 * translatable string, so a translator is never handed markup they
 				 * can break and no HTML has to survive a round trip through
-				 * translate.wordpress.org. */
+				 * translate.wordpress.org.
+				 */
 				$gwcpp_gwc_link = sprintf(
 					'<a href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>',
 					esc_url( GWCPP_GWC_URL ),

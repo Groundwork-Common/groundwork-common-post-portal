@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── Register early, enqueue late, twice ─────────────────────────────────────
+/*
+ * ── Register early, enqueue late, twice ─────────────────────────────────────
  * Registration happens on wp_enqueue_scripts at priority 5 so a theme can
  * declare our handle as a dependency, or deregister it, from the default
  * priority.
@@ -21,14 +22,32 @@ defined( 'ABSPATH' ) || exit;
  * a flash of unstyled form rather than a broken page.
  *
  * wp_enqueue_style() is idempotent, so calling it twice costs a hash lookup.
- * ─────────────────────────────────────────────────────────────────────────── */
+ *
+ * ── And why registration is on enqueue_block_assets ──────────────────────────
+ * blocks/portal/block.json names `gwcpp-portal` as the block's `style`, which
+ * means core calls wp_enqueue_style( 'gwcpp-portal' ) in the editor as well as
+ * on the front end. Registration used to be on wp_enqueue_scripts, which does
+ * not fire in wp-admin — so in the editor core was enqueueing a handle nobody
+ * had registered. That is a silent no-op, and the symptom was the block preview
+ * rendering unstyled with nothing in the console to explain it.
+ *
+ * enqueue_block_assets fires in both contexts, which is exactly the set of
+ * places a block's style has to exist. The priority-5 registration still runs
+ * before the priority-10 enqueue below.
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
+add_action( 'enqueue_block_assets', 'gwcpp_register_front_assets', 5 );
 add_action( 'wp_enqueue_scripts', 'gwcpp_register_front_assets', 5 );
 add_action( 'wp_enqueue_scripts', 'gwcpp_maybe_enqueue_portal', 10 );
 add_action( 'admin_enqueue_scripts', 'gwcpp_admin_assets' );
 
 /**
  * Register the front-end stylesheet.
+ *
+ * Runs on both wp_enqueue_scripts and enqueue_block_assets, so it has to be
+ * safe to call twice. wp_register_style() and wp_register_script() both return
+ * false and change nothing when the handle already exists, so it is.
  */
 function gwcpp_register_front_assets(): void {
 	wp_register_style(
@@ -38,16 +57,21 @@ function gwcpp_register_front_assets(): void {
 		GWCPP_VERSION
 	);
 
-	/* Deferred, and with no dependencies. It attaches on DOMContentLoaded and
+	/*
+	 * Deferred, and with no dependencies. It attaches on DOMContentLoaded and
 	 * touches nothing outside its own repeater, so there is no reason for it to
 	 * block rendering — and a portal user on a bad connection should see the
-	 * form before they can add a row to it. */
+	 * form before they can add a row to it.
+	 */
 	wp_register_script(
 		'gwcpp-repeater',
 		GWCPP_URL . 'assets/js/repeater.js',
 		array(),
 		GWCPP_VERSION,
-		array( 'strategy' => 'defer', 'in_footer' => true )
+		array(
+			'strategy'  => 'defer',
+			'in_footer' => true,
+		)
 	);
 }
 
@@ -115,12 +139,14 @@ function gwcpp_appearance_css(): string {
 			continue;
 		}
 
-		/* Anything with a brace, a semicolon or a comment marker is refused
+		/*
+		 * Anything with a brace, a semicolon or a comment marker is refused
 		 * rather than escaped. These arrive from a settings screen only an
 		 * administrator can reach, so this is not the last line of defence —
 		 * but a value that closes the rule it sits in can write arbitrary CSS
 		 * onto every portal page, and there is no legitimate colour or length
-		 * that needs any of those characters. */
+		 * that needs any of those characters.
+		 */
 		if ( preg_match( '/[{};<>]|\/\*/', $value ) ) {
 			continue;
 		}
@@ -139,11 +165,13 @@ function gwcpp_appearance_css(): string {
 function gwcpp_admin_assets( $hook ): void {
 	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 
-	/* Matched on our slug PREFIX, not on the settings slug. WordPress builds a
+	/*
+	 * Matched on our slug PREFIX, not on the settings slug. WordPress builds a
 	 * submenu's hook as "{parent menu title}_page_{slug}", so the only screen
 	 * whose hook ever contained GWCPP_MENU_SLUG was the one whose slug that is —
 	 * Pending Changes came through as "portal_page_gwcpp-pending" and matched
-	 * nothing, which is why its diff tables rendered unstyled. */
+	 * nothing, which is why its diff tables rendered unstyled.
+	 */
 	$ours = ( is_string( $hook ) && false !== strpos( $hook, 'gwcpp-' ) )
 		|| ( $screen && GWCPP_ORG_TYPE === $screen->post_type )
 		|| ( $screen && 'post' === $screen->base && gwcpp_type_enabled( (string) $screen->post_type ) );

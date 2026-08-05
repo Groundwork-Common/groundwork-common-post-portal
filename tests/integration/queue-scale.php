@@ -60,7 +60,8 @@ update_option(
 gwcpp_settings_cache( null, true );
 
 /* One page and a bit. Below the page size every one of these assertions passes
- * against the broken code, which is the whole point of the threshold. */
+ * against the broken code, which is the whole point of the threshold.
+ */
 $total = GWCPP_QUEUE_PAGE_SIZE + 5;
 $made  = array();
 
@@ -71,7 +72,8 @@ for ( $i = 0; $i < $total; $i++ ) {
 	 * to the second, ORDER BY post_modified has nothing to break the tie with,
 	 * and which of them lands on page one is up to MySQL — so the assertion
 	 * below about the oldest one falling off the page would be testing the
-	 * storage engine's mood rather than the fix. */
+	 * storage engine's mood rather than the fix.
+	 */
 	$when = gmdate( 'Y-m-d H:i:s', time() - ( ( $total - $i ) * MINUTE_IN_SECONDS ) );
 
 	$post_id = wp_insert_post(
@@ -91,7 +93,8 @@ for ( $i = 0; $i < $total; $i++ ) {
 	$made[] = (int) $post_id;
 
 	/* The attachment ID is a stand-in: nothing here reads the attachment, only
-	 * whether the queue still names it. */
+	 * whether the queue still names it.
+	 */
 	gwcpp_store_changeset( (int) $post_id, 1, array( 'title' => 'changed ' . $i ), array( 900000 + $i ) );
 }
 
@@ -99,7 +102,8 @@ $made_count = count( $made );
 vok( 'every post was created', $made_count === $total, "made {$made_count} of {$total}" );
 
 /* The first one created is the least recently modified, so under the queue's
- * newest-first ordering it is the one that falls off the end of page one. */
+ * newest-first ordering it is the one that falls off the end of page one.
+ */
 $oldest            = $made[0];
 $oldest_attachment = 900000;
 

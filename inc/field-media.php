@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── This is the most dangerous file in the plugin ───────────────────────────
+/*
+ * ── This is the most dangerous file in the plugin ───────────────────────────
  * Everything else here takes text from somebody and writes it to a database
  * column. This takes a FILE from somebody with no wp-admin access and writes it
  * into the webroot, and then WordPress serves that path back over HTTP. Get it
@@ -35,7 +36,8 @@ defined( 'ABSPATH' ) || exit;
  * The attachment is authored by the portal user, so it is attributable, and
  * flagged pending until approved so a rejected submission takes its file with
  * it.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 add_filter( 'gwcpp_field_types', 'gwcpp_register_media_type' );
 add_action( 'gwcpp_reap_orphan_uploads', 'gwcpp_reap_orphan_uploads' );
@@ -58,10 +60,14 @@ function gwcpp_register_media_type( array $types ): array {
 		'is_empty'      => 'gwcpp_empty_media',
 		'to_display'    => 'gwcpp_display_media',
 		'schema_form'   => 'gwcpp_schema_form_media',
-		/* Optional, and only this type has it. Run once per submission by
-		 * gwcpp_apply_uploads() — see the note there about why a sanitizer must
-		 * never be the thing that writes a file. */
+		// Optional, and only this type has it. Run once per submission by
+		// gwcpp_apply_uploads() — see the note there about why a sanitizer must
+		// never be the thing that writes a file.
 		'upload'        => 'gwcpp_handle_media_upload',
+		// Also optional, also run from gwcpp_apply_uploads(), and for the same
+		// structural reason: a sanitizer is handed a value with no idea which
+		// post it belongs to, and this check is entirely about that.
+		'reconcile'     => 'gwcpp_reconcile_media',
 	);
 
 	return $types;
@@ -159,10 +165,12 @@ function gwcpp_handle_media_upload( array $field, int $user_id ) {
 
 	$allowed = gwcpp_allowed_upload_types();
 
-	/* Reads the file's own bytes. A .php renamed to .jpg reports its real type
+	/*
+	 * Reads the file's own bytes. A .php renamed to .jpg reports its real type
 	 * here and is refused below — which is the check the whole feature rests
 	 * on, because everything the browser told us about this file is
-	 * attacker-controlled. */
+	 * attacker-controlled.
+	 */
 	$checked = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'], $allowed );
 
 	if ( empty( $checked['type'] ) || ! in_array( $checked['type'], $allowed, true ) ) {
@@ -191,10 +199,10 @@ function gwcpp_handle_media_upload( array $field, int $user_id ) {
 	$moved = wp_handle_upload(
 		$file,
 		array(
-			/* Our own nonce was verified by the guard before this ran, and
-			 * WordPress's form test looks for an action field we do not send.
-			 * Turning it off here is not skipping a check; it is skipping a
-			 * check for a different form. */
+			// Our own nonce was verified by the guard before this ran, and
+			// WordPress's form test looks for an action field we do not send.
+			// Turning it off here is not skipping a check; it is skipping a
+			// check for a different form.
 			'test_form' => false,
 			'mimes'     => $allowed,
 		)
@@ -223,7 +231,13 @@ function gwcpp_handle_media_upload( array $field, int $user_id ) {
 	);
 
 	if ( is_wp_error( $attachment_id ) || ! $attachment_id ) {
-		@unlink( $moved['file'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors -- Best-effort cleanup of a file we just wrote and can no longer reference.
+		/*
+		 * wp_delete_file() rather than unlink(): it routes through the
+		 * `wp_delete_file` filter, which is how offloading plugins hear that a
+		 * file went away, and it does not need the error silenced. Best-effort
+		 * cleanup of a file we just wrote and can no longer reference.
+		 */
+		wp_delete_file( $moved['file'] );
 		return new WP_Error( 'gwcpp_upload_attach', __( 'That file could not be saved. Please try again.', 'groundwork-common-post-portal' ) );
 	}
 
@@ -236,9 +250,11 @@ function gwcpp_handle_media_upload( array $field, int $user_id ) {
 
 	gwcpp_strip_image_metadata( $attachment_id, $moved );
 
-	/* Flagged until approved. gwcpp_discard_attachments() refuses to delete
+	/*
+	 * Flagged until approved. gwcpp_discard_attachments() refuses to delete
 	 * anything without this, which is what stops a reject or a cron sweep from
-	 * touching media somebody else put there. */
+	 * touching media somebody else put there.
+	 */
 	update_post_meta( $attachment_id, GWCPP_PENDING_ATTACHMENT_META, time() );
 
 	return $attachment_id;
@@ -285,6 +301,7 @@ function gwcpp_strip_image_metadata( int $attachment_id, array $moved ): void {
  * @return array{name:string,type:string,tmp_name:string,error:int,size:int}|null
  */
 function gwcpp_file_from_post( string $key ): ?array {
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Reached only from gwcpp_apply_uploads(), which runs after the guard has verified a nonce bound to this post.
 	if ( ! isset( $_FILES[ GWCPP_FIELD_PARAM ] ) || ! is_array( $_FILES[ GWCPP_FIELD_PARAM ] ) ) {
 		return null;
 	}
@@ -296,6 +313,20 @@ function gwcpp_file_from_post( string $key ): ?array {
 		if ( ! isset( $files[ $part ][ $key ]['file'] ) ) {
 			return null;
 		}
+
+		/*
+		 * Scalar, or this is not the shape we generate. A crafted form posting
+		 * `gwcpp_f[photo][file][]` makes PHP hand back arrays here, and the
+		 * casts below would then emit "Array to string conversion" into the
+		 * middle of the page on any host with display_errors on.
+		 *
+		 * It already failed closed — is_uploaded_file( 'Array' ) is false — so
+		 * nothing was ever copied. This is about failing closed quietly.
+		 */
+		if ( ! is_scalar( $files[ $part ][ $key ]['file'] ) ) {
+			return null;
+		}
+
 		$out[ $part ] = $files[ $part ][ $key ]['file'];
 	}
 
@@ -305,14 +336,17 @@ function gwcpp_file_from_post( string $key ): ?array {
 	$out['error']    = (int) $out['error'];
 	$out['size']     = (int) $out['size'];
 
-	/* The one thing that makes a temp path trustworthy. Without it, a crafted
+	/*
+	 * The one thing that makes a temp path trustworthy. Without it, a crafted
 	 * submission naming /etc/passwd as tmp_name would have this code copy it
-	 * into the media library. */
+	 * into the media library.
+	 */
 	if ( '' !== $out['tmp_name'] && ! is_uploaded_file( $out['tmp_name'] ) ) {
 		return null;
 	}
 
 	return $out;
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
 }
 
 /* ── Rendering ───────────────────────────────────────────────────────────── */
@@ -335,7 +369,7 @@ function gwcpp_render_media( array $field, $value, string $name, array $ctx = ar
 	printf(
 		'<input type="hidden" name="%s" value="%d" />',
 		esc_attr( $name . '[keep]' ),
-		$attachment_id
+		(int) $attachment_id
 	);
 
 	if ( $attachment_id > 0 && 'attachment' === get_post_type( $attachment_id ) ) {
@@ -397,7 +431,7 @@ function gwcpp_render_media_admin( array $field, $value, string $name ): void {
 
 	$attachment_id = (int) $value;
 
-	printf( '<input type="hidden" name="%s" value="%d" />', esc_attr( $name . '[keep]' ), $attachment_id );
+	printf( '<input type="hidden" name="%s" value="%d" />', esc_attr( $name . '[keep]' ), (int) $attachment_id );
 
 	if ( $attachment_id <= 0 || 'attachment' !== get_post_type( $attachment_id ) ) {
 		printf( '<p class="description">%s</p>', esc_html__( 'Nothing uploaded.', 'groundwork-common-post-portal' ) );
@@ -435,14 +469,82 @@ function gwcpp_sanitize_media( $raw, array $field = array() ) {
 
 	$keep = (int) ( $raw['keep'] ?? 0 );
 
-	/* Checked rather than trusted. This value comes back from a hidden field,
-	 * so a crafted submission can name any attachment on the site — including
-	 * one belonging to another organisation. Confirming it is an attachment
-	 * stops a stray post ID being stored; the ownership question is handled by
-	 * the fact that nothing here can point at a file the portal user cannot
-	 * already see on their own form. */
+	/*
+	 * Shape only. This value comes back from a hidden field, so a crafted
+	 * submission can name any attachment on the site — including one belonging
+	 * to another organisation — and confirming it is an attachment does nothing
+	 * about that. The ownership question is answered by gwcpp_reconcile_media()
+	 * in the save path, which is the first place that knows which post is being
+	 * edited. A sanitizer never does.
+	 */
 	if ( $keep > 0 && 'attachment' === get_post_type( $keep ) ) {
 		return $keep;
+	}
+
+	return '';
+}
+
+/**
+ * Refuse a kept attachment that does not belong to the post being edited.
+ *
+ * ── What this closes ─────────────────────────────────────────────────────────
+ * The `keep` control carries the current attachment forward so that a save
+ * which does not touch the file does not clear it. It is a hidden input, so its
+ * value is whatever the submitter says it is.
+ *
+ * Without this check, posting somebody else's attachment ID meant the next
+ * render of the person's own edit form showed that file's thumbnail, URL and
+ * title — for any attachment on the site, including ones hanging off private or
+ * unpublished posts. Under `require_approval` the pending value is shown back to
+ * the submitter straight away, so it did not even need staff to act. Nothing
+ * could be deleted or re-parented this way, but "read any file in the media
+ * library" is quite enough on its own.
+ *
+ * Three things may legitimately appear here, and nothing else:
+ *
+ *   1. the attachment this submission just uploaded for this field,
+ *   2. the value the post already carries,
+ *   3. the value a pending changeset carries — because the edit form prefills
+ *      from the changeset when there is one, so that is genuinely what was in
+ *      the box the person was looking at.
+ *
+ * Anything else becomes '', which reads as "no file" and is the same outcome as
+ * ticking Remove. Refusing rather than erroring is deliberate: a submission that
+ * gets here has already been tampered with, and there is no message worth
+ * writing for it.
+ *
+ * @param mixed $value   Sanitized value: an attachment ID, or ''.
+ * @param array $field   Field definition.
+ * @param int   $post_id Post being edited, or 0 when creating.
+ * @param ?int  $fresh   Attachment uploaded for this field by this submission.
+ * @return int|string
+ */
+function gwcpp_reconcile_media( $value, array $field, int $post_id, ?int $fresh = null ) {
+	$value = (int) $value;
+
+	if ( $value <= 0 ) {
+		return '';
+	}
+
+	if ( null !== $fresh && $value === $fresh ) {
+		return $value;
+	}
+
+	// Creating. There is no post yet, so nothing can have been carried forward
+	// and the only honest answer is the one this submission uploaded.
+	if ( $post_id <= 0 ) {
+		return '';
+	}
+
+	$key = (string) $field['key'];
+
+	if ( (int) get_post_meta( $post_id, $key, true ) === $value ) {
+		return $value;
+	}
+
+	$pending = gwcpp_get_changeset( $post_id );
+	if ( null !== $pending && (int) ( $pending['values'][ $key ] ?? 0 ) === $value ) {
+		return $value;
 	}
 
 	return '';
@@ -512,7 +614,8 @@ function gwcpp_schema_form_media( array $field ): void {
 	);
 }
 
-/* ── Reaping orphans ─────────────────────────────────────────────────────────
+/*
+ * ── Reaping orphans ─────────────────────────────────────────────────────────
  * Rejecting a changeset deletes its uploads, and so does replacing one. What
  * neither covers is a file that lost its changeset by some other route: a post
  * deleted while a submission was pending, a database restored underneath a
@@ -520,7 +623,8 @@ function gwcpp_schema_form_media( array $field ): void {
  *
  * A flagged attachment older than a month whose post has no pending changeset
  * naming it is not waiting for anything.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** How long a pending upload is left alone before it counts as abandoned. */
 const GWCPP_ORPHAN_AGE = 30 * DAY_IN_SECONDS;
@@ -555,9 +659,11 @@ function gwcpp_reap_orphan_uploads(): int {
 	$now     = time();
 	$deleted = 0;
 
-	/* Built once for the whole sweep rather than re-walked per candidate. The
+	/*
+	 * Built once for the whole sweep rather than re-walked per candidate. The
 	 * old shape asked the question one attachment at a time, which meant a fresh
-	 * pass over the entire queue for each of up to a hundred files. */
+	 * pass over the entire queue for each of up to a hundred files.
+	 */
 	$claimed = gwcpp_claimed_attachment_ids();
 
 	foreach ( $candidates as $attachment_id ) {

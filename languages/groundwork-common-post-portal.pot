@@ -2,14 +2,14 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Groundwork Common Post Portal 0.3.0\n"
+"Project-Id-Version: Groundwork Common Post Portal 0.3.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/groundwork-common-post-portal\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-05T02:48:16+00:00\n"
+"POT-Creation-Date: 2026-08-05T11:41:07+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: groundwork-common-post-portal\n"
@@ -36,151 +36,146 @@ msgstr ""
 
 #. Author URI of the plugin
 #: groundwork-common-post-portal.php
-msgid "https://groundworkcommon.com"
+msgid "https://www.groundworkcommon.com/"
 msgstr ""
 
-#: inc/access.php:63
+#: inc/access.php:66
 msgid "Portal User"
 msgstr ""
 
-#: inc/admin-fields.php:45
-#: inc/admin-screen.php:74
-msgid "Portal Fields"
+#: inc/admin-fields.php:47
+msgid "Switch on a post type on the General tab first, then come back here to choose what people may edit on it."
 msgstr ""
 
-#: inc/admin-fields.php:52
-msgid "Switch on a post type under Portal → Settings first, then come back here to choose what people may edit on it."
-msgstr ""
-
-#: inc/admin-fields.php:62
+#: inc/admin-fields.php:56
 msgid "These are the only things a portal user can change. Anything not listed here stays yours."
 msgstr ""
 
-#: inc/admin-fields.php:117
+#: inc/admin-fields.php:131
 msgid "Nothing is mapped yet."
 msgstr ""
 
-#: inc/admin-fields.php:120
+#: inc/admin-fields.php:134
 msgid "Add fields on the right, or import whatever this post type has already registered."
 msgstr ""
 
-#: inc/admin-fields.php:133
+#: inc/admin-fields.php:147
 msgid "Order"
 msgstr ""
 
-#: inc/admin-fields.php:134
-#: inc/admin-fields.php:297
+#: inc/admin-fields.php:148
+#: inc/admin-fields.php:316
 msgid "Label"
 msgstr ""
 
-#: inc/admin-fields.php:135
-#: inc/admin-fields.php:262
+#: inc/admin-fields.php:149
+#: inc/admin-fields.php:281
 msgid "Stored as"
 msgstr ""
 
-#: inc/admin-fields.php:136
-#: inc/admin-fields.php:311
+#: inc/admin-fields.php:150
+#: inc/admin-fields.php:330
 msgid "Type"
 msgstr ""
 
-#: inc/admin-fields.php:137
+#: inc/admin-fields.php:151
 msgid "Required"
 msgstr ""
 
-#: inc/admin-fields.php:138
+#: inc/admin-fields.php:152
 msgid "Actions"
 msgstr ""
 
-#: inc/admin-fields.php:154
+#: inc/admin-fields.php:170
 msgid "Position"
 msgstr ""
 
-#: inc/admin-fields.php:167
+#: inc/admin-fields.php:183
 msgid "built in"
 msgstr ""
 
-#: inc/admin-fields.php:174
-#: inc/field-types.php:907
+#: inc/admin-fields.php:190
+#: inc/field-types.php:920
 msgid "Yes"
 msgstr ""
 
-#: inc/admin-fields.php:184
+#: inc/admin-fields.php:203
 msgid "Edit"
 msgstr ""
 
-#: inc/admin-fields.php:197
-#: inc/meta-box.php:113
-#: inc/meta-box.php:188
+#: inc/admin-fields.php:216
+#: inc/meta-box.php:147
+#: inc/meta-box.php:222
 msgid "Remove"
 msgstr ""
 
-#: inc/admin-fields.php:204
+#: inc/admin-fields.php:223
 msgid "Save order"
 msgstr ""
 
-#: inc/admin-fields.php:225
+#: inc/admin-fields.php:244
 msgid "Import fields already registered"
 msgstr ""
 
-#: inc/admin-fields.php:226
+#: inc/admin-fields.php:245
 msgid "Looks for meta registered with register_meta(). Nothing already mapped is touched."
 msgstr ""
 
-#: inc/admin-fields.php:252
+#: inc/admin-fields.php:271
 msgid "Edit field"
 msgstr ""
 
-#: inc/admin-fields.php:252
+#: inc/admin-fields.php:271
 msgid "Add a field"
 msgstr ""
 
-#: inc/admin-fields.php:272
+#: inc/admin-fields.php:291
 msgid "This is one of the post's own fields, so where it is stored cannot change."
 msgstr ""
 
-#: inc/admin-fields.php:283
+#: inc/admin-fields.php:302
 msgid "Cannot be changed once data exists under it. Remove the field and add a new one to move to a different key."
 msgstr ""
 
-#: inc/admin-fields.php:284
+#: inc/admin-fields.php:303
 msgid "The post meta key, e.g. contact_phone. Lowercase letters, numbers and underscores."
 msgstr ""
 
-#: inc/admin-fields.php:304
+#: inc/admin-fields.php:323
 msgid "Help text"
 msgstr ""
 
-#: inc/admin-fields.php:306
+#: inc/admin-fields.php:325
 msgid "Shown above the control. Say what good input looks like, not what the field is called."
 msgstr ""
 
-#: inc/admin-fields.php:338
+#: inc/admin-fields.php:357
 msgid "Must be filled in"
 msgstr ""
 
-#: inc/admin-fields.php:348
+#: inc/admin-fields.php:367
 msgid "The settings above belong to the type currently selected. Change the type and save to see its own."
 msgstr ""
 
-#: inc/admin-fields.php:351
+#: inc/admin-fields.php:370
 msgid "Save field"
 msgstr ""
 
-#: inc/admin-fields.php:351
+#: inc/admin-fields.php:370
 msgid "Add field"
 msgstr ""
 
-#: inc/admin-fields.php:357
-#: inc/portal-form.php:192
-#: inc/portal-form.php:304
+#: inc/admin-fields.php:376
+#: inc/portal-form.php:196
+#: inc/portal-form.php:308
 msgid "Cancel"
 msgstr ""
 
-#: inc/admin-fields.php:388
+#: inc/admin-fields.php:407
 msgid "Or add one of the post's own fields:"
 msgstr ""
 
-#: inc/admin-fields.php:439
+#: inc/admin-fields.php:458
 msgid "That post type is not switched on for the portal."
 msgstr ""
 
@@ -261,100 +256,117 @@ msgid "More"
 msgstr ""
 
 #: inc/admin-help.php:65
+#: inc/admin-screen.php:894
+#: inc/admin-screen.php:925
+#: inc/admin-screen.php:941
 msgid "Groundwork Common"
 msgstr ""
 
-#: inc/admin-queue.php:23
-#: inc/admin-screen.php:85
-#: inc/admin-screen.php:96
+#: inc/admin-queue.php:24
+#: inc/admin-screen.php:75
+#: inc/admin-screen.php:91
 msgid "Pending Changes"
 msgstr ""
 
-#: inc/admin-queue.php:30
+#: inc/admin-queue.php:36
+msgid "We could not email you about a recent change."
+msgstr ""
+
+#: inc/admin-queue.php:37
+msgid "Submissions still arrive here, but nobody is being notified about them. This usually means the site cannot send mail at all — worth checking before somebody waits weeks for an answer."
+msgstr ""
+
+#. translators: 1: how many are shown, 2: how many are waiting in total.
+#: inc/admin-queue.php:52
+#, php-format
+msgid "Showing the %1$d most recently submitted of %2$d waiting. Approve or reject some to see the rest."
+msgstr ""
+
+#: inc/admin-queue.php:63
 msgid "Nothing is waiting."
 msgstr ""
 
-#: inc/admin-queue.php:31
+#: inc/admin-queue.php:64
 msgid "Changes submitted from the portal appear here, and the live entry keeps showing what it showed before until you approve them."
 msgstr ""
 
-#: inc/admin-queue.php:65
-#: inc/emails.php:278
-#: inc/review.php:760
-#: inc/review.php:855
+#: inc/admin-queue.php:98
+#: inc/emails.php:362
+#: inc/review.php:953
+#: inc/review.php:1052
 msgid "(no title)"
 msgstr ""
 
 #. translators: 1: an email address, 2: a length of time, e.g. "2 hours".
-#: inc/admin-queue.php:73
+#: inc/admin-queue.php:106
 #, php-format
 msgid "Submitted by %1$s, %2$s ago."
 msgstr ""
 
-#: inc/admin-queue.php:74
-#: inc/emails.php:277
+#: inc/admin-queue.php:107
+#: inc/emails.php:361
 msgid "somebody"
 msgstr ""
 
-#: inc/admin-queue.php:87
+#: inc/admin-queue.php:122
 msgid "Nothing here differs from the entry any more — somebody has already made these changes. Approving will simply clear it."
 msgstr ""
 
-#: inc/admin-queue.php:105
+#: inc/admin-queue.php:140
 msgid "Field"
 msgstr ""
 
-#: inc/admin-queue.php:106
+#: inc/admin-queue.php:141
 msgid "Now"
 msgstr ""
 
-#: inc/admin-queue.php:107
+#: inc/admin-queue.php:142
 msgid "Proposed"
 msgstr ""
 
-#: inc/admin-queue.php:143
+#: inc/admin-queue.php:178
 msgid "Approve and publish"
 msgstr ""
 
-#: inc/admin-queue.php:154
+#: inc/admin-queue.php:189
 msgid "Why not"
 msgstr ""
 
-#: inc/admin-queue.php:155
+#: inc/admin-queue.php:190
 msgid "Why not — they will be sent this"
 msgstr ""
 
-#: inc/admin-queue.php:159
+#: inc/admin-queue.php:194
 msgid "Reject"
 msgstr ""
 
-#: inc/admin-queue.php:187
+#: inc/admin-queue.php:224
 msgid "You cannot change that."
 msgstr ""
 
-#: inc/admin-queue.php:260
-#: inc/i18n.php:51
+#: inc/admin-queue.php:297
+#: inc/i18n.php:53
 msgid "Waiting for review"
 msgstr ""
 
-#: inc/admin-queue.php:285
+#: inc/admin-queue.php:322
 msgid "Nothing is waiting on this one."
 msgstr ""
 
 #. translators: 1: an email address, 2: a length of time.
-#: inc/admin-queue.php:297
+#: inc/admin-queue.php:334
 #, php-format
 msgid "%1$s submitted changes %2$s ago. They are not on the site."
 msgstr ""
 
-#: inc/admin-queue.php:298
-#: inc/handoff.php:385
-#: inc/handoff.php:429
-#: inc/handoff.php:460
+#: inc/admin-queue.php:335
+#: inc/handoff.php:471
+#: inc/handoff.php:515
+#: inc/handoff.php:546
 msgid "Somebody"
 msgstr ""
 
-#: inc/admin-queue.php:318
+#: inc/admin-queue.php:357
 msgid "If you edit these fields yourself and then approve, the submitted values win. Reject instead if you have already made the change."
 msgstr ""
 
@@ -371,17 +383,17 @@ msgid "Overdue"
 msgstr ""
 
 #: inc/admin-review.php:34
-#: inc/admin-review.php:138
+#: inc/admin-review.php:140
 msgid "Not shown"
 msgstr ""
 
 #: inc/admin-review.php:35
-#: inc/admin-review.php:140
+#: inc/admin-review.php:142
 msgid "Never asked"
 msgstr ""
 
 #: inc/admin-review.php:36
-#: inc/admin-review.php:139
+#: inc/admin-review.php:141
 msgid "Nobody to ask"
 msgstr ""
 
@@ -389,640 +401,666 @@ msgstr ""
 msgid "—"
 msgstr ""
 
-#: inc/admin-review.php:73
-#: inc/admin-review.php:79
+#: inc/admin-review.php:75
+#: inc/admin-review.php:81
 msgid "Reviewed"
 msgstr ""
 
 #. translators: %s: a date.
-#: inc/admin-review.php:115
+#: inc/admin-review.php:117
 #, php-format
 msgid "last %s"
 msgstr ""
 
-#: inc/admin-review.php:118
+#: inc/admin-review.php:120
 msgid "never confirmed"
 msgstr ""
 
-#: inc/admin-review.php:137
+#: inc/admin-review.php:139
 msgid "Needs confirming"
 msgstr ""
 
-#: inc/admin-review.php:144
+#: inc/admin-review.php:146
 msgid "Any review state"
 msgstr ""
 
-#: inc/admin-review.php:253
+#: inc/admin-review.php:264
 msgid "Review"
 msgstr ""
 
 #. translators: %s: a date.
-#: inc/admin-review.php:285
+#: inc/admin-review.php:296
 #, php-format
 msgid "Last confirmed %s."
 msgstr ""
 
-#: inc/admin-review.php:288
+#: inc/admin-review.php:299
 msgid "Never confirmed. Counting from when it was published."
 msgstr ""
 
 #. translators: %s: a date.
-#: inc/admin-review.php:293
+#: inc/admin-review.php:304
 #, php-format
 msgid "Stops being shown on %s."
 msgstr ""
 
-#: inc/admin-review.php:302
+#: inc/admin-review.php:313
 msgid "Nobody has access to this, so nobody can confirm it — and it will never be hidden automatically. Invite somebody, or mark it below."
 msgstr ""
 
-#: inc/admin-review.php:310
+#: inc/admin-review.php:321
 msgid "Never ask about this one"
 msgstr ""
 
-#: inc/admin-review.php:316
+#: inc/admin-review.php:327
 msgid "This was taken off the site by the review cycle. Publishing it again by hand also clears that."
 msgstr ""
 
-#: inc/admin-review.php:322
+#: inc/admin-review.php:333
 msgid "Mark as confirmed today"
 msgstr ""
 
-#: inc/admin-screen.php:39
+#: inc/admin-screen.php:42
 msgid "You do not have permission to change portal settings."
 msgstr ""
 
-#: inc/admin-screen.php:51
-#: inc/admin-screen.php:131
+#: inc/admin-screen.php:60
+#: inc/admin-screen.php:177
 #: blocks/portal/edit.js:48
 msgid "Post Portal"
 msgstr ""
 
-#: inc/admin-screen.php:52
+#: inc/admin-screen.php:61
 msgid "Portal"
 msgstr ""
 
-#: inc/admin-screen.php:65
+#: inc/admin-screen.php:105
 msgid "Portal Settings"
 msgstr ""
 
-#: inc/admin-screen.php:66
+#: inc/admin-screen.php:106
 msgid "Settings"
 msgstr ""
 
-#: inc/admin-screen.php:75
-msgid "Fields"
-msgstr ""
-
-#: inc/admin-screen.php:153
+#: inc/admin-screen.php:216
 msgid "Save settings"
 msgstr ""
 
-#: inc/admin-screen.php:169
+#: inc/admin-screen.php:231
 msgid "General"
 msgstr ""
 
-#: inc/admin-screen.php:170
+#: inc/admin-screen.php:232
 msgid "Signing in"
 msgstr ""
 
-#: inc/admin-screen.php:171
+#: inc/admin-screen.php:233
 msgid "Appearance"
 msgstr ""
 
-#: inc/admin-screen.php:199
-msgid "No post types are switched on yet, so there is nothing for anyone to edit."
-msgstr ""
-
-#: inc/admin-screen.php:203
-msgid "No portal page is chosen, so sign-in links have nowhere to send people. Create a page, add the Post Portal block to it, publish it, then choose it below."
-msgstr ""
-
-#: inc/admin-screen.php:213
-msgid "No fields are mapped yet, so the edit form would be empty. Set them up on the Fields screen."
-msgstr ""
-
-#: inc/admin-screen.php:222
-msgid "Not ready yet"
-msgstr ""
-
-#: inc/admin-screen.php:236
-msgid "What can be edited"
-msgstr ""
-
-#: inc/admin-screen.php:237
-msgid "Switch on the post types portal users may edit. Nothing is switched on by default, and switching one off immediately withdraws access to every post of that type."
+#: inc/admin-screen.php:234
+msgid "Fields"
 msgstr ""
 
 #: inc/admin-screen.php:262
-msgid "The portal page"
+msgid "No post types are switched on yet, so there is nothing for anyone to edit."
 msgstr ""
 
-#: inc/admin-screen.php:264
-msgid "Page"
+#: inc/admin-screen.php:266
+msgid "No portal page is chosen, so sign-in links have nowhere to send people. Create a page, add the Post Portal block to it, publish it, then choose it below."
 msgstr ""
 
-#: inc/admin-screen.php:272
-msgid "— none chosen —"
-msgstr ""
-
-#: inc/admin-screen.php:280
-msgid "Only published pages appear here. A draft cannot be a portal page, because a sign-in link pointing at one would 404 for everybody who is not an editor."
+#: inc/admin-screen.php:276
+msgid "No fields are mapped yet, so the edit form would be empty. Set them up on the Fields tab."
 msgstr ""
 
 #: inc/admin-screen.php:285
-msgid "Words to refuse"
-msgstr ""
-
-#: inc/admin-screen.php:287
-msgid "Blocked words"
-msgstr ""
-
-#: inc/admin-screen.php:295
-msgid "One per line, or separated by commas. A submission containing one is refused and the person is told which word. Only fields they actually changed are checked, so an existing entry containing one of these stays editable."
+msgid "Not ready yet"
 msgstr ""
 
 #: inc/admin-screen.php:299
-msgid "Matched on whole words, including obvious plurals. Anything under three characters is ignored. This catches mistakes, not determined people."
+msgid "What can be edited"
 msgstr ""
 
-#: inc/admin-screen.php:311
-msgid "Changes need staff approval before going live"
+#: inc/admin-screen.php:300
+msgid "Switch on the post types portal users may edit. Nothing is switched on by default, and switching one off immediately withdraws access to every post of that type."
 msgstr ""
 
-#: inc/admin-screen.php:312
-msgid "Portal users may add new ones"
+#: inc/admin-screen.php:325
+msgid "The portal page"
 msgstr ""
 
-#: inc/admin-screen.php:313
-msgid "Portal users may take their own off the site (reversible)"
+#: inc/admin-screen.php:327
+msgid "Page"
 msgstr ""
 
-#: inc/admin-screen.php:314
-msgid "Portal users may invite a replacement to take over"
-msgstr ""
-
-#: inc/admin-screen.php:315
-msgid "The post author may edit their own, without an organisation"
-msgstr ""
-
-#: inc/admin-screen.php:342
-msgid "Ask owners to confirm their details every"
+#: inc/admin-screen.php:336
+msgid "— none chosen —"
 msgstr ""
 
 #: inc/admin-screen.php:344
+msgid "Only published pages appear here. A draft cannot be a portal page, because a sign-in link pointing at one would 404 for everybody who is not an editor."
+msgstr ""
+
+#: inc/admin-screen.php:349
+msgid "Words to refuse"
+msgstr ""
+
+#: inc/admin-screen.php:351
+msgid "Blocked words"
+msgstr ""
+
+#: inc/admin-screen.php:359
+msgid "One per line, or separated by commas. A submission containing one is refused and the person is told which word. Only fields they actually changed are checked, so an existing entry containing one of these stays editable."
+msgstr ""
+
+#: inc/admin-screen.php:363
+msgid "Matched on whole words, including obvious plurals. Anything under three characters is ignored. This catches mistakes, not determined people."
+msgstr ""
+
+#: inc/admin-screen.php:375
+msgid "Changes need staff approval before going live"
+msgstr ""
+
+#: inc/admin-screen.php:376
+msgid "Portal users may add new ones"
+msgstr ""
+
+#: inc/admin-screen.php:377
+msgid "Portal users may take their own off the site (reversible)"
+msgstr ""
+
+#: inc/admin-screen.php:378
+msgid "Portal users may invite a replacement to take over"
+msgstr ""
+
+#: inc/admin-screen.php:379
+msgid "The post author may edit their own, without an organisation"
+msgstr ""
+
+#: inc/admin-screen.php:408
+msgid "Ask owners to confirm their details every"
+msgstr ""
+
+#: inc/admin-screen.php:410
 msgid "months (0 = never ask)"
 msgstr ""
 
 #. translators: 1: months until the first nudge, 2: months until it is hidden.
-#: inc/admin-screen.php:354
+#: inc/admin-screen.php:420
 #, php-format
 msgid "Reminders start at %1$d months and the entry stops being shown at %2$d if nobody ever confirms. Nothing is deleted, and confirming puts it straight back."
 msgstr ""
 
-#: inc/admin-screen.php:364
+#: inc/admin-screen.php:430
 msgid "Portal users can never delete anything, whatever these say."
 msgstr ""
 
-#: inc/admin-screen.php:423
+#: inc/admin-screen.php:492
 msgid "Ways to sign in"
 msgstr ""
 
-#: inc/admin-screen.php:429
+#: inc/admin-screen.php:498
 msgid "A link emailed to them (no password)"
 msgstr ""
 
-#: inc/admin-screen.php:434
+#: inc/admin-screen.php:503
 msgid "Username and password"
 msgstr ""
 
-#: inc/admin-screen.php:438
+#: inc/admin-screen.php:507
 msgid "Accounts the portal creates have no usable password, so password sign-in only helps people who have been given one. Turning it on also re-enables password resets for portal users."
 msgstr ""
 
-#: inc/admin-screen.php:443
+#: inc/admin-screen.php:512
 msgid "Stay signed in for"
 msgstr ""
 
-#: inc/admin-screen.php:448
+#: inc/admin-screen.php:517
 msgid "hours"
 msgstr ""
 
-#: inc/admin-screen.php:452
+#: inc/admin-screen.php:521
 msgid "Short is safer. A portal user is often on a shared computer at a front desk."
 msgstr ""
 
-#: inc/admin-screen.php:457
+#: inc/admin-screen.php:526
 msgid "Notifications go to"
 msgstr ""
 
-#: inc/admin-screen.php:466
+#: inc/admin-screen.php:535
 msgid "Leave blank to use the site admin address."
 msgstr ""
 
-#: inc/admin-screen.php:470
+#: inc/admin-screen.php:539
 msgid "Emails come from"
 msgstr ""
 
-#: inc/admin-screen.php:482
+#: inc/admin-screen.php:551
 msgid "Leave both blank to use whatever this site normally sends as. Setting an address your domain is not authorised to send from will send your sign-in links to spam."
 msgstr ""
 
-#: inc/admin-screen.php:494
+#: inc/admin-screen.php:563
 msgid "Accent colour"
 msgstr ""
 
-#: inc/admin-screen.php:495
+#: inc/admin-screen.php:564
 msgid "Background"
 msgstr ""
 
-#: inc/admin-screen.php:496
+#: inc/admin-screen.php:565
 msgid "Text colour"
 msgstr ""
 
-#: inc/admin-screen.php:497
+#: inc/admin-screen.php:566
 msgid "Card background"
 msgstr ""
 
-#: inc/admin-screen.php:498
+#: inc/admin-screen.php:567
 msgid "Border colour"
 msgstr ""
 
-#: inc/admin-screen.php:499
+#: inc/admin-screen.php:568
 msgid "Corner radius"
 msgstr ""
 
-#: inc/admin-screen.php:500
+#: inc/admin-screen.php:569
 msgid "Maximum width"
 msgstr ""
 
-#: inc/admin-screen.php:505
+#: inc/admin-screen.php:574
 msgid "Everything here is optional. Left blank, the portal uses neutral defaults that sit reasonably inside most themes."
 msgstr ""
 
-#: inc/admin-screen.php:678
+#: inc/admin-screen.php:747
 msgid "Settings saved."
 msgstr ""
 
-#: inc/admin-screen.php:679
+#: inc/admin-screen.php:748
 msgid "Field saved."
 msgstr ""
 
-#: inc/admin-screen.php:680
+#: inc/admin-screen.php:749
 msgid "Field removed from the form. The data on each post has been left alone."
 msgstr ""
 
-#: inc/admin-screen.php:681
+#: inc/admin-screen.php:750
 msgid "That field could not be saved. It needs a name and a type."
 msgstr ""
 
-#: inc/admin-screen.php:682
+#: inc/admin-screen.php:751
 msgid "Order saved."
 msgstr ""
 
-#: inc/admin-screen.php:683
+#: inc/admin-screen.php:752
 msgid "Imported. Check the labels and types, then reorder them to suit."
 msgstr ""
 
-#: inc/admin-screen.php:684
+#: inc/admin-screen.php:753
 msgid "Nothing was found to import for that post type."
 msgstr ""
 
-#: inc/admin-screen.php:685
+#: inc/admin-screen.php:754
 msgid "Invitation sent."
 msgstr ""
 
-#: inc/admin-screen.php:686
+#: inc/admin-screen.php:755
 msgid "That person could not be invited. See the message on the organisation."
 msgstr ""
 
-#: inc/admin-screen.php:687
+#: inc/admin-screen.php:756
 msgid "Removed."
 msgstr ""
 
-#: inc/admin-screen.php:688
+#: inc/admin-screen.php:757
 msgid "Approved. The changes are on the site, and the person who sent them has been told."
 msgstr ""
 
-#: inc/admin-screen.php:689
+#: inc/admin-screen.php:758
 msgid "Rejected. The entry is unchanged, and the person who sent the changes has been told."
 msgstr ""
 
-#: inc/admin-screen.php:690
+#: inc/admin-screen.php:759
 msgid "That change had already been dealt with — somebody else got there first."
 msgstr ""
 
-#: inc/admin-screen.php:742
-msgid "About this plugin"
+#: inc/admin-screen.php:896
+msgid "Show"
 msgstr ""
 
-#: inc/admin-screen.php:747
-msgid "Post Portal is built and maintained by Groundwork Common, who make software for organisations doing public-interest work and release the generally useful parts of it."
+#: inc/admin-screen.php:905
+msgid "Hide for 30 days"
 msgstr ""
 
-#: inc/admin-screen.php:754
-msgid "Support this work"
+#. translators: %s: Groundwork Common, linked to the company site.
+#: inc/admin-screen.php:946
+#, php-format
+msgid "%s provides technology leadership and support for nonprofits — fractional, by the project, or alongside an in-house team. We release tools like this one because good technology work should leave an organization more capable, not more dependent on whoever built it."
 msgstr ""
 
-#: inc/admin-screen.php:756
-msgid "See what else we do"
+#: inc/admin-screen.php:954
+msgid "If you find this plugin useful, the most valuable thing you can do for us is mention us to a nonprofit who might benefit from our services. Referrals are how our business continues to grow its impact and reach."
 msgstr ""
 
-#: inc/auth.php:615
+#: inc/admin-screen.php:960
+msgid "Learn about Groundwork Common"
+msgstr ""
+
+#: inc/admin-screen.php:969
+msgid "You can also support our WordPress plugins directly. While we offer the plugin free to you, it costs us to maintain it — the security updates, the compatibility testing against each new WordPress release, the bug nobody but you has hit. We can’t do it without your support, and we appreciate whatever support you can give."
+msgstr ""
+
+#: inc/admin-screen.php:974
+msgid "Support our work"
+msgstr ""
+
+#: inc/admin-screen.php:981
+msgid "Report a problem"
+msgstr ""
+
+#: inc/auth.php:851
 msgid "If that address has portal access, a sign-in link is on its way. It works once and expires in fifteen minutes."
 msgstr ""
 
-#: inc/auth.php:665
+#: inc/auth.php:901
 msgid "Your sign-in link"
 msgstr ""
 
-#: inc/auth.php:666
+#: inc/auth.php:902
 msgid "Click below to sign in. The link works once and expires in fifteen minutes."
 msgstr ""
 
-#: inc/auth.php:667
-#: inc/portal.php:498
-#: inc/portal.php:528
-#: inc/portal.php:544
+#: inc/auth.php:903
+#: inc/portal.php:527
+#: inc/portal.php:559
+#: inc/portal.php:575
 msgid "Sign in"
 msgstr ""
 
-#: inc/auth.php:669
+#: inc/auth.php:905
 msgid "If you did not ask for this, you can ignore it. Nobody can sign in without the link."
 msgstr ""
 
 #. translators: %s: the site name.
-#: inc/auth.php:676
+#: inc/auth.php:912
 #, php-format
 msgid "Your sign-in link for %s"
 msgstr ""
 
-#: inc/auth.php:705
+#: inc/auth.php:943
 msgid "That sign-in link has expired or has already been used. Please ask for a new one."
 msgstr ""
 
-#: inc/auth.php:772
+#: inc/auth.php:1047
 msgid "That username and password did not match. Please try again."
 msgstr ""
 
-#: inc/auth.php:798
+#: inc/auth.php:1075
 msgid "You are signed out."
 msgstr ""
 
 #. translators: %s: the word that was found.
-#: inc/blocked-words.php:180
+#: inc/blocked-words.php:186
 #, php-format
 msgid "We cannot accept \"%s\" here. If that is genuinely part of your details, please get in touch and we will sort it out."
 msgstr ""
 
-#: inc/emails.php:203
+#: inc/emails.php:227
 msgid "Nothing actually changed."
 msgstr ""
 
-#: inc/emails.php:245
+#: inc/emails.php:269
 msgid "If the button does not work, copy this into your browser:"
 msgstr ""
 
-#: inc/emails.php:281
+#: inc/emails.php:365
 msgid "A change is waiting for you"
 msgstr ""
 
-#: inc/emails.php:282
+#: inc/emails.php:366
 msgid "A change was made"
 msgstr ""
 
 #. translators: 1: an email address, 2: a post title.
-#: inc/emails.php:286
+#: inc/emails.php:370
 #, php-format
 msgid "%1$s submitted a change to %2$s. It is not on the site yet."
 msgstr ""
 
 #. translators: 1: an email address, 2: a post title.
-#: inc/emails.php:288
+#: inc/emails.php:372
 #, php-format
 msgid "%1$s changed %2$s. It is live now."
 msgstr ""
 
-#: inc/emails.php:295
+#: inc/emails.php:379
 msgid "Review it"
 msgstr ""
 
-#: inc/emails.php:299
+#: inc/emails.php:383
 msgid "Open it"
 msgstr ""
 
 #. translators: %s: a post title.
-#: inc/emails.php:307
+#: inc/emails.php:391
 #, php-format
 msgid "Waiting for review: %s"
 msgstr ""
 
 #. translators: %s: a post title.
-#: inc/emails.php:309
+#: inc/emails.php:393
 #, php-format
 msgid "Changed: %s"
 msgstr ""
 
-#: inc/emails.php:330
-#: inc/emails.php:369
+#: inc/emails.php:414
+#: inc/emails.php:453
 msgid "your entry"
 msgstr ""
 
 #. translators: %s: a post title.
-#: inc/emails.php:335
+#: inc/emails.php:419
 #, php-format
 msgid "Your changes to %s are live"
 msgstr ""
 
-#: inc/emails.php:337
+#: inc/emails.php:421
 msgid "Your changes are live"
 msgstr ""
 
 #. translators: %s: a post title.
-#: inc/emails.php:341
+#: inc/emails.php:425
 #, php-format
 msgid "The changes you submitted to %s have been approved and are on the site now. Thank you."
 msgstr ""
 
-#: inc/emails.php:345
-#: inc/emails.php:388
+#: inc/emails.php:429
+#: inc/emails.php:472
 msgid "Open the portal"
 msgstr ""
 
 #. translators: %s: a post title.
-#: inc/emails.php:374
+#: inc/emails.php:458
 #, php-format
 msgid "The changes you submitted to %s have not been applied, and the entry is unchanged."
 msgstr ""
 
-#: inc/emails.php:380
+#: inc/emails.php:464
 msgid "What we were told:"
 msgstr ""
 
-#: inc/emails.php:387
+#: inc/emails.php:471
 msgid "You can edit it again in the portal whenever you like."
 msgstr ""
 
 #. translators: %s: a post title.
-#: inc/emails.php:393
+#: inc/emails.php:477
 #, php-format
 msgid "About your changes to %s"
 msgstr ""
 
-#: inc/emails.php:394
+#: inc/emails.php:478
 msgid "Your changes were not applied"
 msgstr ""
 
-#: inc/field-media.php:52
+#: inc/field-media.php:54
 msgid "Image or file"
 msgstr ""
 
-#: inc/field-media.php:143
+#: inc/field-media.php:149
 msgid "That file is too big to upload."
 msgstr ""
 
-#: inc/field-media.php:144
+#: inc/field-media.php:150
 msgid "That file did not upload properly. Please try again."
 msgstr ""
 
 #. translators: %s: a file size, e.g. "8 MB".
-#: inc/field-media.php:154
+#: inc/field-media.php:160
 #, php-format
 msgid "That file is too big. The limit is %s."
 msgstr ""
 
 #. translators: %s: a list of file extensions.
-#: inc/field-media.php:173
+#: inc/field-media.php:181
 #, php-format
 msgid "That kind of file cannot be uploaded. You can send: %s"
 msgstr ""
 
-#: inc/field-media.php:208
-#: inc/field-media.php:227
+#: inc/field-media.php:216
+#: inc/field-media.php:241
 msgid "That file could not be saved. Please try again."
 msgstr ""
 
-#: inc/field-media.php:357
+#: inc/field-media.php:391
 msgid "Remove this"
 msgstr ""
 
 #. translators: 1: a list of file extensions, 2: a file size.
-#: inc/field-media.php:376
+#: inc/field-media.php:410
 #, php-format
 msgid "Accepted: %1$s. Up to %2$s."
 msgstr ""
 
-#: inc/field-media.php:403
+#: inc/field-media.php:437
 msgid "Nothing uploaded."
 msgstr ""
 
-#: inc/field-media.php:504
+#: inc/field-media.php:606
 msgid "Largest file, in MB"
 msgstr ""
 
 #. translators: %s: a file size, e.g. "8 MB".
-#: inc/field-media.php:509
+#: inc/field-media.php:611
 #, php-format
 msgid "Leave blank for the default. This server will not accept more than %s whatever is set here."
 msgstr ""
 
-#: inc/field-repeater.php:44
+#: inc/field-repeater.php:46
 msgid "Repeating rows"
 msgstr ""
 
-#: inc/field-repeater.php:144
+#: inc/field-repeater.php:146
 msgid "This field has no columns set up yet."
 msgstr ""
 
-#: inc/field-repeater.php:173
+#: inc/field-repeater.php:177
 msgid "+ Add another"
 msgstr ""
 
-#: inc/field-repeater.php:178
+#: inc/field-repeater.php:192
+msgid "Row removed."
+msgstr ""
+
+#: inc/field-repeater.php:193
+msgid "Row added."
+msgstr ""
+
+#: inc/field-repeater.php:198
 msgid "Adding rows needs JavaScript. You can still edit and clear the rows already here."
 msgstr ""
 
-#: inc/field-repeater.php:213
+#: inc/field-repeater.php:233
 msgid "Remove this row"
 msgstr ""
 
-#: inc/field-repeater.php:292
-#: inc/field-taxonomy.php:257
+#: inc/field-repeater.php:316
+#: inc/field-taxonomy.php:261
 msgid "This field is not set up properly. Please tell us and we will fix it."
 msgstr ""
 
 #. translators: %d: the largest number of rows allowed.
-#: inc/field-repeater.php:299
+#: inc/field-repeater.php:323
 #, php-format
 msgid "Please add no more than %d row."
 msgid_plural "Please add no more than %d rows."
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/field-repeater.php:351
+#: inc/field-repeater.php:375
 msgid "Columns"
 msgstr ""
 
-#: inc/field-repeater.php:358
+#: inc/field-repeater.php:382
 msgid "One column per line: key|Label|type. Type may be text, textarea, number, url, email, phone, date, select or boolean, and defaults to text."
 msgstr ""
 
-#: inc/field-repeater.php:365
+#: inc/field-repeater.php:389
 msgid "Most rows allowed"
 msgstr ""
 
 #. translators: %d: a number of rows.
-#: inc/field-repeater.php:370
+#: inc/field-repeater.php:394
 #, php-format
 msgid "Leave blank for the default. Never more than %d."
 msgstr ""
 
-#: inc/field-richtext.php:44
+#: inc/field-richtext.php:46
 msgid "Formatted text"
 msgstr ""
 
 #. translators: %d: a number of characters.
-#: inc/field-richtext.php:226
+#: inc/field-richtext.php:240
 #, php-format
 msgid "Please keep this under %d characters."
 msgstr ""
 
-#: inc/field-richtext.php:297
-#: inc/field-types.php:1230
+#: inc/field-richtext.php:313
+#: inc/field-types.php:1249
 msgid "Rows"
 msgstr ""
 
-#: inc/field-richtext.php:300
-#: inc/field-types.php:1217
+#: inc/field-richtext.php:316
+#: inc/field-types.php:1236
 msgid "Character limit"
 msgstr ""
 
-#: inc/field-richtext.php:303
+#: inc/field-richtext.php:319
 msgid "Counted on the text, not the markup. Leave blank for no limit."
 msgstr ""
 
-#: inc/field-richtext.php:307
+#: inc/field-richtext.php:323
 msgid "Portal users can write paragraphs, bold, italic, lists, links and small headings. Anything else — embeds, scripts, styling — is removed when they save, whoever they are."
 msgstr ""
 
-#: inc/field-taxonomy.php:38
+#: inc/field-taxonomy.php:40
 msgid "Categories or tags"
 msgstr ""
 
-#: inc/field-taxonomy.php:125
+#: inc/field-taxonomy.php:127
 msgid "There is nothing to choose from here yet."
 msgstr ""
 
-#: inc/field-taxonomy.php:156
+#: inc/field-taxonomy.php:158
 msgid "Something not on the list"
 msgstr ""
 
-#: inc/field-taxonomy.php:158
+#: inc/field-taxonomy.php:160
 msgid "Separate several with commas. Check the list first — a near-duplicate makes a second category rather than joining the existing one."
 msgstr ""
 
 #. translators: %d: the largest number of choices allowed.
-#: inc/field-taxonomy.php:264
+#: inc/field-taxonomy.php:268
 #, php-format
 msgid "Please choose no more than %d."
 msgid_plural "Please choose no more than %d."
@@ -1030,507 +1068,528 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: a taxonomy slug.
-#: inc/field-taxonomy.php:312
+#: inc/field-taxonomy.php:316
 #, php-format
 msgid "No taxonomy called \"%s\" is registered, so this field will not appear on the form."
 msgstr ""
 
-#: inc/field-taxonomy.php:321
+#: inc/field-taxonomy.php:325
 msgid "For this type, \"Stored as\" must be the taxonomy slug — for example category, post_tag, or one your site registers. Terms are read live, so the list is always current."
 msgstr ""
 
-#: inc/field-taxonomy.php:328
+#: inc/field-taxonomy.php:332
 msgid "Let portal users add new ones"
 msgstr ""
 
-#: inc/field-taxonomy.php:333
-#: inc/field-types.php:1280
+#: inc/field-taxonomy.php:337
+#: inc/field-types.php:1299
 msgid "Most that can be chosen"
 msgstr ""
 
-#: inc/field-taxonomy.php:336
-#: inc/field-types.php:1220
-#: inc/field-types.php:1283
+#: inc/field-taxonomy.php:340
+#: inc/field-types.php:1239
+#: inc/field-types.php:1302
 msgid "Leave blank for no limit."
 msgstr ""
 
-#: inc/field-types.php:71
+#: inc/field-types.php:75
 msgid "Text"
 msgstr ""
 
-#: inc/field-types.php:75
+#: inc/field-types.php:79
 msgid "Number"
 msgstr ""
 
-#: inc/field-types.php:79
+#: inc/field-types.php:83
 msgid "Website"
 msgstr ""
 
-#: inc/field-types.php:95
-#: inc/meta-box.php:156
+#: inc/field-types.php:99
+#: inc/meta-box.php:190
 msgid "Email"
 msgstr ""
 
-#: inc/field-types.php:99
+#: inc/field-types.php:103
 msgid "Phone"
 msgstr ""
 
-#: inc/field-types.php:103
+#: inc/field-types.php:107
 msgid "Date"
 msgstr ""
 
-#: inc/field-types.php:126
+#: inc/field-types.php:130
 msgid "Long text"
 msgstr ""
 
-#: inc/field-types.php:138
+#: inc/field-types.php:142
 msgid "Yes / no"
 msgstr ""
 
-#: inc/field-types.php:151
+#: inc/field-types.php:155
 msgid "Choice (one)"
 msgstr ""
 
-#: inc/field-types.php:164
+#: inc/field-types.php:168
 msgid "Choice (one, all shown)"
 msgstr ""
 
-#: inc/field-types.php:178
+#: inc/field-types.php:182
 msgid "Choice (many)"
 msgstr ""
 
 #. translators: %s: the smallest number allowed.
-#: inc/field-types.php:737
+#: inc/field-types.php:750
 #, php-format
 msgid "Please enter %s or more."
 msgstr ""
 
 #. translators: %s: the largest number allowed.
-#: inc/field-types.php:741
+#: inc/field-types.php:754
 #, php-format
 msgid "Please enter %s or less."
 msgstr ""
 
-#: inc/field-types.php:764
+#: inc/field-types.php:777
 msgid "That does not look like a web address. It should look like https://example.org"
 msgstr ""
 
-#: inc/field-types.php:782
-#: inc/handoff.php:83
+#: inc/field-types.php:795
+#: inc/handoff.php:86
 #: inc/users.php:40
 msgid "That does not look like an email address."
 msgstr ""
 
-#: inc/field-types.php:804
+#: inc/field-types.php:817
 msgid "That phone number looks too short. Please include the area code."
 msgstr ""
 
-#: inc/field-types.php:822
+#: inc/field-types.php:835
 msgid "Please choose a real date."
 msgstr ""
 
-#: inc/field-types.php:906
+#: inc/field-types.php:919
 msgid "No"
 msgstr ""
 
-#: inc/field-types.php:939
+#: inc/field-types.php:954
 msgid "Choose…"
 msgstr ""
 
-#: inc/field-types.php:1092
+#: inc/field-types.php:1109
 msgid "This field has no choices set up yet. Please tell us and we will fix it."
 msgstr ""
 
 #. translators: %d: the largest number of choices allowed.
-#: inc/field-types.php:1111
+#: inc/field-types.php:1128
 #, php-format
 msgid "Please choose no more than %d option."
 msgid_plural "Please choose no more than %d options."
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/field-types.php:1204
+#: inc/field-types.php:1223
 msgid "Placeholder"
 msgstr ""
 
-#: inc/field-types.php:1209
+#: inc/field-types.php:1228
 msgid "Smallest allowed"
 msgstr ""
 
-#: inc/field-types.php:1210
+#: inc/field-types.php:1229
 msgid "Largest allowed"
 msgstr ""
 
-#: inc/field-types.php:1211
+#: inc/field-types.php:1230
 msgid "Step"
 msgstr ""
 
-#: inc/field-types.php:1242
+#: inc/field-types.php:1261
 msgid "Wording beside the box"
 msgstr ""
 
-#: inc/field-types.php:1245
+#: inc/field-types.php:1264
 msgid "Leave blank to reuse the field label. A checkbox reads better as a statement: \"We are wheelchair accessible\"."
 msgstr ""
 
-#: inc/field-types.php:1268
+#: inc/field-types.php:1287
 msgid "Choices"
 msgstr ""
 
-#: inc/field-types.php:1274
+#: inc/field-types.php:1293
 msgid "One per line. Write \"stored-value|What people see\" to store something different from the label, or just the label on its own."
 msgstr ""
 
-#: inc/handoff.php:88
+#: inc/handoff.php:91
 msgid "That entry no longer exists."
 msgstr ""
 
-#: inc/handoff.php:95
+#: inc/handoff.php:104
+msgid "Handing entries over is not available here."
+msgstr ""
+
+#: inc/handoff.php:112
 msgid "This entry is not part of an organisation yet, so there is nothing to hand over. Please ask us to sort that out first."
 msgstr ""
 
-#: inc/handoff.php:106
+#: inc/handoff.php:138
+msgid "Only somebody who belongs to this organisation can hand its entries over. Please ask us to do it for you."
+msgstr ""
+
+#: inc/handoff.php:151
 msgid "That address already has an account here that we cannot add automatically. Please ask us to set it up instead."
 msgstr ""
 
-#: inc/handoff.php:134
+#: inc/handoff.php:179
 msgid "We could not send that invitation. Please try again, or let us know."
 msgstr ""
 
-#: inc/handoff.php:154
-#: inc/handoff.php:161
+#: inc/handoff.php:199
+#: inc/handoff.php:208
 msgid "That invitation has expired or has already been used."
 msgstr ""
 
-#: inc/handoff.php:167
+#: inc/handoff.php:214
 msgid "That invitation is no longer valid."
 msgstr ""
 
-#: inc/handoff.php:219
+#: inc/handoff.php:269
+msgid "That is several invitations in a short time. Please give it a little while, or let us know if something is stuck."
+msgstr ""
+
+#: inc/handoff.php:289
 msgid "Invitation sent. They have three days to accept it, and you will keep your own access either way."
 msgstr ""
 
-#: inc/handoff.php:239
+#: inc/handoff.php:309
 msgid "That invitation has been withdrawn."
 msgstr ""
 
-#: inc/handoff.php:259
+#: inc/handoff.php:331
 msgid "That invitation link is not valid."
 msgstr ""
 
-#: inc/handoff.php:284
+#: inc/handoff.php:358
 msgid "Welcome. You now have access to this organisation's entries."
 msgstr ""
 
-#: inc/handoff.php:310
+#: inc/handoff.php:396
 msgid "Somebody else looking after this?"
 msgstr ""
 
 #. translators: 1: an email address, 2: a length of time.
-#: inc/handoff.php:318
+#: inc/handoff.php:404
 #, php-format
 msgid "An invitation is waiting for %1$s. It expires in %2$s."
 msgstr ""
 
-#: inc/handoff.php:330
+#: inc/handoff.php:416
 msgid "Withdraw it"
 msgstr ""
 
-#: inc/handoff.php:338
+#: inc/handoff.php:424
 msgid "If somebody else is taking over, send them an invitation and they will be able to sign in and keep this up to date. You keep your own access, so nothing is lost if they never accept."
 msgstr ""
 
-#: inc/handoff.php:348
+#: inc/handoff.php:434
 msgid "Their email address"
 msgstr ""
 
-#: inc/handoff.php:353
+#: inc/handoff.php:439
 msgid "Send them an invitation"
 msgstr ""
 
 #. translators: 1: an email address, 2: a post title, 3: the site name.
-#: inc/handoff.php:384
+#: inc/handoff.php:470
 #, php-format
 msgid "%1$s has asked us to give you access to %2$s on %3$s, so you can keep its details up to date."
 msgstr ""
 
-#: inc/handoff.php:386
+#: inc/handoff.php:472
 msgid "an entry"
 msgstr ""
 
-#: inc/handoff.php:390
+#: inc/handoff.php:476
 msgid "Accept and sign in"
 msgstr ""
 
-#: inc/handoff.php:392
+#: inc/handoff.php:478
 msgid "The link works once and expires in three days. If you were not expecting this, you can ignore it — nothing happens unless you accept."
 msgstr ""
 
 #. translators: %s: the site name.
-#: inc/handoff.php:398
+#: inc/handoff.php:484
 #, php-format
 msgid "You have been asked to look after an entry on %s"
 msgstr ""
 
-#: inc/handoff.php:401
+#: inc/handoff.php:487
 msgid "An invitation"
 msgstr ""
 
-#: inc/handoff.php:422
+#: inc/handoff.php:508
 msgid "Somebody invited a replacement"
 msgstr ""
 
-#: inc/handoff.php:424
+#: inc/handoff.php:510
 msgid "A handover is in progress"
 msgstr ""
 
 #. translators: 1: an email address, 2: another email address, 3: a post title.
-#: inc/handoff.php:428
+#: inc/handoff.php:514
 #, php-format
 msgid "%1$s has invited %2$s to take over %3$s. If they accept, they will join the same organisation. Nobody has been removed."
 msgstr ""
 
-#: inc/handoff.php:434
+#: inc/handoff.php:520
 msgid "Open the entry"
 msgstr ""
 
-#: inc/handoff.php:453
-#: inc/handoff.php:455
+#: inc/handoff.php:539
+#: inc/handoff.php:541
 msgid "A handover was accepted"
 msgstr ""
 
 #. translators: 1: an email address, 2: a post title.
-#: inc/handoff.php:459
+#: inc/handoff.php:545
 #, php-format
 msgid "%1$s now has access to the organisation that owns %2$s. Whoever invited them still has access too — remove them yourself if that is the intention."
 msgstr ""
 
-#: inc/handoff.php:473
+#: inc/handoff.php:559
 msgid "Your handover was accepted"
 msgstr ""
 
-#: inc/handoff.php:475
+#: inc/handoff.php:561
 msgid "Thank you"
 msgstr ""
 
 #. translators: %s: an email address.
-#: inc/handoff.php:479
+#: inc/handoff.php:565
 #, php-format
 msgid "%s has accepted your invitation and can now keep things up to date. Thank you for handing it on rather than letting it go stale."
 msgstr ""
 
-#: inc/handoff.php:480
+#: inc/handoff.php:566
 msgid "They"
 msgstr ""
 
-#: inc/handoff.php:483
+#: inc/handoff.php:569
 msgid "You still have access yourself. If you would rather not, let us know and we will remove it."
 msgstr ""
 
-#: inc/i18n.php:49
+#: inc/i18n.php:51
 msgid "Published"
 msgstr ""
 
-#: inc/i18n.php:50
+#: inc/i18n.php:52
 msgid "Not published"
 msgstr ""
 
-#: inc/i18n.php:52
+#: inc/i18n.php:54
 msgid "Private"
 msgstr ""
 
-#: inc/i18n.php:53
+#: inc/i18n.php:55
 msgid "Scheduled"
 msgstr ""
 
-#: inc/i18n.php:86
+#: inc/i18n.php:95
+msgid "That form had been open too long to submit safely, so nothing was saved. Please make your change again."
+msgstr ""
+
+#: inc/i18n.php:115
 msgid "Simple"
 msgstr ""
 
-#: inc/i18n.php:87
+#: inc/i18n.php:116
 msgid "Choice"
 msgstr ""
 
-#: inc/i18n.php:88
+#: inc/i18n.php:117
 msgid "Rich"
 msgstr ""
 
-#: inc/i18n.php:89
+#: inc/i18n.php:118
 msgid "Built in"
 msgstr ""
 
-#: inc/meta-box.php:24
+#: inc/meta-box.php:35
 msgid "Portal access"
 msgstr ""
 
-#: inc/meta-box.php:34
+#: inc/meta-box.php:45
 msgid "People"
 msgstr ""
 
-#: inc/meta-box.php:43
+#: inc/meta-box.php:54
 msgid "What this organisation can edit"
 msgstr ""
 
-#: inc/meta-box.php:61
-#: inc/org-cpt.php:63
+#: inc/meta-box.php:72
+#: inc/org-cpt.php:68
 msgid "Organisation"
 msgstr ""
 
-#: inc/meta-box.php:66
+#: inc/meta-box.php:77
 msgid "No organisations exist yet."
 msgstr ""
 
-#: inc/meta-box.php:68
+#: inc/meta-box.php:79
 msgid "Add one"
 msgstr ""
 
-#: inc/meta-box.php:74
+#: inc/meta-box.php:98
+#: inc/meta-box.php:107
 msgid "— none —"
 msgstr ""
 
-#: inc/meta-box.php:86
+#: inc/meta-box.php:103
+msgid "Only an administrator can change which organisation this belongs to."
+msgstr ""
+
+#: inc/meta-box.php:119
 msgid "Everybody in this organisation can edit this from the portal."
 msgstr ""
 
-#: inc/meta-box.php:92
+#: inc/meta-box.php:126
 msgid "Also, individually"
 msgstr ""
 
-#: inc/meta-box.php:95
+#: inc/meta-box.php:129
 msgid "Nobody."
 msgstr ""
 
 #. translators: %s: a user's display name.
-#: inc/meta-box.php:127
+#: inc/meta-box.php:161
 #, php-format
 msgid "The author (%s) can also edit this, because that is switched on for this post type."
 msgstr ""
 
-#: inc/meta-box.php:128
+#: inc/meta-box.php:162
 msgid "unknown"
 msgstr ""
 
-#: inc/meta-box.php:146
+#: inc/meta-box.php:180
 msgid "Save this organisation first, then you can invite people to it."
 msgstr ""
 
-#: inc/meta-box.php:152
+#: inc/meta-box.php:186
 msgid "Nobody has been invited yet."
 msgstr ""
 
-#: inc/meta-box.php:155
+#: inc/meta-box.php:189
 msgid "Name"
 msgstr ""
 
-#: inc/meta-box.php:157
+#: inc/meta-box.php:191
 msgid "Last signed in"
 msgstr ""
 
 #. translators: %s: a human-readable time difference, e.g. "3 days".
-#: inc/meta-box.php:172
+#: inc/meta-box.php:206
 #, php-format
 msgid "%s ago"
 msgstr ""
 
-#: inc/meta-box.php:175
+#: inc/meta-box.php:209
 msgid "never"
 msgstr ""
 
-#: inc/meta-box.php:205
+#: inc/meta-box.php:241
 msgid "Invite somebody"
 msgstr ""
 
-#: inc/meta-box.php:207
+#: inc/meta-box.php:243
 msgid "Invite"
 msgstr ""
 
-#: inc/meta-box.php:211
+#: inc/meta-box.php:247
 msgid "Creates a portal account and emails them a sign-in link. If the address already belongs to somebody with another role on this site, nothing happens and you will be told."
 msgstr ""
 
-#: inc/meta-box.php:251
+#: inc/meta-box.php:287
 msgid "No post types are switched on for the portal yet."
 msgstr ""
 
-#: inc/meta-box.php:270
+#: inc/meta-box.php:309
 msgid "Nothing is assigned to this organisation yet. Open a post and choose this organisation in its Portal access box."
 msgstr ""
 
-#: inc/org-cpt.php:62
-#: inc/org-cpt.php:71
-#: inc/org-cpt.php:72
+#: inc/org-cpt.php:67
+#: inc/org-cpt.php:76
+#: inc/org-cpt.php:77
 msgid "Organisations"
 msgstr ""
 
-#: inc/org-cpt.php:64
+#: inc/org-cpt.php:69
 msgid "Add Organisation"
 msgstr ""
 
-#: inc/org-cpt.php:65
+#: inc/org-cpt.php:70
 msgid "Edit Organisation"
 msgstr ""
 
-#: inc/org-cpt.php:66
+#: inc/org-cpt.php:71
 msgid "New Organisation"
 msgstr ""
 
-#: inc/org-cpt.php:67
+#: inc/org-cpt.php:72
 msgid "View Organisation"
 msgstr ""
 
-#: inc/org-cpt.php:68
+#: inc/org-cpt.php:73
 msgid "Search Organisations"
 msgstr ""
 
-#: inc/org-cpt.php:69
+#: inc/org-cpt.php:74
 msgid "No organisations yet."
 msgstr ""
 
-#: inc/org-cpt.php:70
+#: inc/org-cpt.php:75
 msgid "No organisations in the trash."
 msgstr ""
 
-#: inc/portal-form.php:138
+#: inc/portal-form.php:140
 msgid "(required)"
 msgstr ""
 
-#: inc/portal-form.php:155
+#: inc/portal-form.php:157
 msgid "Nothing has been set up for you to edit here yet."
 msgstr ""
 
-#: inc/portal-form.php:213
+#: inc/portal-form.php:217
 msgid "Submit changes for review"
 msgstr ""
 
-#: inc/portal-form.php:214
+#: inc/portal-form.php:218
 msgid "Save changes"
 msgstr ""
 
-#: inc/portal-form.php:237
+#: inc/portal-form.php:241
 msgid "Take this off the site"
 msgstr ""
 
-#: inc/portal-form.php:238
+#: inc/portal-form.php:242
 msgid "This hides it from the public. Nothing is deleted, and it can be put back."
 msgstr ""
 
-#: inc/portal-form.php:239
+#: inc/portal-form.php:243
 msgid "Take it off the site"
 msgstr ""
 
-#: inc/portal-form.php:251
+#: inc/portal-form.php:255
 msgid "This is currently hidden from the public."
 msgstr ""
 
-#: inc/portal-form.php:252
+#: inc/portal-form.php:256
 msgid "Put it back on the site"
 msgstr ""
 
-#: inc/portal-form.php:272
+#: inc/portal-form.php:276
 msgid "Nothing has been set up for you to add here yet."
 msgstr ""
 
-#: inc/portal-form.php:302
+#: inc/portal-form.php:306
 msgid "Add it"
 msgstr ""
 
@@ -1542,274 +1601,274 @@ msgstr ""
 msgid "If you were expecting something, whoever invited you can check that it has been assigned to your organisation."
 msgstr ""
 
-#: inc/portal-list.php:69
-#: inc/portal.php:665
+#: inc/portal-list.php:71
+#: inc/portal.php:700
 msgid "(no title yet)"
 msgstr ""
 
 #. translators: %s: a post type's singular name, e.g. "Location".
-#: inc/portal-list.php:146
-#: inc/portal.php:751
+#: inc/portal-list.php:150
+#: inc/portal.php:788
 #, php-format
 msgid "Add a %s"
 msgstr ""
 
-#: inc/portal-list.php:178
+#: inc/portal-list.php:182
 msgid "Pages"
 msgstr ""
 
-#: inc/portal-list.php:184
+#: inc/portal-list.php:188
 msgid "Previous"
 msgstr ""
 
 #. translators: 1: current page number, 2: total pages.
-#: inc/portal-list.php:193
+#: inc/portal-list.php:197
 #, php-format
 msgid "Page %1$d of %2$d"
 msgstr ""
 
-#: inc/portal-list.php:204
+#: inc/portal-list.php:208
 msgid "Next"
 msgstr ""
 
-#: inc/portal.php:260
+#: inc/portal.php:283
 msgid "Nothing had changed, so there was nothing to save."
 msgstr ""
 
-#: inc/portal.php:271
+#: inc/portal.php:294
 msgid "Thank you. Your changes have been sent for review, and will appear once somebody has looked at them."
 msgstr ""
 
-#: inc/portal.php:283
+#: inc/portal.php:306
 msgid "Saved. Thank you."
 msgstr ""
 
-#: inc/portal.php:368
+#: inc/portal.php:395
 msgid "Added. It is not on the public site yet — somebody will review it first."
 msgstr ""
 
-#: inc/portal.php:389
+#: inc/portal.php:416
 msgid "That is now hidden from the public. Nothing has been deleted, and you can put it back."
 msgstr ""
 
-#: inc/portal.php:390
-#: inc/portal.php:412
+#: inc/portal.php:417
+#: inc/portal.php:439
 msgid "That could not be changed."
 msgstr ""
 
-#: inc/portal.php:411
+#: inc/portal.php:438
 msgid "That is back on the site."
 msgstr ""
 
-#: inc/portal.php:490
+#: inc/portal.php:519
 msgid "Signing in is not set up yet. Please let whoever runs this site know."
 msgstr ""
 
-#: inc/portal.php:499
+#: inc/portal.php:528
 msgid "Enter your email address and we will send you a link. There is no password to remember."
 msgstr ""
 
-#: inc/portal.php:506
+#: inc/portal.php:535
 msgid "Email address"
 msgstr ""
 
-#: inc/portal.php:518
+#: inc/portal.php:549
 msgid "Email me a link"
 msgstr ""
 
-#: inc/portal.php:526
+#: inc/portal.php:557
 msgid "Or sign in with a password"
 msgstr ""
 
-#: inc/portal.php:536
+#: inc/portal.php:567
 msgid "Username or email"
 msgstr ""
 
-#: inc/portal.php:540
+#: inc/portal.php:571
 msgid "Password"
 msgstr ""
 
-#: inc/portal.php:600
+#: inc/portal.php:631
 msgid "Sign out"
 msgstr ""
 
-#: inc/portal.php:610
+#: inc/portal.php:641
 msgid "← Back to everything"
 msgstr ""
 
-#: inc/portal.php:629
+#: inc/portal.php:662
 msgid "That is not something you can edit."
 msgstr ""
 
 #. translators: %s: a length of time, e.g. "2 hours".
-#: inc/portal.php:697
+#: inc/portal.php:734
 #, php-format
 msgid "You sent changes for review %s ago."
 msgstr ""
 
-#: inc/portal.php:700
+#: inc/portal.php:737
 msgid "You have changes waiting for review."
 msgstr ""
 
 #. translators: %d: how many fields were changed.
-#: inc/portal.php:710
+#: inc/portal.php:747
 #, php-format
 msgid "%d field is different from what the public sees. The form below shows what you sent — edit it again if you need to, and it will replace what is waiting."
 msgid_plural "%d fields are different from what the public sees. The form below shows what you sent — edit it again if you need to, and it will replace what is waiting."
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/portal.php:738
+#: inc/portal.php:775
 msgid "That is not something you can add."
 msgstr ""
 
-#: inc/portal.php:784
+#: inc/portal.php:821
 msgid "That link has expired or has already been used. Please ask for a new sign-in link below."
 msgstr ""
 
-#: inc/portal.php:809
+#: inc/portal.php:846
 msgid "Thank you — that is noted as up to date."
 msgstr ""
 
-#: inc/portal.php:837
+#: inc/portal.php:874
 msgid "This is not being shown at the moment"
 msgstr ""
 
-#: inc/portal.php:838
+#: inc/portal.php:875
 msgid "Nobody confirmed these details, so the entry came off the site. Nothing has been deleted — confirm below and it goes straight back."
 msgstr ""
 
-#: inc/portal.php:840
+#: inc/portal.php:877
 msgid "These details need confirming"
 msgstr ""
 
-#: inc/portal.php:841
+#: inc/portal.php:878
 msgid "They have not been checked for a long time."
 msgstr ""
 
-#: inc/portal.php:843
+#: inc/portal.php:880
 msgid "Are these details still right?"
 msgstr ""
 
 #. translators: %s: a length of time, e.g. "3 weeks".
-#: inc/portal.php:846
+#: inc/portal.php:883
 #, php-format
 msgid "If everything here is correct, just confirm it — you do not need to change anything. Otherwise the entry stops being shown in %s."
 msgstr ""
 
-#: inc/portal.php:865
+#: inc/portal.php:902
 msgid "Yes, this is right — put it back"
 msgstr ""
 
-#: inc/portal.php:866
+#: inc/portal.php:903
 msgid "Yes, this is all still right"
 msgstr ""
 
-#: inc/review.php:732
+#: inc/review.php:923
 msgid "Is your information still right?"
 msgstr ""
 
-#: inc/review.php:733
+#: inc/review.php:924
 msgid "Time to check your information"
 msgstr ""
 
-#: inc/review.php:734
+#: inc/review.php:925
 msgid "Your information needs checking"
 msgstr ""
 
-#: inc/review.php:735
+#: inc/review.php:926
 msgid "Your entry comes off the site in two weeks"
 msgstr ""
 
-#: inc/review.php:736
+#: inc/review.php:927
 msgid "Your entry has come off the site"
 msgstr ""
 
-#: inc/review.php:740
+#: inc/review.php:931
 msgid "We ask everyone to check their details from time to time, so people are not sent to the wrong place. It only takes a moment."
 msgstr ""
 
-#: inc/review.php:741
+#: inc/review.php:932
 msgid "It has been a while since your details were checked. Please have a look and confirm they are still right."
 msgstr ""
 
-#: inc/review.php:742
+#: inc/review.php:933
 msgid "Your details have not been checked for some time. Please confirm them so people are not sent to the wrong place."
 msgstr ""
 
-#: inc/review.php:743
+#: inc/review.php:934
 msgid "We have not been able to confirm your details, so your entry will stop being shown in two weeks. Confirming them now keeps it on the site."
 msgstr ""
 
-#: inc/review.php:744
+#: inc/review.php:935
 msgid "Because we could not confirm your details, your entry is no longer being shown. Nothing has been deleted — confirming your details puts it straight back."
 msgstr ""
 
-#: inc/review.php:762
+#: inc/review.php:955
 msgid "not currently shown"
 msgstr ""
 
-#: inc/review.php:769
+#: inc/review.php:962
 msgid "Check my details"
 msgstr ""
 
-#: inc/review.php:771
+#: inc/review.php:964
 msgid "The link signs you in for a week. If it stops working, you can always ask for a new one from the portal."
 msgstr ""
 
-#: inc/review.php:793
+#: inc/review.php:986
 msgid "Entries have come off the site"
 msgstr ""
 
-#: inc/review.php:794
+#: inc/review.php:987
 msgid "Entries come off the site in 30 days"
 msgstr ""
 
-#: inc/review.php:797
+#: inc/review.php:990
 msgid "Nobody confirmed these, so they are no longer shown. Nothing has been deleted, and the owner can put any of them back by confirming their details."
 msgstr ""
 
-#: inc/review.php:798
-msgid "These have not been confirmed and will stop being shown in 30 days. Their owners have been reminded."
+#: inc/review.php:995
+msgid "These have not been confirmed and will stop being shown in 30 days. Their owners are being reminded."
 msgstr ""
 
-#: inc/review.php:818
+#: inc/review.php:1015
 msgid "Nobody has been given access to these, so there is no one to ask. They will never be hidden automatically — somebody needs to invite an owner, or mark them as not needing review."
 msgstr ""
 
-#: inc/review.php:823
+#: inc/review.php:1020
 msgid "These are currently not shown, waiting for their owner to confirm their details."
 msgstr ""
 
-#: inc/review.php:833
+#: inc/review.php:1030
 msgid "Portal: entries needing your attention"
 msgstr ""
 
-#: inc/review.php:834
+#: inc/review.php:1031
 msgid "Entries needing your attention"
 msgstr ""
 
 #. translators: %d: how many more entries there are.
-#: inc/review.php:866
+#: inc/review.php:1063
 #, php-format
 msgid "and %d more"
 msgid_plural "and %d more"
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/save.php:376
+#: inc/save.php:407
 msgid "You cannot add new entries of this kind."
 msgstr ""
 
-#: inc/schema.php:66
+#: inc/schema.php:68
 msgid "Title"
 msgstr ""
 
-#: inc/schema.php:76
+#: inc/schema.php:78
 msgid "Short description"
 msgstr ""
 
-#: inc/schema.php:94
+#: inc/schema.php:96
 msgid "Main text"
 msgstr ""
 
@@ -1824,25 +1883,25 @@ msgid "%s already has an account on this site that is not a portal account. Addi
 msgstr ""
 
 #. translators: %s: a field label, e.g. "Opening date".
-#: inc/validate.php:131
+#: inc/validate.php:137
 #, php-format
 msgid "That is not something we can store in %s. Please check it and try again."
 msgstr ""
 
 #. translators: %s: a field label, e.g. "Services offered".
-#: inc/validate.php:154
+#: inc/validate.php:160
 #, php-format
 msgid "Please choose %s."
 msgstr ""
 
 #. translators: %s: a field label, e.g. "Phone number".
-#: inc/validate.php:161
+#: inc/validate.php:167
 #, php-format
 msgid "Please fill in %s."
 msgstr ""
 
 #. translators: %d: how many fields have a problem.
-#: inc/validate.php:193
+#: inc/validate.php:201
 #, php-format
 msgid "%d thing needs fixing before this can be saved. It is marked below."
 msgid_plural "%d things need fixing before this can be saved. They are marked below."

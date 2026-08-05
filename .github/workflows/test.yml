@@ -1,0 +1,168 @@
+name: Test
+
+# ── Why this file exists ─────────────────────────────────────────────────────
+# It did not, for three releases. There were twelve PHPUnit classes, three
+# integration scripts, and a deploy workflow whose comments said VersionTest
+# "already enforces three of them against each other on every push" — which was
+# not true of anything, because nothing ran on push. A test suite nobody runs is
+# documentation with a misleading file extension.
+#
+# ── What runs here, and what deliberately does not ───────────────────────────
+# The unit suite, on every push and pull request, across the PHP versions the
+# plugin claims to support. tests/bootstrap.php stubs the WordPress surface the
+# pure logic touches, so this needs no database and no WordPress checkout, and
+# the whole thing finishes in well under a second.
+#
+# The integration scripts under tests/integration/ need a running WordPress and
+# are run separately below, under wp-env, only on pull requests and pushes to
+# main — they take minutes rather than milliseconds, and the unit suite is what
+# should fail fast on a work-in-progress branch.
+#
+# ── Why the unit matrix does not start at 7.4 ────────────────────────────────
+# The plugin supports PHP 7.4. PHPUnit 11 requires 8.2, and the suite uses
+# attribute-based data providers, which 7.4 parses as comments. Running the
+# tests on 7.4 would mean pinning PHPUnit 9 and rewriting the providers as
+# annotations — paying a real cost in the test suite to assert something the
+# tests are not the right tool for anyway.
+#
+# So the split is honest rather than convenient: the `unit` job proves the logic
+# is right, on the PHP versions that can run the tests, and the `compat` job
+# proves the source actually runs on 7.4 — with PHPCompatibilityWP, which knows
+# what a match expression and a nullsafe operator are, rather than with `php -l`,
+# which would happily pass a file full of 8.0-only function calls.
+#
+# If that split ever stops being true, the failure is loud: `compat` reads the
+# floor from the plugin header.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Unit (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '8.2', '8.3', '8.4' ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run the unit suite
+        run: composer run test
+
+  compat:
+    name: Minimum PHP compatibility
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      # Read from the header rather than written here, so the two cannot drift.
+      # Noticing months later that the plugin claims 7.4 while being checked
+      # against 8.1 is exactly the class of thing this whole file exists to stop.
+      - name: Read the supported floor from the plugin header
+        id: floor
+        run: |
+          version=$(grep -m1 -oE '^ \* Requires PHP:[[:space:]]*\S+' groundwork-common-post-portal.php | awk '{print $NF}')
+          if [ -z "$version" ]; then
+            echo "::error::The plugin header has no Requires PHP line."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check the source runs on it
+        run: |
+          vendor/bin/phpcs -p \
+            --standard=PHPCompatibilityWP \
+            --runtime-set testVersion "${{ steps.floor.outputs.version }}-" \
+            --extensions=php \
+            --ignore='*/vendor/*,*/node_modules/*,*/tests/*' \
+            .
+
+  standards:
+    name: Coding standards
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      # There are around twenty phpcs:ignore annotations across inc/, each with
+      # a written justification. Until this ran, nothing verified that any of
+      # them still silenced something real, and nobody could reproduce the run a
+      # directory reviewer makes.
+      - name: Run PHPCS
+        run: composer run lint
+
+  integration:
+    name: Integration (wp-env)
+    runs-on: ubuntu-latest
+    # Minutes rather than milliseconds, so not on every push to every branch.
+    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Start WordPress
+        run: npx --yes @wordpress/env start
+
+      # Each script exits non-zero on failure, so the shell's own error handling
+      # is the assertion. Run one at a time rather than globbed, so a failure
+      # names the file it came from.
+      - name: Run the integration scripts
+        run: |
+          for script in tests/integration/*.php; do
+            echo "── $script ──"
+            npx --yes @wordpress/env run tests-cli \
+              wp eval-file "wp-content/plugins/groundwork-common-post-portal/$script"
+          done
+
+      - name: Show the logs if something failed
+        if: failure()
+        run: npx --yes @wordpress/env logs tests --watch=false

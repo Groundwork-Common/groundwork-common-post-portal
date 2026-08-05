@@ -25,9 +25,24 @@ function gwcpp_queue_screen(): void {
 
 	gwcpp_render_admin_notice();
 
-	/* Said out loud rather than left to arithmetic on the menu bubble. A screen
+	/*
+	 * Shown here rather than as a site-wide nag: this is the screen the warning
+	 * is about, and somebody standing on it is the person who needs to know that
+	 * the queue has been filling up without anybody being told.
+	 */
+	if ( gwcpp_staff_mail_in_trouble() ) {
+		printf(
+			'<div class="notice notice-warning"><p><strong>%s</strong> %s</p></div>',
+			esc_html__( 'We could not email you about a recent change.', 'groundwork-common-post-portal' ),
+			esc_html__( 'Submissions still arrive here, but nobody is being notified about them. This usually means the site cannot send mail at all — worth checking before somebody waits weeks for an answer.', 'groundwork-common-post-portal' )
+		);
+	}
+
+	/*
+	 * Said out loud rather than left to arithmetic on the menu bubble. A screen
 	 * that quietly draws the first two hundred of a longer queue looks exactly
-	 * like a screen that has drawn all of it. */
+	 * like a screen that has drawn all of it.
+	 */
 	if ( count( $pending ) < $total ) {
 		printf(
 			'<p class="description">%s</p>',
@@ -96,10 +111,12 @@ function gwcpp_render_queue_item( int $post_id ): void {
 	);
 
 	if ( ! $diff ) {
-		/* The submitted values match what is stored. That happens when staff
+		/*
+		 * The submitted values match what is stored. That happens when staff
 		 * made the same edit by hand while this was waiting — so say so, rather
 		 * than showing an empty table and leaving somebody to work out whether
-		 * the queue is broken. */
+		 * the queue is broken.
+		 */
 		printf(
 			'<p class="gwcpp-queue-item__same">%s</p>',
 			esc_html__( 'Nothing here differs from the entry any more — somebody has already made these changes. Approving will simply clear it.', 'groundwork-common-post-portal' )
@@ -155,7 +172,7 @@ function gwcpp_render_queue_actions( int $post_id ): void {
 	echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 	wp_nonce_field( 'gwcpp_approve_' . $post_id );
 	echo '<input type="hidden" name="action" value="gwcpp_approve" />';
-	printf( '<input type="hidden" name="post" value="%d" />', $post_id );
+	printf( '<input type="hidden" name="post" value="%d" />', (int) $post_id );
 	printf(
 		'<button type="submit" class="button button-primary">%s</button>',
 		esc_html__( 'Approve and publish', 'groundwork-common-post-portal' )
@@ -165,10 +182,10 @@ function gwcpp_render_queue_actions( int $post_id ): void {
 	echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="gwcpp-queue-reject">';
 	wp_nonce_field( 'gwcpp_reject_' . $post_id );
 	echo '<input type="hidden" name="action" value="gwcpp_reject" />';
-	printf( '<input type="hidden" name="post" value="%d" />', $post_id );
+	printf( '<input type="hidden" name="post" value="%d" />', (int) $post_id );
 	printf(
 		'<label class="screen-reader-text" for="gwcpp-note-%1$d">%2$s</label><input type="text" id="gwcpp-note-%1$d" name="note" class="regular-text" placeholder="%3$s" />',
-		$post_id,
+		(int) $post_id,
 		esc_html__( 'Why not', 'groundwork-common-post-portal' ),
 		esc_attr__( 'Why not — they will be sent this', 'groundwork-common-post-portal' )
 	);
@@ -197,9 +214,11 @@ function gwcpp_queue_guard( string $action ): int {
 
 	check_admin_referer( $action . $post_id );
 
-	/* manage_options got them onto the screen; edit_post is what says they may
+	/*
+	 * manage_options got them onto the screen; edit_post is what says they may
 	 * change THIS post. On a site using per-post permissions those are not the
-	 * same question, and approving is an edit. */
+	 * same question, and approving is an edit.
+	 */
 	if ( $post_id <= 0 || ! current_user_can( 'edit_post', $post_id ) ) {
 		wp_die(
 			esc_html__( 'You cannot change that.', 'groundwork-common-post-portal' ),
@@ -326,11 +345,13 @@ function gwcpp_render_pending_meta_box( WP_Post $post ): void {
 
 	gwcpp_render_queue_actions( $post->ID );
 
-	/* Worth saying out loud on this screen in particular: staff editing the
+	/*
+	 * Worth saying out loud on this screen in particular: staff editing the
 	 * fields above while a changeset is pending is fine, and approving
 	 * afterwards will overwrite whatever they typed with what the portal user
 	 * sent. The diff is computed live, so it will show that — but only to
-	 * somebody who re-reads it. */
+	 * somebody who re-reads it.
+	 */
 	printf(
 		'<p class="description">%s</p>',
 		esc_html__( 'If you edit these fields yourself and then approve, the submitted values win. Reject instead if you have already made the change.', 'groundwork-common-post-portal' )

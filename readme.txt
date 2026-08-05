@@ -5,7 +5,7 @@ Tags: front-end editing, portal, passwordless, custom post types, moderation
 Requires at least: 6.3
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -97,6 +97,20 @@ one costs nothing and is the expected path, not an error.
 Yes. Add them both to the organisation that owns it, or grant them each access
 on the post directly.
 
+= Who can hand an entry over to somebody else? =
+
+Somebody who belongs to the organisation that owns it, and only when you have
+switched handover on for that post type. It is off by default.
+
+Being able to edit one entry is not enough, and that is deliberate: accepting a
+handover joins the new account to the whole organisation, so it grants access to
+everything that organisation owns rather than to the one entry the invitation
+came from. Somebody who was given a single post directly would otherwise be
+handing out more than they hold themselves.
+
+If a person who only has one post needs to pass it on, you can invite their
+replacement from the organisation screen in wp-admin.
+
 = What can a portal user write in a formatted text field? =
 
 Paragraphs, bold, italic, lists, links and small headings. Everything else —
@@ -107,6 +121,25 @@ is removed when they save, regardless of what role the account holds.
 
 Images and PDFs, up to a size you set. The file's actual contents are checked,
 not just its name, so a script renamed to .jpg is refused.
+
+= How do I stop a staging copy emailing real people? =
+
+A staging copy of a site is a full copy: the same partners, the same addresses,
+the same scheduled tasks. Put one line in that copy's `wp-config.php` and
+outgoing mail stops:
+
+`define( 'GWCPP_MAIL_MODE', 'off' );`
+
+Or `'restricted'` to send only to your own team, with:
+
+`define( 'GWCPP_MAIL_ALLOW', 'example.com' );`
+
+Two things worth knowing. The default is to send normally — this plugin cannot
+tell that a given site is somebody's staging copy, and guessing would either
+swallow a real site's mail or leave a staging site feeling safe when it is not.
+And in `off` or `restricted` mode this stops *all* of the site's outgoing mail,
+not only this plugin's, because a staging copy should be quiet rather than
+selectively quiet.
 
 = Will this email my partners without me setting it up? =
 
@@ -144,6 +177,50 @@ directly. The "author may edit their own" path is off by default.
 
 == Changelog ==
 
+= 0.3.1 =
+* Fixed: a file waiting for approval could be deleted while somebody was still
+  waiting for it. Past 200 waiting changes the oldest fell off the list the
+  cleanup consulted, and those are exactly the ones whose uploads had aged past
+  the thirty-day threshold.
+* Fixed: at short review cadences the reminder ladder could deliver the staff
+  warning first and count it as the owner's, leaving somebody whose only notice
+  arrived a fortnight before their entry came off the site.
+* Fixed: the review cycle read the newest 500 entries, so on a large directory
+  the ones it never checked were the oldest — which is the whole point of it.
+* Fields is now a tab on the Settings screen rather than a page of its own, and
+  the Portal menu reads Pending Changes, Organisations, Settings.
+* Fixed: the pending queue's stylesheet never loaded, and its menu count stopped
+  at the page size.
+* Security: the sign-in form's site-wide limit could be spent by anyone with
+  malformed submissions, which briefly stopped everybody else requesting a link.
+  Only genuine attempts count towards it now.
+* Security: password sign-in is rate limited, on counters of its own so that
+  guessing at passwords cannot use up the sign-in links everybody else needs.
+* Security: an upload field carried its current file forward in a hidden value
+  that was checked for being a file but not for being *your* file. It is now
+  checked against the entry being edited.
+* Security: formatted text no longer accepts an `id` on any tag. It was meant to
+  be excluded already and was written in a way that quietly allowed it.
+* Handing an entry over now requires belonging to the organisation that owns it,
+  rather than only being able to edit the one entry. Accepting a handover grants
+  access to everything that organisation owns, so the two now match. Staff can
+  still hand over on somebody's behalf from wp-admin.
+* Handover invitations are limited to five a day per person.
+* Choosing which organisation a post belongs to now requires an administrator,
+  like every other change to who can reach what. It is shown, read-only, to
+  everybody else.
+* Unpublishing and republishing re-check that the feature is still switched on,
+  and only an entry a portal user took down can be put back by one.
+* Much faster portal list on organisations with many entries, and the pending
+  count no longer runs a query on every wp-admin page.
+* The review sweep cannot run twice at once, so nobody gets a reminder twice.
+* Fixed: the block's stylesheet was not loaded in the editor, so the preview
+  appeared unstyled.
+* Fixed: deactivating left a scheduled task behind in some cases, and on a
+  network only cleared the site you were on.
+* Fixed: one message shown when a form had been left open too long was not
+  translatable.
+
 = 0.3.0 =
 * Entries can be put on a review cycle: owners are reminded to confirm their
   details, and an entry nobody ever confirms stops being shown. Nothing is
@@ -172,6 +249,13 @@ directly. The "author may edit their own" path is off by default.
   portal users.
 
 == Upgrade Notice ==
+
+= 0.3.1 =
+Fixes a case where a file waiting for approval could be deleted, and one where a
+review reminder reached staff instead of the owner. Security and performance
+fixes throughout, and two deliberate tightenings: handing an entry over now
+requires belonging to its organisation, and assigning a post to an organisation
+now requires an administrator.
 
 = 0.3.0 =
 Adds the review cycle, handover, and blocked-word screening. The review cycle is

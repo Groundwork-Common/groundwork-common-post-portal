@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── The live post is never touched ──────────────────────────────────────────
+/*
+ * ── The live post is never touched ──────────────────────────────────────────
  * A submission under approval is stored whole, in one post meta row, and the
  * published post carries on showing exactly what it showed before.
  *
@@ -31,18 +32,23 @@ defined( 'ABSPATH' ) || exit;
  * of the comparison updates to match, so what they approve is what they were
  * shown. A diff frozen at submission time would quietly describe a post that no
  * longer exists.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** Post meta, single: the pending changeset. */
 const GWCPP_PENDING_META = '_gwcpp_pending';
 
 /** The approval queue's admin page. Declared here rather than in
  *  admin-queue.php because the notification emails link to it, and email is
- *  built on requests where no admin screen has loaded. */
+ *  built on requests where no admin screen has loaded.
+ */
 const GWCPP_QUEUE_SLUG = 'gwcpp-pending';
 
 /** Post meta, single: the last few applied changes, for staff. */
 const GWCPP_LOG_META = '_gwcpp_change_log';
+
+/** Transient: the queue count for the menu bubble. See gwcpp_pending_count(). */
+const GWCPP_PENDING_COUNT_TRANSIENT = 'gwcpp_pending_count';
 
 /** How many entries the log keeps. */
 const GWCPP_LOG_LENGTH = 10;
@@ -62,10 +68,12 @@ function gwcpp_store_changeset( int $post_id, int $user_id, array $values, array
 		return false;
 	}
 
-	/* Anything uploaded for a changeset that is now being replaced has nothing
+	/*
+	 * Anything uploaded for a changeset that is now being replaced has nothing
 	 * left pointing at it. Cleaned up here rather than left for the cron reaper
 	 * so that somebody who uploads the wrong photo three times does not leave
-	 * three orphans in the media library for a month. */
+	 * three orphans in the media library for a month.
+	 */
 	$previous = gwcpp_get_changeset( $post_id );
 	if ( null !== $previous ) {
 		gwcpp_discard_attachments( array_diff( $previous['attachments'], $attachments ) );
@@ -179,10 +187,12 @@ function gwcpp_diff_values( int $post_id, array $values ): array {
 		$old = $current[ $key ] ?? '';
 		$new = $values[ $key ];
 
-		/* Compared as their displayed text rather than as raw values. Two
+		/*
+		 * Compared as their displayed text rather than as raw values. Two
 		 * values that render identically are not a change worth showing anybody
 		 * — and comparing raw would report '1' against 1, or a reordered array
-		 * against itself, as edits nobody made. */
+		 * against itself, as edits nobody made.
+		 */
 		$old_text = (string) gwcpp_field_call( $field, 'to_display', array( $old, $field ) );
 		$new_text = (string) gwcpp_field_call( $field, 'to_display', array( $new, $field ) );
 
@@ -219,8 +229,10 @@ function gwcpp_apply_changeset( int $post_id, int $approved_by = 0 ): bool {
 		return false;
 	}
 
-	/* Computed before anything is written. Afterwards the stored values ARE the
-	 * current values, and the diff would correctly say nothing changed. */
+	/*
+	 * Computed before anything is written. Afterwards the stored values ARE the
+	 * current values, and the diff would correctly say nothing changed.
+	 */
 	$diff = gwcpp_changeset_diff( $post_id );
 
 	gwcpp_attach_uploads( $changeset['attachments'], $post_id );
@@ -257,9 +269,11 @@ function gwcpp_reject_changeset( int $post_id, int $rejected_by = 0, string $not
 		return false;
 	}
 
-	/* Uploads that only ever existed for this submission go with it. Anything
+	/*
+	 * Uploads that only ever existed for this submission go with it. Anything
 	 * already attached to the post is left alone — an attachment can be
-	 * referenced from somewhere this function cannot see. */
+	 * referenced from somewhere this function cannot see.
+	 */
 	gwcpp_discard_attachments( $changeset['attachments'] );
 
 	delete_post_meta( $post_id, GWCPP_PENDING_META );
@@ -329,9 +343,11 @@ function gwcpp_every_pending_post_id(): array {
 
 	do {
 		$found = gwcpp_pending_query( GWCPP_QUEUE_PAGE_SIZE, $page, 'ID' );
+		$count = count( $found );
 		$ids   = array_merge( $ids, array_map( 'intval', $found ) );
 		++$page;
-	} while ( count( $found ) === GWCPP_QUEUE_PAGE_SIZE );
+		// A short page means that was the last one.
+	} while ( GWCPP_QUEUE_PAGE_SIZE === $count );
 
 	return $ids;
 }
@@ -370,13 +386,57 @@ function gwcpp_pending_query( int $per_page, int $page, string $orderby ): array
  * Counts all of them. A bubble that stops at the page size tells somebody with
  * a backlog that they have exactly as much waiting as they had yesterday.
  *
+ * ── And why the answer is cached ─────────────────────────────────────────────
+ * Because of where it is called from. gwcpp_admin_menu() runs on `admin_menu`,
+ * which fires on every single wp-admin request — the Dashboard, Media, Users,
+ * somebody else's plugin's settings screen — and all it wants is a number for
+ * the bubble. Uncached, that put a filesort over a meta join on every admin
+ * page load on the site to draw a digit that is usually zero, and counting
+ * *every* pending post rather than the first page makes it a walk of the whole
+ * queue rather than one query. The fix above and this one need each other.
+ *
+ * The queue screen still calls the query directly and still sees the truth,
+ * because a stale list there would be somebody approving a change that is not
+ * there any more.
+ *
+ * A minute is short enough that the bubble is never meaningfully wrong, and the
+ * three changeset actions clear it immediately anyway — so the only way to see
+ * a stale count is for a changeset to appear through some path this plugin does
+ * not know about, and then only until the minute is up.
+ *
  * @return int
  */
 function gwcpp_pending_count(): int {
-	return count( gwcpp_every_pending_post_id() );
+	$cached = get_transient( GWCPP_PENDING_COUNT_TRANSIENT );
+
+	if ( false !== $cached ) {
+		return (int) $cached;
+	}
+
+	$count = count( gwcpp_every_pending_post_id() );
+
+	set_transient( GWCPP_PENDING_COUNT_TRANSIENT, $count, MINUTE_IN_SECONDS );
+
+	return $count;
 }
 
-/* ── The change log ──────────────────────────────────────────────────────────
+/**
+ * Forget the cached count.
+ *
+ * Hooked to the three actions this plugin fires when the queue changes, so the
+ * bubble is right the instant staff approve something rather than up to a
+ * minute later.
+ */
+function gwcpp_flush_pending_count(): void {
+	delete_transient( GWCPP_PENDING_COUNT_TRANSIENT );
+}
+
+add_action( 'gwcpp_changeset_stored', 'gwcpp_flush_pending_count' );
+add_action( 'gwcpp_changeset_applied', 'gwcpp_flush_pending_count' );
+add_action( 'gwcpp_changeset_rejected', 'gwcpp_flush_pending_count' );
+
+/*
+ * ── The change log ──────────────────────────────────────────────────────────
  * A short history on the post itself, because six months later somebody asks
  * why a phone number is wrong and the answer is either here or nowhere.
  * Revisions do not record post meta, so nothing in WordPress would otherwise
@@ -385,7 +445,8 @@ function gwcpp_pending_count(): int {
  * Bounded at ten. It is a convenience, not an audit trail, and an unbounded
  * array in post meta on a busy directory is a row that grows until somebody
  * notices it in a slow query log.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * Record an applied change.
@@ -428,18 +489,21 @@ function gwcpp_change_log( int $post_id ): array {
 	return is_array( $log ) ? $log : array();
 }
 
-/* ── Attachments belonging to a changeset ────────────────────────────────────
+/*
+ * ── Attachments belonging to a changeset ────────────────────────────────────
  * Uploads have to exist as real attachments before anybody approves them —
  * there is nowhere else to put a file — so they are created immediately and
  * flagged with the post they are waiting for. Approving clears the flag and
  * attaches them; rejecting deletes them; and the cron in field-media.php
  * sweeps up any whose changeset vanished by some route neither of those covers.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /** Attachment meta, single: when this upload was flagged as waiting, as a Unix
  *  timestamp. Its presence is what marks the file as a changeset's to delete;
  *  the value is what the reaper ages against. Deliberately not the post ID —
- *  which the name suggests and which nothing has ever stored here. */
+ *  which the name suggests and which nothing has ever stored here.
+ */
 const GWCPP_PENDING_ATTACHMENT_META = '_gwcpp_pending_for';
 
 /**

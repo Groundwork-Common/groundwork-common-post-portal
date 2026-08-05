@@ -27,6 +27,7 @@ define( 'ABSPATH', __DIR__ . '/' );
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'HOUR_IN_SECONDS', 3600 );
 define( 'DAY_IN_SECONDS', 86400 );
+define( 'WEEK_IN_SECONDS', 604800 );
 define( 'MB_IN_BYTES', 1048576 );
 
 define( 'GWCPP_DIR', dirname( __DIR__ ) . '/' );
@@ -35,7 +36,8 @@ define( 'GWCPP_FILE', GWCPP_DIR . 'groundwork-common-post-portal.php' );
 
 /* Read out of the plugin header rather than hardcoded, so VersionTest is
  * comparing the header against readme.txt rather than against a copy of one of
- * them made in this file. */
+ * them made in this file.
+ */
 const GWCPP_SCHEMA_VERSION = 1;
 const GWCPP_SPONSOR_URL    = 'https://www.groundworkcommon.com/support/';
 const GWCPP_GWC_URL        = 'https://www.groundworkcommon.com/';
@@ -82,7 +84,8 @@ function gwcpp_test_reset(): void {
 
 /* A real class, not a stdClass, because the plugin's guards are written as
  * `$post instanceof WP_Post` — a duck-typed double would make every one of them
- * pass vacuously in tests and fail on a site. */
+ * pass vacuously in tests and fail on a site.
+ */
 class WP_Post { // phpcs:ignore
 	public $ID           = 0;
 	public $post_type    = 'post';
@@ -94,7 +97,8 @@ class WP_Post { // phpcs:ignore
 	/* The review cycle counts from this when an entry has never been confirmed.
 	 * Omitting it from the double produced an undefined-property warning and a
 	 * strtotime(null) deprecation that no real site could ever hit — the double
-	 * was wrong, not the code reading it. */
+	 * was wrong, not the code reading it.
+	 */
 	public $post_date    = '';
 }
 
@@ -190,7 +194,19 @@ function update_option( $name, $value, $autoload = null ) {
 	return true;
 }
 
+/**
+ * Honest about its return value, because something depends on it.
+ *
+ * The real add_option() inserts only when the row does not exist and returns
+ * false when it does — which is what makes it usable as a test-and-set, and is
+ * exactly how gwcpp_review_claim_lock() uses it. A stub that always returned
+ * true would make the lock look like it worked while testing nothing.
+ */
 function add_option( $name, $value, $deprecated = '', $autoload = null ) {
+	if ( array_key_exists( $name, $GLOBALS['gwcpp_test']['options'] ) ) {
+		return false;
+	}
+
 	return update_option( $name, $value );
 }
 
@@ -202,7 +218,8 @@ function delete_option( $name ) {
 /* ── Transients ──────────────────────────────────────────────────────────────
  * Expiry is stored and honoured, because the token tests turn on it. Time is
  * read through time(), which tests move by storing an expiry in the past rather
- * than by mocking the clock. */
+ * than by mocking the clock.
+ */
 
 function set_transient( $key, $value, $ttl = 0 ) {
 	$GLOBALS['gwcpp_test']['transients'][ $key ] = array(
@@ -232,7 +249,8 @@ function delete_transient( $key ) {
 /* ── Meta ────────────────────────────────────────────────────────────────────
  * Stored as a list per key, which is what the real meta table does. $single
  * returning the first value and the whole list otherwise is the behaviour the
- * access model depends on. */
+ * access model depends on.
+ */
 
 function gwcpp_test_meta( string $store, int $id, string $key, bool $single ) {
 	$rows = $GLOBALS['gwcpp_test'][ $store ][ $id ][ $key ] ?? array();
@@ -349,7 +367,8 @@ function wp_update_post( $postarr = array(), $wp_error = false ) {
  * would pass no matter what the plugin's allow-list said. It returns its input
  * untouched, so any unit test that depended on filtering would fail loudly
  * rather than pass falsely — and the filtering itself is checked against real
- * WordPress in tests/integration/richtext.php. */
+ * WordPress in tests/integration/richtext.php.
+ */
 function wp_kses( $string, $allowed_html, $allowed_protocols = array() ) {
 	return $string;
 }
@@ -379,6 +398,39 @@ function get_userdata( $id ) {
 	return $GLOBALS['gwcpp_test']['users'][ (int) $id ] ?? false;
 }
 
+/**
+ * Look a user up the way WordPress does.
+ *
+ * Honest about the three fields the plugin actually asks for, and returns false
+ * for anything else rather than guessing — a stub that matched more broadly than
+ * the real function would let a test pass on a lookup a site would refuse.
+ *
+ * @param string $field id | ID | email | login.
+ * @param mixed  $value What to match.
+ * @return GWCPP_Test_User|false
+ */
+function get_user_by( $field, $value ) {
+	$field = strtolower( (string) $field );
+
+	if ( 'id' === $field ) {
+		return $GLOBALS['gwcpp_test']['users'][ (int) $value ] ?? false;
+	}
+
+	$property = 'email' === $field ? 'user_email' : ( 'login' === $field ? 'user_login' : '' );
+
+	if ( '' === $property ) {
+		return false;
+	}
+
+	foreach ( $GLOBALS['gwcpp_test']['users'] as $user ) {
+		if ( strtolower( (string) $user->$property ) === strtolower( (string) $value ) ) {
+			return $user;
+		}
+	}
+
+	return false;
+}
+
 function wp_get_current_user() {
 	return $GLOBALS['gwcpp_test']['users'][ $GLOBALS['gwcpp_test']['current_user'] ?? 0 ] ?? false;
 }
@@ -388,7 +440,8 @@ function wp_get_current_user() {
  * empty — so gwcpp_post_has_owner() could never be true and the "managed"
  * branch of the review cycle was untestable. Same lesson as the apply_filters
  * stub above: a double that always returns nothing makes its tests prove
- * nothing. */
+ * nothing.
+ */
 function get_users( $args = array() ) {
 	$key     = $args['meta_key'] ?? '';
 	$value   = $args['meta_value'] ?? null;
@@ -436,6 +489,24 @@ function get_posts( $args = array() ) {
 	return array();
 }
 
+/* Genuinely no-ops here, and that is honest rather than lazy: the in-memory
+ * store has no cache layer in front of it — get_post() and get_post_meta() read
+ * it directly — so there is nothing for priming to fill. They exist so that the
+ * priming call in gwcpp_editable_post_ids() does not fatal the moment a test
+ * gives get_posts() something to return, which is a trap worth not leaving.
+ *
+ * The thing priming is for — turning N round trips into one — is not observable
+ * without a real database, and is verified by counting queries in
+ * tests/integration/access.php instead.
+ */
+function _prime_post_caches( $ids, $update_term_cache = true, $update_meta_cache = true ) {
+	return null;
+}
+
+function update_meta_cache( $meta_type, $object_ids ) {
+	return array();
+}
+
 /* ── Hooks ───────────────────────────────────────────────────────────────────
  * add_filter and apply_filters are REAL, priority-ordered and all, because the
  * plugin's field type registry is built by filter: field-taxonomy.php and its
@@ -451,7 +522,8 @@ function get_posts( $args = array() ) {
  *
  * add_action and do_action stay no-ops: nothing under test depends on an action
  * firing, and unlike the filters above, none of them build anything.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 function add_action( ...$args ) {
 	return true;
@@ -519,7 +591,8 @@ function wp_cache_add_non_persistent_groups( $groups ) {
  * part of the real function the plugin's behaviour depends on. It does NOT
  * reproduce the octet and percent-encoding handling — noted because a test
  * asserting on those would be asserting against this file rather than against
- * WordPress. */
+ * WordPress.
+ */
 
 function __( $text, $domain = '' ) {
 	return $text;
@@ -659,7 +732,8 @@ function wp_generate_password( $length = 12, $special = true, $extra = false ) {
 /* ── The plugin, in the bootstrap's own order ────────────────────────────────
  * Only the files whose logic is unit-testable. The views, the admin screens
  * bar one function, the block and the mail all need a running WordPress and are
- * covered by tests/integration/ instead. */
+ * covered by tests/integration/ instead.
+ */
 
 require GWCPP_DIR . 'inc/i18n.php';
 require GWCPP_DIR . 'inc/settings.php';
@@ -682,7 +756,8 @@ require GWCPP_DIR . 'inc/blocked-words.php';
 /* admin-screen.php declares gwcpp_colophon_snoozed(), which is pure and worth a
  * test. It also declares gwcpp_require_admin_caps(), which calls wp_die() — the
  * stub below exists so requiring the file cannot fatal, not because anything
- * under test calls it. */
+ * under test calls it.
+ */
 function wp_die( $message = '', $title = '', $args = array() ) {
 	throw new RuntimeException( is_string( $message ) ? $message : 'wp_die' );
 }
@@ -737,7 +812,8 @@ function human_time_diff( $from, $to = 0 ) {
 
 /* current_time and wp_timezone are what all the review date maths runs on, so
  * they are honest rather than stubbed to a constant: tests move the clock by
- * writing a review date in the past, exactly as a real site would. */
+ * writing a review date in the past, exactly as a real site would.
+ */
 function wp_timezone() {
 	return new DateTimeZone( 'UTC' );
 }

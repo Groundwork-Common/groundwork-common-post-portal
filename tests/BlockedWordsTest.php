@@ -10,11 +10,22 @@ use PHPUnit\Framework\TestCase;
 final class BlockedWordsTest extends TestCase {
 
 	private const POST = 80;
+	private const USER = 5;
 
 	protected function setUp(): void {
 		gwcpp_test_reset();
 		$GLOBALS['gwcpp_test']['types'][] = 'clinic';
 		gwcpp_test_post( self::POST, 'clinic', 'publish', 0, 'A Clinic' );
+
+		/* Signed in, and actually able to edit this post. The screening code
+		 * puts the submitted post ID through gwcpp_user_can_edit_post() before
+		 * comparing against stored values, so a test that skipped this would be
+		 * testing the "cannot see the post, screen everything" path while
+		 * claiming to test the grandfathering rule.
+		 */
+		gwcpp_test_user( self::USER );
+		$GLOBALS['gwcpp_test']['current_user'] = self::USER;
+		gwcpp_add_post_editor( self::USER, self::POST );
 
 		update_option(
 			'gwcpp_settings',
@@ -97,7 +108,8 @@ final class BlockedWordsTest extends TestCase {
 
 	public function test_a_word_that_merely_contains_one_is_not_caught(): void {
 		/* The failure people actually notice. An unanchored str_contains blocks
-		 * "scampi" on a restaurant listing, and nobody can work out why. */
+		 * "scampi" on a restaurant listing, and nobody can work out why.
+		 */
 		$this->assertSame( '', gwcpp_blocked_word_in( 'we serve scampi on Fridays' ) );
 		$this->assertSame( '', gwcpp_blocked_word_in( 'Scandinavian food' ) );
 		$this->assertSame( '', gwcpp_blocked_word_in( 'a cheeky scamp' ) );
@@ -142,7 +154,8 @@ final class BlockedWordsTest extends TestCase {
 		/* The case the original portal hit: an organisation whose real name
 		 * matched a word somebody added to the list later. Without this rule
 		 * the owner cannot save a phone-number change, and the message blames
-		 * them for a field they never touched. */
+		 * them for a field they never touched.
+		 */
 		update_post_meta( self::POST, 'blurb', 'The Scam Prevention Trust' );
 		$_POST['gwcpp_post_id'] = self::POST;
 
@@ -152,6 +165,38 @@ final class BlockedWordsTest extends TestCase {
 		);
 
 		$this->assertSame( array(), $errors );
+
+		unset( $_POST['gwcpp_post_id'] );
+	}
+
+	/**
+	 * A post the submitter cannot edit does not grandfather anything.
+	 *
+	 * gwcpp_post_id is a hidden field, so it names whatever the submitter says.
+	 * The skip above fires when the submitted value equals the stored one — so
+	 * naming somebody else's post whose stored value happens to be a blocked
+	 * phrase would have skipped screening for that field rather than widening
+	 * it, which is the opposite of what the comment on it used to claim.
+	 *
+	 * Putting the ID through the access choke point closes that: a post this
+	 * user cannot reach reads as "no post", and everything is screened.
+	 */
+	public function test_a_post_the_submitter_cannot_edit_grandfathers_nothing(): void {
+		gwcpp_test_post( 81, 'clinic', 'publish', 0, 'Somebody Else' );
+		update_post_meta( 81, 'blurb', 'The Scam Prevention Trust' );
+
+		$_POST['gwcpp_post_id'] = 81;
+
+		$errors = gwcpp_validate_submission(
+			'clinic',
+			array( 'blurb' => 'The Scam Prevention Trust' )
+		);
+
+		$this->assertArrayHasKey(
+			'blurb',
+			$errors,
+			'Naming a post you cannot edit must not buy you a pass on screening.'
+		);
 
 		unset( $_POST['gwcpp_post_id'] );
 	}

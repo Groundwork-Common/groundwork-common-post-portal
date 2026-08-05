@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/* ── One registry, seven callables, no switch statements ─────────────────────
+/*
+ * ── One registry, seven callables, no switch statements ─────────────────────
  * Every type is an array of function names. Nothing in this plugin branches on
  * $field['type'] outside this file; everything looks the type up here and calls
  * what it finds. That is not architecture for its own sake — it is the only way
@@ -49,7 +50,8 @@ defined( 'ABSPATH' ) || exit;
  * Two optional extras: `needs_present`, for types whose control submits nothing
  * at all when the user clears it, and `has_options`, which makes the Fields
  * screen show the choice editor.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * The type registry.
@@ -62,10 +64,12 @@ function gwcpp_field_types(): array {
 		return $types;
 	}
 
-	/* The six that differ only in their HTML input type and their sanitizer.
+	/*
+	 * The six that differ only in their HTML input type and their sanitizer.
 	 * Spelled out as data rather than as six near-identical array literals,
 	 * because the near-identical literals are where a copy-paste puts
-	 * sanitize_email on the URL field and nobody notices for a year. */
+	 * sanitize_email on the URL field and nobody notices for a year.
+	 */
 	$simple = array(
 		'text'   => array(
 			'label' => __( 'Text', 'groundwork-common-post-portal' ),
@@ -76,18 +80,18 @@ function gwcpp_field_types(): array {
 			'input' => 'number',
 		),
 		'url'    => array(
-			'label' => __( 'Website', 'groundwork-common-post-portal' ),
-			/* Deliberately text, not url. type="url" makes the browser demand an
-			 * absolute URL, so "shelterofhope.org" is refused client-side with a
-			 * bubble the person cannot argue with — and gwcpp_sanitize_url()'s
-			 * whole point is that a bare domain is what people actually type and
-			 * should be upgraded to https:// rather than rejected. With
-			 * type="url" that upgrade is unreachable, because the form never
-			 * submits far enough to reach it.
-			 *
-			 * Found by typing a real domain into a real form and watching it
-			 * refuse. inputmode keeps the URL keyboard on a phone, which is the
-			 * part of type="url" that was worth having. */
+			'label'     => __( 'Website', 'groundwork-common-post-portal' ),
+			// Deliberately text, not url. type="url" makes the browser demand an
+			// absolute URL, so "shelterofhope.org" is refused client-side with a
+			// bubble the person cannot argue with — and gwcpp_sanitize_url()'s
+			// whole point is that a bare domain is what people actually type and
+			// should be upgraded to https:// rather than rejected. With
+			// type="url" that upgrade is unreachable, because the form never
+			// submits far enough to reach it.
+			//
+			// Found by typing a real domain into a real form and watching it
+			// refuse. inputmode keeps the URL keyboard on a phone, which is the
+			// part of type="url" that was worth having.
 			'input'     => 'text',
 			'inputmode' => 'url',
 		),
@@ -251,7 +255,7 @@ function gwcpp_field_type( string $type ): ?array {
  * @param array  $args     Arguments after the ones this helper supplies.
  * @return mixed
  */
-function gwcpp_field_call( array $field, string $callable, array $args = array() ) {
+function gwcpp_field_call( array $field, string $callable, array $args = array() ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.callableFound -- The parameter holds the name of a callable in the type registry; there is no clearer word for it.
 	$def = gwcpp_field_type( (string) ( $field['type'] ?? '' ) );
 
 	if ( null === $def ) {
@@ -296,7 +300,7 @@ function gwcpp_field_id( string $name ): string {
  * @param mixed  $default Value when unset.
  * @return mixed
  */
-function gwcpp_field_setting( array $field, string $key, $default = '' ) {
+function gwcpp_field_setting( array $field, string $key, $default = '' ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound -- Named after get_option()'s own third parameter, which is what this mirrors.
 	return $field['settings'][ $key ] ?? $default;
 }
 
@@ -404,9 +408,11 @@ function gwcpp_render_input( array $field, $value, string $name, array $ctx = ar
 		'class' => 'gwcpp-input',
 	);
 
-	/* A soft hint to the on-screen keyboard, for types rendered as plain text
+	/*
+	 * A soft hint to the on-screen keyboard, for types rendered as plain text
 	 * so that the server's more forgiving rule gets to decide. Unlike `type`,
-	 * inputmode never blocks a submission. */
+	 * inputmode never blocks a submission.
+	 */
 	$inputmode = (string) ( $types[ $field['type'] ]['inputmode'] ?? '' );
 	if ( '' !== $inputmode ) {
 		$attrs['inputmode']      = $inputmode;
@@ -433,10 +439,12 @@ function gwcpp_render_input( array $field, $value, string $name, array $ctx = ar
 		}
 	}
 
-	/* Required is advisory here and enforced in validate.php. The attribute is
+	/*
+	 * Required is advisory here and enforced in validate.php. The attribute is
 	 * worth setting anyway — it gets the browser's own message, in the user's
 	 * language, before a round trip — but nothing may depend on it, because it
-	 * is one devtools edit away from absent. */
+	 * is one devtools edit away from absent.
+	 */
 	if ( ! empty( $field['required'] ) ) {
 		$attrs['required'] = 'required';
 	}
@@ -598,8 +606,9 @@ function gwcpp_sanitize_number( $raw, array $field = array() ): string {
 /**
  * A URL.
  *
- * esc_url_raw strips a javascript: scheme and anything else not in the allowed
- * list, so the stored value is safe to put in an href without further work.
+ * Sanitized with esc_url_raw, which strips a javascript: scheme and anything
+ * else not in the allowed list, so the stored value is safe to put in an href
+ * without further work.
  *
  * @param mixed $raw   Raw value.
  * @param array $field Field definition.
@@ -612,25 +621,29 @@ function gwcpp_sanitize_url( $raw, array $field = array() ): string {
 		return '';
 	}
 
-	/* Whitespace means this is prose, not an address, and it is refused before
+	/*
+	 * Whitespace means this is prose, not an address, and it is refused before
 	 * anything else touches it. Without this check the two steps below turn
 	 * "not a website" into "https://not%20a%20website" — esc_url_raw
 	 * percent-encodes the spaces rather than rejecting them — and the person is
 	 * then shown that string back in the field, having never typed it. A form
 	 * that hands somebody mangled input to correct is worse than one that says
-	 * plainly that it did not understand. */
+	 * plainly that it did not understand.
+	 */
 	if ( preg_match( '/\s/', $value ) ) {
 		return '';
 	}
 
-	/* Somebody typing "example.org" means a website, and rejecting it teaches
+	/*
+	 * Somebody typing "example.org" means a website, and rejecting it teaches
 	 * them to type something they do not understand rather than teaching them
 	 * about schemes. Assume https rather than http: an unprefixed guess should
 	 * not be the reason a link is insecure.
 	 *
 	 * Only when it could actually be a host, though. Prefixing a scheme onto
 	 * anything at all makes every typo into a URL that passes validation and
-	 * goes on the site as a dead link. */
+	 * goes on the site as a dead link.
+	 */
 	if ( ! preg_match( '#^[a-z][a-z0-9+.-]*://#i', $value ) ) {
 		if ( ! preg_match( '/^[a-z0-9.-]+\.[a-z]{2,}(?:[:\/?#]|$)/i', $value ) ) {
 			return '';
@@ -929,10 +942,12 @@ function gwcpp_render_select( array $field, $value, string $name, array $ctx = a
 		! empty( $ctx['invalid'] ) ? ' aria-invalid="true"' : ''
 	);
 
-	/* An empty first option even when the field is required. Without one, a
+	/*
+	 * An empty first option even when the field is required. Without one, a
 	 * select opens already showing the first choice, and a user who agrees with
 	 * it never touches the control — so "required" is satisfied by a value
-	 * nobody chose, which is the opposite of what requiring it was for. */
+	 * nobody chose, which is the opposite of what requiring it was for.
+	 */
 	$placeholder = (string) gwcpp_field_setting( $field, 'placeholder', '' );
 	printf(
 		'<option value="">%s</option>',
@@ -1068,9 +1083,11 @@ function gwcpp_sanitize_multiselect( $raw, array $field = array() ): array {
 		}
 	}
 
-	/* Stored in the schema's option order, not submission order. Two people
+	/*
+	 * Stored in the schema's option order, not submission order. Two people
 	 * ticking the same three boxes in a different sequence must not produce a
-	 * changeset that reports a difference. */
+	 * changeset that reports a difference.
+	 */
 	return array_values( array_intersect( $allowed, $out ) );
 }
 
@@ -1160,14 +1177,16 @@ function gwcpp_display_multiselect( $value, array $field = array() ): string {
 	return implode( ', ', $labels );
 }
 
-/* ── Fields screen controls ──────────────────────────────────────────────────
+/*
+ * ── Fields screen controls ──────────────────────────────────────────────────
  * These live here rather than in admin-fields.php, even though they are only
  * ever called from that screen, because gwcpp_field_type() drops any type
  * missing a contract callable. Putting them in an admin file would mean the
  * registry was empty on any request where that file had not loaded — cron,
  * WP-CLI, a REST call — and the symptom would be a save path that silently
  * stored nothing rather than an error anyone could read.
- * ─────────────────────────────────────────────────────────────────────────── */
+ * ───────────────────────────────────────────────────────────────────────────
+ */
 
 /**
  * A labelled text input on the Fields screen.
@@ -1314,9 +1333,11 @@ function gwcpp_parse_options( string $raw ): array {
 		$value = sanitize_text_field( $value );
 		$label = sanitize_text_field( '' !== $label ? $label : $value );
 
-		/* A blank or duplicate value is dropped rather than rejected. The
+		/*
+		 * A blank or duplicate value is dropped rather than rejected. The
 		 * alternative is refusing to save the whole field because one line of
-		 * twelve was pasted twice, which teaches people to stop pasting. */
+		 * twelve was pasted twice, which teaches people to stop pasting.
+		 */
 		if ( '' === $value || isset( $seen[ $value ] ) ) {
 			continue;
 		}

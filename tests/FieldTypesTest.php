@@ -121,7 +121,8 @@ final class FieldTypesTest extends TestCase {
 		/* Found by typing this into a real form. Prefixing a scheme and letting
 		 * esc_url_raw encode the spaces produced https://not%20a%20website,
 		 * which was then shown back in the field as though the person had
-		 * typed it. */
+		 * typed it.
+		 */
 		$this->assertSame( '', gwcpp_sanitize_url( 'not a website' ) );
 		$this->assertSame( '', gwcpp_sanitize_url( 'ask us for our website' ) );
 	}
@@ -135,7 +136,8 @@ final class FieldTypesTest extends TestCase {
 	public function test_the_website_control_does_not_block_a_bare_domain_client_side(): void {
 		/* type="url" makes the browser refuse "shelterofhope.org" outright, so
 		 * the bare-domain upgrade below can never run. Found by typing a real
-		 * domain into a real form and watching the submission never happen. */
+		 * domain into a real form and watching the submission never happen.
+		 */
 		ob_start();
 		gwcpp_render_input(
 			array(
