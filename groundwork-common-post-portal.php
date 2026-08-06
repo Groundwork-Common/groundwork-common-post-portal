@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Groundwork Common Post Portal
- * Plugin URI:        https://github.com/Groundwork-Common/groundwork-common-post-portal
+ * Plugin URI:        https://groundworkcommon.com
  * Description:       Let the people who own your content edit it from the front end, without ever handing them a wp-admin login. You choose the post types, you map the fields, they sign in with a link in their email.
  * Version:           0.3.1
  * Requires at least: 6.3
