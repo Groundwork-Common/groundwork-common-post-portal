@@ -52,20 +52,43 @@ permissions:
   contents: read
 
 jobs:
+  # ── The gate ────────────────────────────────────────────────────────────────
+  # test.yml, called against the tag being released, not a copy of it here. It
+  # runs on pushes to main too, but a tag is not a push to main: the commit
+  # under a tag is usually one that already went green, and "usually" is not a
+  # property to publish on. A release is the one moment where being wrong is
+  # expensive and unfixable without another release, so the suite runs again,
+  # here, against exactly what is about to be published.
+  #
+  # This also covers the manual dry run, which is the point of a rehearsal.
+  test:
+    name: Tests
+    uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
+
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    # A red suite publishes nothing. GitHub skips this job if `test` fails or is
+    # cancelled, so there is no path to the deploy step that does not go through
+    # a green run first.
+    needs: test
 
     steps:
       - uses: actions/checkout@v4
 
       # The four values that must agree, checked before anything is published
       # rather than discovered afterwards by somebody reading a plugin page.
-      # VersionTest enforces three of them against each other, and test.yml runs
-      # it on every push and pull request; this adds the one it cannot see —
-      # that they match the tag being released. Getting this wrong ships a
+      # VersionTest enforces three of them against each other and now runs on
+      # the tag itself via the `test` job above; this adds the one it cannot
+      # see — that they match the tag being released. Getting this wrong ships a
       # version WordPress will not offer as an update, and fixing it means
       # another release.
+      #
+      # It costs a job to learn this, because it waits on the full suite first.
+      # A mismatched tag is rare and fails safely, which is the cheaper trade
+      # than a second checkout job racing the tests to say the same thing.
       - name: Check the tag matches the plugin
         if: github.event_name == 'release'
         run: |
