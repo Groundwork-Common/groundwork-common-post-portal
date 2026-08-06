@@ -51,6 +51,43 @@ on:
 permissions:
   contents: read
 
+# ── One publish at a time, and never a cancelled one ────────────────────────
+# Two settings here, and both are the opposite of what test.yml wants, for
+# reasons worth writing down before somebody makes the two files agree.
+#
+# The group is a fixed string rather than `${{ github.ref }}`. Keying on the
+# ref is the usual idiom and would be wrong here: every release carries a
+# different tag, so a per-ref group puts two releases in two different groups
+# and lets them run *concurrently* — which is the collision this exists to
+# stop. Publishing 1.4.0 and 1.4.1 at the same time races two SVN commits
+# against one repository, and the loser is whichever finishes second.
+#
+# `cancel-in-progress: false` because the thing being interrupted is a commit
+# to somebody else's server. A cancelled run does not roll back the half of
+# trunk/ it already wrote, and WordPress.org would then serve a release built
+# from two versions. A queued second run costs three minutes; a partial
+# publish costs a release to fix.
+#
+# What this does not buy is a queue. GitHub holds at most one run pending per
+# group and cancels any earlier pending one, so publishing three releases
+# inside a few minutes can drop the middle release's run before it starts.
+# That is the accepted trade: a skipped publish is visible on the Actions tab
+# and re-runnable from the manual trigger above, whereas two racing SVN
+# commits are neither. Releases minutes apart are not a thing that happens
+# here; two of them landing on WordPress.org at once only has to happen once.
+#
+# One more reason the group is spelled out rather than derived: it must not
+# collide with the group in test.yml, which this workflow calls. GitHub's own
+# guidance is to avoid identical concurrency groups in a caller and its called
+# workflow, because the called run then cancels the run that started it. Inside
+# that call `github.workflow` is *this* file's name — the github context in a
+# reusable workflow is always the caller's — so test.yml's group evaluates to
+# "Deploy to WordPress.org-refs/tags/…" during a release. Different string, no
+# collision. Changing either group means checking the other.
+concurrency:
+  group: deploy-to-wordpress-org
+  cancel-in-progress: false
+
 jobs:
   # ── The gate ────────────────────────────────────────────────────────────────
   # test.yml, called against the tag being released, not a copy of it here. It
