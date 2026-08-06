@@ -98,6 +98,16 @@ integration job's `github.event_name != 'push'` condition is true on a release â
 so a release runs the wp-env scripts that ordinary branch pushes skip. Do not
 give `test.yml` inputs or secrets without checking the call site in `deploy.yml`.
 
+The two files also carry deliberately different `concurrency` blocks, and they
+must not converge. `test.yml` cancels in progress, because a superseded branch
+run is waste; `deploy.yml` does not, because the run being cancelled is halfway
+through an SVN commit to WordPress.org. `deploy.yml`'s group is a fixed string
+rather than the usual `${{ github.ref }}`, since every release carries a
+different tag and a per-ref group would let two releases publish *concurrently*
+â€” the exact collision it prevents. It must also stay different from `test.yml`'s
+group: identical groups in a caller and the workflow it calls make the called
+run cancel the run that started it.
+
 `.dev/` is gitignored, but a fresh clone is no longer empty: `tests/seed.php`
 carries the demo data and `tests/mu-plugins/mailpit.php` the mail routing, both
 committed and both excluded from the release zip by `.distignore`. wp-env's
