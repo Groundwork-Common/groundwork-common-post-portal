@@ -40,6 +40,21 @@ on:
   pull_request:
   workflow_dispatch:
 
+  # ── Called by deploy.yml before it publishes ────────────────────────────────
+  # A release fires on a tag, and none of the triggers above match a tag, so
+  # until this existed nothing here had run against the exact commit being
+  # published. deploy.yml now calls this file rather than carrying its own copy
+  # of the suite — two copies of a five-job matrix is precisely the drift the
+  # rest of this repository goes out of its way to avoid.
+  #
+  # Note what this means for the `integration` job below: when called, the
+  # github context is the caller's, so `github.event_name` is `release` (or
+  # `workflow_dispatch`) rather than `push`, and the condition there lets
+  # integration run. A release therefore gets the full suite, including the
+  # wp-env scripts that ordinary branch pushes skip. That is the intent — it is
+  # the last chance to catch anything before it reaches WordPress.org.
+  workflow_call:
+
 permissions:
   contents: read
 

@@ -55,35 +55,67 @@ in step, or the editor throws an error that looks like a WordPress bug.
 
 ## Verifying a change
 
-```bash
-curl -sLO https://phar.phpunit.de/phpunit-11.phar
-php phpunit-11.phar
+Composer owns the tooling. One command runs everything CI runs, in the order a
+failure is cheapest to read:
 
-npx @wordpress/env start
-npx @wordpress/env run cli wp eval-file \
-  wp-content/plugins/groundwork-common-post-portal/tests/integration/access.php
-# also phase2.php and phase3.php
+```bash
+composer install && composer run check
 ```
 
-**There is no test CI.** `.github/workflows/` holds only `deploy.yml`. No lint
-job, no unit job, no integration job, no 7.4 check — the floor in the header is
-asserted and never verified. The only automated gate is the tag-versus-header
-check inside `deploy.yml`, which runs on a published Release. **Nothing on push
-will catch you. Run the phar and all three integration scripts by hand.**
+That is `lint` (PHPCS against `phpcs.xml.dist`), then `compat` (PHPCompatibilityWP
+against the 7.4 floor), then `test` (PHPUnit). The unit suite needs no database
+and no WordPress checkout — `tests/bootstrap.php` stubs the WordPress surface —
+and finishes in well under a second. Do not download a PHPUnit phar; the pinned
+one comes from `composer.lock`, which is committed so a CI run and a local run
+install the same sniffs.
 
-`.dev/` is gitignored, so a fresh clone has no seed data and no way to read a
-sign-in link until you recreate it from the README recipe. wp-env's default
-`wordpress@localhost` From address has no TLD, so PHPMailer rejects it and
-`wp_mail()` returns false before anything is sent — that is why a mail catcher is
-part of the setup.
+The integration scripts need a running WordPress, and there are **four**, not
+three:
 
-There is no phpcs ruleset and no Composer here, despite the `phpcs:ignore`
-annotations. Never add one without a `--` reason.
+```bash
+npx @wordpress/env start
+npx @wordpress/env run tests-cli wp eval-file \
+  wp-content/plugins/groundwork-common-post-portal/tests/integration/access.php
+# also phase2.php, phase3.php and queue-scale.php
+```
+
+**There is test CI, and it is green.** `.github/workflows/test.yml` runs on every
+push to `main`, every pull request, and on demand: `unit` across PHP 8.2/8.3/8.4,
+`compat` reading the floor out of the plugin header, `standards` running PHPCS,
+and `integration` under wp-env against both WordPress versions read out of
+`readme.txt` — so "Requires at least" and "Tested up to" are claims CI enforces
+rather than numbers somebody typed once. Read that file's header comments before
+changing it; they explain why the unit matrix does not start at 7.4.
+
+Integration is skipped on pushes to branches other than `main` — minutes rather
+than milliseconds — so a green check on a work-in-progress branch has not run it.
+
+**`deploy.yml` is gated on it.** `test.yml` also carries a `workflow_call`
+trigger, and `deploy.yml`'s `deploy` job `needs` a `test` job that calls it, so
+publishing to WordPress.org runs the whole suite against the tag first and a red
+run publishes nothing. Because the called workflow sees the *caller's* event, the
+integration job's `github.event_name != 'push'` condition is true on a release —
+so a release runs the wp-env scripts that ordinary branch pushes skip. Do not
+give `test.yml` inputs or secrets without checking the call site in `deploy.yml`.
+
+`.dev/` is gitignored, but a fresh clone is no longer empty: `tests/seed.php`
+carries the demo data and `tests/mu-plugins/mailpit.php` the mail routing, both
+committed and both excluded from the release zip by `.distignore`. wp-env's
+default `wordpress@localhost` From address has no TLD, so PHPMailer rejects it
+and `wp_mail()` returns false before anything is sent — that is why a mail
+catcher is part of the setup, locally and in CI alike.
+
+`phpcs.xml.dist` is WordPress-Extra plus WordPress-Docs, which is what a
+directory reviewer runs. Exactly one rule is off wholesale, at the bottom, with
+its reason; everything else that complains carries a line-level `phpcs:ignore`
+with a written justification. Keep it that way — a ruleset-wide severity 0
+produces a green run that proves nothing.
 
 ## Check your branch
 
-The working tree has been sitting on **`phase-3-lifecycle`, not `main`**, with
-unmerged work. Confirm the intended branch before committing anything.
+`phase-2-approval-and-rich-fields` and `phase-3-lifecycle` are both fully merged
+into `main` now and carry nothing unmerged, but both branches still exist locally
+and on the remote. Confirm the intended branch before committing anything.
 
 ## Traps that have already cost time
 
