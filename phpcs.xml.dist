@@ -2,19 +2,59 @@
 <ruleset name="Groundwork Common Post Portal">
 
 	<description>
-		WordPress-Extra plus WordPress-Docs, which is what a WordPress.org
-		reviewer runs — so the same output is available here before they see it.
-		The codebase satisfies it: `composer lint` is clean.
+		WordPress plus WordPress-Docs, which is what a WordPress.org reviewer
+		runs — so the same output is available here before they see it. The
+		codebase satisfies it: `composer lint` is clean.
 
-		Getting there meant taking the sniffs seriously rather than switching off
+		── Why the full standard and not WordPress-Extra ────────────────────
+
+		This read `WordPress-Extra` for most of its life, on the assumption that
+		it was the same thing. It is not. Two sniffs live only in the full
+		`WordPress` standard: WordPress.DB.SlowDBQuery, and
+		WordPress.Security.ValidatedSanitizedInput — which is the sniff that
+		catches superglobal input reaching code without being sanitized.
+
+		Of all three Groundwork Common plugins this is the one that could least
+		afford to have it switched off. This is the plugin with public front-end
+		form handling, file uploads out of the webroot, and sign-in links where
+		possession of the link *is* the authentication.
+
+		Switching it on reported five findings, all ValidatedSanitizedInput and
+		none of them exploitable — but three of the five were lines that already
+		carried a phpcs:ignore naming this exact sniff. Those annotations had
+		never suppressed anything, so they had never been tested, and every one
+		of them was on the wrong line: `phpcs:ignore` covers its own line and the
+		next, and each violation was reported on the *third* line of a multi-line
+		ternary. They now sit on the line they excuse. See the note in
+		inc/auth.php for the one that got a code change instead.
+
+		It also armed twelve annotations that were decoration until now — the
+		SlowDBQuery ones in access.php, auth.php, changeset.php, field-media.php,
+		meta-box.php and org-cpt.php, plus the ValidatedSanitizedInput ones in
+		field-media.php and portal.php, which is to say the upload path and the
+		front-end POST dispatcher.
+
+		── On the annotations ───────────────────────────────────────────────
+
+		Getting green meant taking the sniffs seriously rather than switching off
 		the ones that complained. The first pass reported 503 findings and it was
 		tempting to silence half a dozen rules wholesale; that produces a green
 		run which proves nothing. Instead the formatting was fixed (268 of them
 		by phpcbf), the block comments were reflowed, and the rules that really
 		are wrong for one line each carry a phpcs:ignore *on that line* saying
-		why. There are around seventy of those, each with a written
+		why. There are around fifty-five of those, each with a written
 		justification, and they are reviewable in a way a ruleset-wide severity 0
 		is not.
+
+		Fifteen more were deleted, having been checked one at a time by
+		neutralising each and re-linting: they suppressed nothing. Twelve sat on
+		nonce lines explaining that the nonce is verified just below, which WPCS
+		already understands; three sat on $query->set( 'meta_query', ... ) calls,
+		which SlowDBQuery does not read because it only inspects array literals.
+		Their prose was kept as ordinary comments. A stale ignore on a security
+		line is not inert — it suppresses nothing today, but it reads as "a sniff
+		is watching this", and it would silence the warning for real if the check
+		above it were ever moved or removed.
 
 		Exactly one rule is off wholesale, at the bottom, with its reason.
 	</description>
@@ -51,7 +91,7 @@
 	<arg name="parallel" value="8"/>
 	<arg value="ps"/>
 
-	<rule ref="WordPress-Extra"/>
+	<rule ref="WordPress"/>
 	<rule ref="WordPress-Docs"/>
 
 	<!--

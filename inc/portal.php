@@ -184,7 +184,7 @@ function gwcpp_guard_post( string $nonce_field, string $action ): int {
 	}
 
 	$user_id = get_current_user_id();
-	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- The nonce is verified below, against this same value.
+	// The nonce is verified below, against this same value.
 	$post_id = isset( $_POST['gwcpp_post_id'] ) ? (int) $_POST['gwcpp_post_id'] : 0;
 
 	if ( ! gwcpp_user_can_edit_post( $user_id, $post_id ) ) {
@@ -321,7 +321,7 @@ function gwcpp_handle_create(): void {
 	}
 
 	$user_id = get_current_user_id();
-	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified immediately below against this same value.
+	// Verified immediately below against this same value.
 	$post_type = isset( $_POST['gwcpp_post_type'] ) ? sanitize_key( wp_unslash( $_POST['gwcpp_post_type'] ) ) : '';
 
 	if (

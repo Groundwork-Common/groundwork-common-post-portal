@@ -209,7 +209,7 @@ function gwcpp_render_queue_actions( int $post_id ): void {
 function gwcpp_queue_guard( string $action ): int {
 	gwcpp_require_admin_caps();
 
-	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified immediately below against this same value.
+	// Verified immediately below against this same value.
 	$post_id = isset( $_POST['post'] ) ? (int) $_POST['post'] : 0;
 
 	check_admin_referer( $action . $post_id );

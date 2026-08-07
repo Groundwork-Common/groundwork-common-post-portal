@@ -169,6 +169,12 @@ function gwcpp_review_filter_dropdown(): void {
  * here to "past expiry" and left exact in the column, which is the honest
  * trade: the list is a superset a human then reads.
  *
+ * The $query->set() calls below carry no phpcs:ignore, unlike the meta_query in
+ * inc/access.php. WordPress.DB.SlowDBQuery reads array literals and does not
+ * look at what is passed to a method, so there is nothing here for it to report
+ * — and an annotation that suppresses nothing is worse than none, because it
+ * still reads as "a sniff is watching this line".
+ *
  * @param WP_Query $query The query.
  */
 function gwcpp_review_filter_query( $query ): void {
@@ -204,7 +210,7 @@ function gwcpp_review_filter_query( $query ): void {
 			'key'     => GWCPP_REVIEW_EXEMPT_META,
 			'compare' => 'EXISTS',
 		);
-		$query->set( 'meta_query', $meta ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- An admin list filter is unavoidably a meta query.
+		$query->set( 'meta_query', $meta );
 		return;
 	}
 
@@ -218,7 +224,7 @@ function gwcpp_review_filter_query( $query ): void {
 			'key'     => GWCPP_AUTO_EXPIRED_META,
 			'compare' => 'EXISTS',
 		);
-		$query->set( 'meta_query', $meta ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- As above.
+		$query->set( 'meta_query', $meta );
 		return;
 	}
 
@@ -245,7 +251,7 @@ function gwcpp_review_filter_query( $query ): void {
 		),
 	);
 
-	$query->set( 'meta_query', $meta ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- As above.
+	$query->set( 'meta_query', $meta );
 }
 
 /* ── On the post itself ──────────────────────────────────────────────────── */

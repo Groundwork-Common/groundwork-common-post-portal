@@ -491,10 +491,11 @@ function gwcpp_handle_save_field(): void {
 
 	$post_type = gwcpp_handler_post_type();
 
-	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Sanitized in full by gwcpp_sanitize_field().
-	$raw = isset( $_POST['gwcpp_field'] ) && is_array( $_POST['gwcpp_field'] )
-		? (array) wp_unslash( $_POST['gwcpp_field'] )
-		: array();
+	$raw = array();
+	if ( isset( $_POST['gwcpp_field'] ) && is_array( $_POST['gwcpp_field'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- An array cannot go through a scalar sanitizer; gwcpp_sanitize_field() below is an allow-list that sanitizes every leaf and drops everything it does not name.
+		$raw = (array) wp_unslash( $_POST['gwcpp_field'] );
+	}
 
 	/*
 	 * A synthetic shortcut button submits only the key. Fill in what that key
@@ -523,7 +524,7 @@ function gwcpp_handle_save_field(): void {
 function gwcpp_handle_retire_field(): void {
 	gwcpp_require_admin_caps();
 
-	// phpcs:ignore WordPress.Security.NonceVerification -- Verified immediately below against this same value.
+	// Verified immediately below against this same value.
 	$key = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
 
 	check_admin_referer( 'gwcpp_retire_field_' . $key );
@@ -543,10 +544,11 @@ function gwcpp_handle_reorder_fields(): void {
 
 	$post_type = gwcpp_handler_post_type();
 
-	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Keys and values are both cast below.
-	$raw = isset( $_POST['gwcpp_order'] ) && is_array( $_POST['gwcpp_order'] )
-		? (array) wp_unslash( $_POST['gwcpp_order'] )
-		: array();
+	$raw = array();
+	if ( isset( $_POST['gwcpp_order'] ) && is_array( $_POST['gwcpp_order'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- An array cannot go through a scalar sanitizer; every key and every value is cast in the loop below.
+		$raw = (array) wp_unslash( $_POST['gwcpp_order'] );
+	}
 
 	$positions = array();
 	foreach ( $raw as $key => $position ) {
