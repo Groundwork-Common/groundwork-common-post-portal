@@ -27,3 +27,11 @@ vendor
 node_modules
 README.md
 .DS_Store
+
+# Working notes and tooling. These are tracked in git because they belong to the
+# repository, and excluded here because they belong to nobody who installs the
+# plugin. bin/ especially: the beta deploy script carries an SSH login, and this
+# file is the only thing standing between it and a public zip on wordpress.org.
+CLAUDE.md
+.claude
+bin

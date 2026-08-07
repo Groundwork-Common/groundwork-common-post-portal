@@ -127,6 +127,51 @@ produces a green run that proves nothing.
 into `main` now and carry nothing unmerged, but both branches still exist locally
 and on the remote. Confirm the intended branch before committing anything.
 
+**And before deploying.** This has now cost time once: a working tree left on
+`phase-3-lifecycle` was deployed to the beta site and seeded from `.dev/seed.php`,
+a path that no longer exists on `main` — 69 files and some nine thousand lines
+behind, with no complaint from anything, because the deploy script deliberately
+ships whatever is checked out. A stale branch here looks exactly like a working
+one until somebody notices the demo is missing a feature they merged weeks ago.
+
+## The beta site
+
+<https://wp.beta.poo6op.com> is a shared demo install carrying **all three**
+Groundwork Common plugins, seeded as one organisation.
+`bin/deploy-staging.sh` rsyncs the working tree there — current branch and
+uncommitted edits included by design — using `.distignore` as the manifest, then
+activates. `--dry-run` first if in doubt. README.md has the full account.
+
+- **The target is not in the repo, and must not be put there.** The script reads
+  `SSH_HOST`, `DEST_ROOT` and `SITE_URL` from
+  `~/.config/groundwork-common/beta.env` (override with `GWC_BETA_ENV`) and stops
+  with instructions if that file is missing. An SSH user and host are not a
+  credential, but together they name a valid account on a public host — the half
+  of a break-in that is usually the work. Do not "simplify" this back to a
+  literal: these repos being private is a setting that reverses in one click, and
+  `.distignore` covers the release zip, not the repository.
+
+- **Production shares the SSH login.** `groundworkcommon.com`, a live nonprofit
+  site, sits in the same home directory on the same user. A wrong destination
+  path does not fail, it succeeds against production. The script refuses to run
+  unless it finds a beta-only mu-plugin at the target — do not remove that check
+  to make a one-off deploy easier.
+- **Mail is trapped, not routed to Mailpit.** There is no sink on that host; an
+  mu-plugin intercepts `wp_mail()` at `pre_wp_mail` and stores the message, read
+  under Tools → Trapped mail. It hooks `pre_wp_mail` rather than `phpmailer_init`
+  because the latter can only redirect a send, not stop it — and a PHPMailer
+  throw makes `wp_mail()` return false, which this plugin treats as "the rung was
+  not delivered" and walks again on the next pass.
+- **The trap holds live credentials.** A sign-in link *is* the authentication
+  here, so anyone who can read that screen can sign in as any seeded owner. It is
+  behind `manage_options`, and it is acceptable only because every record on that
+  box is invented. Never point this at a site with a real owner on it.
+- WP-CLI there costs ~30s per invocation. Batch into one `wp eval-file` rather
+  than chaining `wp` calls, or a routine step blows a two-minute timeout.
+
+`tests/` is in `.distignore`, so `tests/seed.php` is **not** deployed with the
+plugin. Copy it up and run it by absolute path.
+
 ## Traps that have already cost time
 
 - **The portal page ID is pinned, never resolved by slug.** Every sign-in link

@@ -388,6 +388,39 @@ existing entry unsavable — its owner opens the form, changes a phone number, a
 is told they cannot save because of a word in a field they never touched. The
 original hit exactly this, with an organisation whose real name matched.
 
+## The beta site
+
+<https://wp.beta.poo6op.com> is a shared demo and beta install carrying **all three** Groundwork Common plugins — this one, the volunteer tracker and the location finder — seeded as one organisation rather than three unrelated demos. It is where a change is looked at in a browser on real hosting before it is merged.
+
+```bash
+bin/deploy-staging.sh              # deploy the working tree, then activate
+bin/deploy-staging.sh --dry-run    # show what would change, send nothing
+```
+
+It deploys **whatever is checked out right now**, branch and uncommitted edits included; waiting for `main` would defeat the purpose. Which makes the warning in `CLAUDE.md` about `phase-2-approval-and-rich-fields` and `phase-3-lifecycle` sharper than it was — both are fully merged and both still exist locally, and deploying from one of them puts a stale build on the beta site without a word of complaint. **Check the branch before deploying, not just before committing.**
+
+Once per machine, tell it where the site is. The target is **not** in the repository and is not going into it: an SSH user and host are not a credential, but together they name a valid account on a specific public host — the half of a break-in that is normally the work. These repos are private, and "private today" is a weaker promise than "never committed", because the setting reverses in one click and history outlives it. Note too that `.distignore` keeps this script out of the release *zip* and does nothing about the *repository* — two different exposures. So the target lives in one file outside every repo, shared by all three plugins because it is one beta site:
+
+```bash
+mkdir -p ~/.config/groundwork-common && cat > ~/.config/groundwork-common/beta.env <<'CONF'
+SSH_HOST=user@host.dreamhost.com
+DEST_ROOT=wp.beta.example.com
+SITE_URL=https://wp.beta.example.com
+CONF
+```
+
+Without it the script stops and prints exactly that, rather than falling back to a default. Set `GWC_BETA_ENV` to keep the file elsewhere.
+
+What gets sent is `.distignore`, the same file `wp dist-archive` reads, so what lands there is what a user would install. `tests/` is therefore not deployed — to reseed, copy `tests/seed.php` up and run it by absolute path with `wp eval-file`.
+
+Three things about that host are worth knowing before working on it:
+
+- **Production shares the login.** `groundworkcommon.com` — a live nonprofit site — is in the same home directory on the same SSH user. A wrong destination path does not fail, it succeeds against production. The script refuses to run unless it finds a beta-only mu-plugin at the target, so a typo stops the run rather than redecorating a live site.
+- **`WP_ENVIRONMENT_TYPE` is `development`, not `staging`.** The sibling plugins' seed scripts refuse to run outside `local` and `development`. Everything else keying off `wp_get_environment_type()` relaxes there too, which is exactly why no real record may live on it.
+- **Mail is trapped, not routed.** Mailpit is the *local* answer described above and there is no sink on that host. Instead an mu-plugin intercepts `wp_mail()` at `pre_wp_mail` and stores the message; read it under **Tools → Trapped mail**. That screen is behind `manage_options`, which matters here more than for the sibling plugins: a sign-in link is a credential, and the whole design of this plugin is that possession of the link *is* the authentication. Anyone who can read the trap can sign in as any seeded owner — which is acceptable on a box whose every record is invented, and would not be anywhere else.
+
+WP-CLI on that shared host takes roughly thirty seconds per invocation, because it bootstraps WordPress each time. Batch work into one `wp eval-file` rather than chaining several `wp` calls.
+
 ## Still to come
 
 Nothing planned. The three phases in the original plan have all landed.
