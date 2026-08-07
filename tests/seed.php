@@ -81,13 +81,21 @@ function gwcpp_seed_post( string $post_type, string $title, string $status = 'pu
 
 /* ── Tear down the previous run ──────────────────────────────────────────── */
 
+/* Every registered type by name, not the string 'any'.
+ *
+ * `post_type => 'any'` looks like "no filter" and is not: WP_Query expands it to
+ * the registered types whose `exclude_from_search` is false. GWCPP_ORG_TYPE sets
+ * `exclude_from_search => true` — as a private type should — so the teardown
+ * could not see the organisations it had just created, and every re-run left the
+ * previous lot behind. Three runs, nine organisations, each with the same name.
+ * The marker was doing its job; the query was never asking about those rows. */
 $old = get_posts(
 	array(
-		'post_type'   => 'any',
-		'post_status' => 'any',
-		'numberposts' => 3000,
-		'fields'      => 'ids',
-		'meta_key'    => $marker, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One-off dev seeding.
+		'post_type'    => array_values( get_post_types( array(), 'names' ) ),
+		'post_status'  => 'any',
+		'numberposts'  => 3000,
+		'fields'       => 'ids',
+		'meta_key'     => $marker, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One-off dev seeding.
 		'meta_compare' => 'EXISTS',
 	)
 );
