@@ -115,11 +115,31 @@ default `wordpress@localhost` From address has no TLD, so PHPMailer rejects it
 and `wp_mail()` returns false before anything is sent — that is why a mail
 catcher is part of the setup, locally and in CI alike.
 
-`phpcs.xml.dist` is WordPress-Extra plus WordPress-Docs, which is what a
-directory reviewer runs. Exactly one rule is off wholesale, at the bottom, with
-its reason; everything else that complains carries a line-level `phpcs:ignore`
-with a written justification. Keep it that way — a ruleset-wide severity 0
-produces a green run that proves nothing.
+`phpcs.xml.dist` is `WordPress` plus WordPress-Docs, which is what a directory
+reviewer runs. Exactly one rule is off wholesale, at the bottom, with its reason;
+everything else that complains carries a line-level `phpcs:ignore` with a written
+justification. Keep it that way — a ruleset-wide severity 0 produces a green run
+that proves nothing.
+
+**It must stay `WordPress` and not `WordPress-Extra`.** They are not the same
+standard, and the two sniffs in the difference are `WordPress.DB.SlowDBQuery` and
+`WordPress.Security.ValidatedSanitizedInput` — the second being the one that
+catches unsanitized superglobal input, which in the plugin with the public forms,
+the uploads and the sign-in links is the last one to give up. This file did read
+`WordPress-Extra` for most of its life; the ruleset's own description records
+what turning it on found.
+
+Two things follow for `phpcs:ignore` comments here, both learned the hard way:
+
+- **A `phpcs:ignore` covers its own line and the next one only.** Three of these
+  sat above a multi-line ternary whose violation landed on the third line, so
+  they matched nothing. Put the annotation on the line that actually reports.
+- **An annotation for a sniff that is not running is indistinguishable from one
+  that works.** Before changing this ruleset, and periodically anyway, neutralise
+  each `phpcs:ignore` in turn, re-lint that file, and delete the ones that
+  suppress nothing — keeping their prose as a plain comment. That sweep removed
+  fifteen. A dead ignore on a security line is armed: it silences nothing today,
+  but it silences the real warning the day the check above it moves.
 
 ## Check your branch
 

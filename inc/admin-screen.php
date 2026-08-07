@@ -603,10 +603,11 @@ function gwcpp_handle_save_settings(): void {
 	gwcpp_require_admin_caps();
 	check_admin_referer( 'gwcpp_save_settings' );
 
-	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Every leaf is sanitized in gwcpp_sanitize_settings().
-	$raw = isset( $_POST['gwcpp_settings'] ) && is_array( $_POST['gwcpp_settings'] )
-		? (array) wp_unslash( $_POST['gwcpp_settings'] )
-		: array();
+	$raw = array();
+	if ( isset( $_POST['gwcpp_settings'] ) && is_array( $_POST['gwcpp_settings'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- An array cannot go through a scalar sanitizer; gwcpp_sanitize_settings() below builds its result from the stored option and writes only keys it names, each through sanitize_key/sanitize_email/sanitize_text_field/(int).
+		$raw = (array) wp_unslash( $_POST['gwcpp_settings'] );
+	}
 
 	$tab = isset( $_POST['tab'] ) ? sanitize_key( wp_unslash( $_POST['tab'] ) ) : 'general';
 	$tab = in_array( $tab, GWCPP_TABS, true ) ? $tab : 'general';
@@ -825,7 +826,7 @@ function gwcpp_colophon_is_collapsed(): bool {
  * script, all to avoid a reload nobody will notice.
  */
 function gwcpp_handle_colophon_toggle(): void {
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Presence check only; the nonce is verified below before anything is written.
+	// Presence check only; the nonce is verified below before anything is written.
 	if ( ! isset( $_GET['gwcpp_colophon'] ) ) {
 		return;
 	}
@@ -836,7 +837,7 @@ function gwcpp_handle_colophon_toggle(): void {
 
 	check_admin_referer( 'gwcpp_colophon' );
 
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified directly above.
+	// Verified directly above.
 	$wanted = sanitize_key( wp_unslash( $_GET['gwcpp_colophon'] ) );
 
 	if ( 'collapse' === $wanted ) {

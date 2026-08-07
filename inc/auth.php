@@ -829,11 +829,24 @@ function gwcpp_handle_link_request(): void {
 	 * A hidden field a person never sees and a bot fills in. Cheap, silent, and
 	 * it catches the overwhelming majority of automated submissions without
 	 * asking a human to prove anything.
+	 *
+	 * Read raw and deliberately so. This value is tested for emptiness and
+	 * nothing else — never stored, never echoed, never sent. Running it through
+	 * sanitize_text_field() would strip tags, so a bot that filled the trap with
+	 * markup alone would arrive here as an empty string and read as human, which
+	 * is the one outcome the trap exists to prevent.
 	 */
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Emptiness test only; see above. Sanitizing would defeat the trap.
 	$honeypot = isset( $_POST['gwcpp_website'] ) ? trim( (string) wp_unslash( $_POST['gwcpp_website'] ) ) : '';
 
+	/*
+	 * sanitize_email() wraps the superglobal directly rather than sitting
+	 * outside a trim(), so the sniff can see the sanitizer and keeps watching
+	 * this line. It strips whitespace itself; the outer trim() costs nothing and
+	 * holds whichever way that behaviour goes.
+	 */
 	$email = isset( $_POST['gwcpp_email'] )
-		? sanitize_email( trim( (string) wp_unslash( $_POST['gwcpp_email'] ) ) )
+		? trim( sanitize_email( wp_unslash( $_POST['gwcpp_email'] ) ) )
 		: '';
 
 	$wanted  = gwcpp_signin_worth_counting( $honeypot, $email );

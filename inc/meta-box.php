@@ -249,7 +249,7 @@ function gwcpp_render_members_meta_box( WP_Post $post ): void {
 
 	echo '</form>';
 
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display of an error the invite handler stored for this admin.
+	// Read-only display of an error the invite handler stored for this admin.
 	gwcpp_render_invite_error( $post->ID );
 }
 
@@ -405,7 +405,7 @@ function gwcpp_can_assign_org(): bool {
 function gwcpp_handle_invite(): void {
 	gwcpp_require_admin_caps();
 
-	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified immediately below against this same value.
+	// Verified immediately below against this same value.
 	$org_id = isset( $_POST['org'] ) ? (int) $_POST['org'] : 0;
 
 	check_admin_referer( 'gwcpp_invite_' . $org_id );
@@ -437,9 +437,9 @@ function gwcpp_handle_invite(): void {
 function gwcpp_handle_remove_member(): void {
 	gwcpp_require_admin_caps();
 
-	// phpcs:ignore WordPress.Security.NonceVerification -- Verified immediately below against these same values.
+	// Verified immediately below against these same values.
 	$org_id = isset( $_GET['org'] ) ? (int) $_GET['org'] : 0;
-	// phpcs:ignore WordPress.Security.NonceVerification -- As above.
+	// As above.
 	$user_id = isset( $_GET['user'] ) ? (int) $_GET['user'] : 0;
 
 	check_admin_referer( 'gwcpp_remove_member_' . $org_id . '_' . $user_id );
@@ -454,9 +454,9 @@ function gwcpp_handle_remove_member(): void {
 function gwcpp_handle_remove_editor(): void {
 	gwcpp_require_admin_caps();
 
-	// phpcs:ignore WordPress.Security.NonceVerification -- Verified immediately below against these same values.
+	// Verified immediately below against these same values.
 	$post_id = isset( $_GET['post'] ) ? (int) $_GET['post'] : 0;
-	// phpcs:ignore WordPress.Security.NonceVerification -- As above.
+	// As above.
 	$user_id = isset( $_GET['user'] ) ? (int) $_GET['user'] : 0;
 
 	check_admin_referer( 'gwcpp_remove_editor_' . $post_id . '_' . $user_id );
