@@ -7,10 +7,10 @@
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'admin_post_gwcpp_save_field', 'gwcpp_handle_save_field' );
-add_action( 'admin_post_gwcpp_retire_field', 'gwcpp_handle_retire_field' );
-add_action( 'admin_post_gwcpp_reorder_fields', 'gwcpp_handle_reorder_fields' );
-add_action( 'admin_post_gwcpp_import_fields', 'gwcpp_handle_import_fields' );
+add_action( 'admin_post_gwc_pp_save_field', 'gwc_pp_handle_save_field' );
+add_action( 'admin_post_gwc_pp_retire_field', 'gwc_pp_handle_retire_field' );
+add_action( 'admin_post_gwc_pp_reorder_fields', 'gwc_pp_handle_reorder_fields' );
+add_action( 'admin_post_gwc_pp_import_fields', 'gwc_pp_handle_import_fields' );
 
 /**
  * Which post type the screen is showing.
@@ -20,11 +20,11 @@ add_action( 'admin_post_gwcpp_import_fields', 'gwcpp_handle_import_fields' );
  *
  * @return string
  */
-function gwcpp_fields_post_type(): string {
-	$enabled = gwcpp_post_types();
+function gwc_pp_fields_post_type(): string {
+	$enabled = gwc_pp_post_types();
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selection on a GET request, validated against the enabled list.
-	$requested = isset( $_GET['gwcpp_type'] ) ? sanitize_key( wp_unslash( $_GET['gwcpp_type'] ) ) : '';
+	$requested = isset( $_GET['gwc_pp_type'] ) ? sanitize_key( wp_unslash( $_GET['gwc_pp_type'] ) ) : '';
 
 	if ( '' !== $requested && in_array( $requested, $enabled, true ) ) {
 		return $requested;
@@ -36,10 +36,10 @@ function gwcpp_fields_post_type(): string {
 /**
  * The Fields screen.
  */
-function gwcpp_render_fields_tab(): void {
-	gwcpp_require_admin_caps();
+function gwc_pp_render_fields_tab(): void {
+	gwc_pp_require_admin_caps();
 
-	$post_type = gwcpp_fields_post_type();
+	$post_type = gwc_pp_fields_post_type();
 
 	if ( '' === $post_type ) {
 		printf(
@@ -49,7 +49,7 @@ function gwcpp_render_fields_tab(): void {
 		return;
 	}
 
-	gwcpp_render_type_switcher( $post_type );
+	gwc_pp_render_type_switcher( $post_type );
 
 	printf(
 		'<p class="description">%s</p>',
@@ -57,8 +57,8 @@ function gwcpp_render_fields_tab(): void {
 	);
 
 	echo '<div class="gwcpp-fields-layout">';
-	gwcpp_render_field_table( $post_type );
-	gwcpp_render_field_editor( $post_type );
+	gwc_pp_render_field_table( $post_type );
+	gwc_pp_render_field_editor( $post_type );
 	echo '</div>';
 }
 
@@ -71,11 +71,11 @@ function gwcpp_render_fields_tab(): void {
  * @param array<string, string> $args Extra query arguments.
  * @return string
  */
-function gwcpp_fields_url( array $args = array() ): string {
+function gwc_pp_fields_url( array $args = array() ): string {
 	return add_query_arg(
 		array_merge(
 			array(
-				'page' => GWCPP_MENU_SLUG,
+				'page' => GWC_PP_MENU_SLUG,
 				'tab'  => 'fields',
 			),
 			$args
@@ -89,8 +89,8 @@ function gwcpp_fields_url( array $args = array() ): string {
  *
  * @param string $current Current post type.
  */
-function gwcpp_render_type_switcher( string $current ): void {
-	$enabled = gwcpp_post_types();
+function gwc_pp_render_type_switcher( string $current ): void {
+	$enabled = gwc_pp_post_types();
 
 	if ( count( $enabled ) < 2 ) {
 		$object = get_post_type_object( $current );
@@ -108,7 +108,7 @@ function gwcpp_render_type_switcher( string $current ): void {
 		}
 		printf(
 			'<a href="%s" class="nav-tab%s">%s</a>',
-			esc_url( gwcpp_fields_url( array( 'gwcpp_type' => $post_type ) ) ),
+			esc_url( gwc_pp_fields_url( array( 'gwc_pp_type' => $post_type ) ) ),
 			$post_type === $current ? ' nav-tab-active' : '',
 			esc_html( $object->labels->name )
 		);
@@ -121,8 +121,8 @@ function gwcpp_render_type_switcher( string $current ): void {
  *
  * @param string $post_type Post type slug.
  */
-function gwcpp_render_field_table( string $post_type ): void {
-	$fields = gwcpp_type_fields( $post_type );
+function gwc_pp_render_field_table( string $post_type ): void {
+	$fields = gwc_pp_type_fields( $post_type );
 
 	echo '<div class="gwcpp-fields-list">';
 
@@ -133,15 +133,15 @@ function gwcpp_render_field_table( string $post_type ): void {
 			'<p>%s</p>',
 			esc_html__( 'Add fields on the right, or import whatever this post type has already registered.', 'groundwork-common-post-portal' )
 		);
-		gwcpp_render_import_form( $post_type );
+		gwc_pp_render_import_form( $post_type );
 		echo '</div></div>';
 		return;
 	}
 
 	echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-	wp_nonce_field( 'gwcpp_reorder_fields' );
-	echo '<input type="hidden" name="action" value="gwcpp_reorder_fields" />';
-	printf( '<input type="hidden" name="gwcpp_type" value="%s" />', esc_attr( $post_type ) );
+	wp_nonce_field( 'gwc_pp_reorder_fields' );
+	echo '<input type="hidden" name="action" value="gwc_pp_reorder_fields" />';
+	printf( '<input type="hidden" name="gwc_pp_type" value="%s" />', esc_attr( $post_type ) );
 
 	echo '<table class="widefat striped"><thead><tr>';
 	printf( '<th scope="col" class="gwcpp-col-order">%s</th>', esc_html__( 'Order', 'groundwork-common-post-portal' ) );
@@ -152,7 +152,7 @@ function gwcpp_render_field_table( string $post_type ): void {
 	echo '<th scope="col"><span class="screen-reader-text">' . esc_html__( 'Actions', 'groundwork-common-post-portal' ) . '</span></th>';
 	echo '</tr></thead><tbody>';
 
-	$types = gwcpp_field_types();
+	$types = gwc_pp_field_types();
 
 	foreach ( $fields as $i => $field ) {
 		$key = (string) $field['key'];
@@ -165,19 +165,19 @@ function gwcpp_render_field_table( string $post_type ): void {
 		 * eleven page loads; typing the positions and saving once is one.
 		 */
 		printf(
-			'<td><label class="screen-reader-text" for="gwcpp-order-%1$s">%2$s</label><input type="number" id="gwcpp-order-%1$s" name="gwcpp_order[%1$s]" value="%3$d" min="1" class="small-text" /></td>',
+			'<td><label class="screen-reader-text" for="gwcpp-order-%1$s">%2$s</label><input type="number" id="gwcpp-order-%1$s" name="gwc_pp_order[%1$s]" value="%3$d" min="1" class="small-text" /></td>',
 			esc_attr( $key ),
 			esc_html__( 'Position', 'groundwork-common-post-portal' ),
 			(int) $i + 1
 		);
 
-		printf( '<td><strong>%s</strong>', esc_html( gwcpp_field_label( $field ) ) );
+		printf( '<td><strong>%s</strong>', esc_html( gwc_pp_field_label( $field ) ) );
 		if ( '' !== (string) $field['description'] ) {
 			printf( '<br /><span class="description">%s</span>', esc_html( (string) $field['description'] ) );
 		}
 		echo '</td>';
 
-		if ( gwcpp_is_synthetic( $key ) ) {
+		if ( gwc_pp_is_synthetic( $key ) ) {
 			printf(
 				'<td><span class="gwcpp-pill">%s</span></td>',
 				esc_html__( 'built in', 'groundwork-common-post-portal' )
@@ -193,10 +193,10 @@ function gwcpp_render_field_table( string $post_type ): void {
 		printf(
 			'<a href="%s">%s</a>',
 			esc_url(
-				gwcpp_fields_url(
+				gwc_pp_fields_url(
 					array(
-						'gwcpp_type' => $post_type,
-						'edit'       => $key,
+						'gwc_pp_type' => $post_type,
+						'edit'        => $key,
 					)
 				)
 			),
@@ -208,9 +208,9 @@ function gwcpp_render_field_table( string $post_type ): void {
 			esc_url(
 				wp_nonce_url(
 					admin_url(
-						'admin-post.php?action=gwcpp_retire_field&gwcpp_type=' . rawurlencode( $post_type ) . '&key=' . rawurlencode( $key )
+						'admin-post.php?action=gwc_pp_retire_field&gwc_pp_type=' . rawurlencode( $post_type ) . '&key=' . rawurlencode( $key )
 					),
-					'gwcpp_retire_field_' . $key
+					'gwc_pp_retire_field_' . $key
 				)
 			),
 			esc_html__( 'Remove', 'groundwork-common-post-portal' )
@@ -224,7 +224,7 @@ function gwcpp_render_field_table( string $post_type ): void {
 
 	echo '</form>';
 
-	gwcpp_render_import_form( $post_type );
+	gwc_pp_render_import_form( $post_type );
 
 	echo '</div>';
 }
@@ -234,11 +234,11 @@ function gwcpp_render_field_table( string $post_type ): void {
  *
  * @param string $post_type Post type slug.
  */
-function gwcpp_render_import_form( string $post_type ): void {
+function gwc_pp_render_import_form( string $post_type ): void {
 	echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="gwcpp-import">';
-	wp_nonce_field( 'gwcpp_import_fields' );
-	echo '<input type="hidden" name="action" value="gwcpp_import_fields" />';
-	printf( '<input type="hidden" name="gwcpp_type" value="%s" />', esc_attr( $post_type ) );
+	wp_nonce_field( 'gwc_pp_import_fields' );
+	echo '<input type="hidden" name="action" value="gwc_pp_import_fields" />';
+	printf( '<input type="hidden" name="gwc_pp_type" value="%s" />', esc_attr( $post_type ) );
 	printf(
 		'<button type="submit" class="button">%s</button> <span class="description">%s</span>',
 		esc_html__( 'Import fields already registered', 'groundwork-common-post-portal' ),
@@ -252,17 +252,17 @@ function gwcpp_render_import_form( string $post_type ): void {
  *
  * @param string $post_type Post type slug.
  */
-function gwcpp_render_field_editor( string $post_type ): void {
+function gwc_pp_render_field_editor( string $post_type ): void {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only; picks which field to prefill the form with.
 	$edit_key = isset( $_GET['edit'] ) ? sanitize_text_field( wp_unslash( $_GET['edit'] ) ) : '';
 
-	$field = '' !== $edit_key ? gwcpp_find_field( $post_type, $edit_key ) : null;
+	$field = '' !== $edit_key ? gwc_pp_find_field( $post_type, $edit_key ) : null;
 	if ( null === $field ) {
-		$field    = gwcpp_field_defaults();
+		$field    = gwc_pp_field_defaults();
 		$edit_key = '';
 	}
 
-	$is_synthetic = '' !== $edit_key && gwcpp_is_synthetic( $edit_key );
+	$is_synthetic = '' !== $edit_key && gwc_pp_is_synthetic( $edit_key );
 
 	echo '<div class="gwcpp-field-editor postbox"><div class="inside">';
 
@@ -272,19 +272,19 @@ function gwcpp_render_field_editor( string $post_type ): void {
 	);
 
 	echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-	wp_nonce_field( 'gwcpp_save_field' );
-	echo '<input type="hidden" name="action" value="gwcpp_save_field" />';
-	printf( '<input type="hidden" name="gwcpp_type" value="%s" />', esc_attr( $post_type ) );
+	wp_nonce_field( 'gwc_pp_save_field' );
+	echo '<input type="hidden" name="action" value="gwc_pp_save_field" />';
+	printf( '<input type="hidden" name="gwc_pp_type" value="%s" />', esc_attr( $post_type ) );
 
 	// What to store it as.
 	echo '<p class="gwcpp-schema-setting">';
 	printf( '<label for="gwcpp-field-key">%s</label>', esc_html__( 'Stored as', 'groundwork-common-post-portal' ) );
 
 	if ( $is_synthetic ) {
-		printf( '<input type="hidden" name="gwcpp_field[key]" value="%s" />', esc_attr( $edit_key ) );
+		printf( '<input type="hidden" name="gwc_pp_field[key]" value="%s" />', esc_attr( $edit_key ) );
 		printf(
 			'<input type="text" id="gwcpp-field-key" value="%s" class="regular-text" disabled />',
-			esc_attr( gwcpp_synthetic_fields()[ $edit_key ]['label'] )
+			esc_attr( gwc_pp_synthetic_fields()[ $edit_key ]['label'] )
 		);
 		printf(
 			'<span class="description">%s</span>',
@@ -292,7 +292,7 @@ function gwcpp_render_field_editor( string $post_type ): void {
 		);
 	} else {
 		printf(
-			'<input type="text" id="gwcpp-field-key" name="gwcpp_field[key]" value="%s" class="regular-text" %s required />',
+			'<input type="text" id="gwcpp-field-key" name="gwc_pp_field[key]" value="%s" class="regular-text" %s required />',
 			esc_attr( (string) $field['key'] ),
 			'' !== $edit_key ? 'readonly' : ''
 		);
@@ -307,19 +307,19 @@ function gwcpp_render_field_editor( string $post_type ): void {
 
 	// Built-in fields not yet mapped.
 	if ( '' === $edit_key ) {
-		gwcpp_render_synthetic_shortcuts( $post_type );
+		gwc_pp_render_synthetic_shortcuts( $post_type );
 	}
 
 	// Label.
 	printf(
-		'<p class="gwcpp-schema-setting"><label for="gwcpp-field-label">%s</label><input type="text" id="gwcpp-field-label" name="gwcpp_field[label]" value="%s" class="regular-text" /></p>',
+		'<p class="gwcpp-schema-setting"><label for="gwcpp-field-label">%s</label><input type="text" id="gwcpp-field-label" name="gwc_pp_field[label]" value="%s" class="regular-text" /></p>',
 		esc_html__( 'Label', 'groundwork-common-post-portal' ),
 		esc_attr( (string) $field['label'] )
 	);
 
 	// Help text.
 	printf(
-		'<p class="gwcpp-schema-setting"><label for="gwcpp-field-desc">%s</label><input type="text" id="gwcpp-field-desc" name="gwcpp_field[description]" value="%s" class="regular-text" /><span class="description">%s</span></p>',
+		'<p class="gwcpp-schema-setting"><label for="gwcpp-field-desc">%s</label><input type="text" id="gwcpp-field-desc" name="gwc_pp_field[description]" value="%s" class="regular-text" /><span class="description">%s</span></p>',
 		esc_html__( 'Help text', 'groundwork-common-post-portal' ),
 		esc_attr( (string) $field['description'] ),
 		esc_html__( 'Shown above the control. Say what good input looks like, not what the field is called.', 'groundwork-common-post-portal' )
@@ -330,11 +330,11 @@ function gwcpp_render_field_editor( string $post_type ): void {
 	printf( '<label for="gwcpp-field-type">%s</label>', esc_html__( 'Type', 'groundwork-common-post-portal' ) );
 
 	if ( $is_synthetic ) {
-		printf( '<input type="hidden" name="gwcpp_field[type]" value="%s" />', esc_attr( (string) $field['type'] ) );
+		printf( '<input type="hidden" name="gwc_pp_field[type]" value="%s" />', esc_attr( (string) $field['type'] ) );
 		printf( '<code>%s</code>', esc_html( (string) $field['type'] ) );
 	} else {
-		echo '<select id="gwcpp-field-type" name="gwcpp_field[type]">';
-		foreach ( gwcpp_grouped_field_types() as $group => $types ) {
+		echo '<select id="gwcpp-field-type" name="gwc_pp_field[type]">';
+		foreach ( gwc_pp_grouped_field_types() as $group => $types ) {
 			printf( '<optgroup label="%s">', esc_attr( $group ) );
 			foreach ( $types as $slug => $label ) {
 				printf(
@@ -352,14 +352,14 @@ function gwcpp_render_field_editor( string $post_type ): void {
 
 	// Required.
 	printf(
-		'<p class="gwcpp-schema-setting"><label><input type="checkbox" name="gwcpp_field[required]" value="1"%s /> %s</label></p>',
+		'<p class="gwcpp-schema-setting"><label><input type="checkbox" name="gwc_pp_field[required]" value="1"%s /> %s</label></p>',
 		checked( ! empty( $field['required'] ), true, false ),
 		esc_html__( 'Must be filled in', 'groundwork-common-post-portal' )
 	);
 
 	// Per-type settings.
 	echo '<div class="gwcpp-type-settings">';
-	gwcpp_field_call( $field, 'schema_form', array( $field ) );
+	gwc_pp_field_call( $field, 'schema_form', array( $field ) );
 	echo '</div>';
 
 	printf(
@@ -372,7 +372,7 @@ function gwcpp_render_field_editor( string $post_type ): void {
 	if ( '' !== $edit_key ) {
 		printf(
 			'<a class="button-link" href="%s">%s</a>',
-			esc_url( gwcpp_fields_url( array( 'gwcpp_type' => $post_type ) ) ),
+			esc_url( gwc_pp_fields_url( array( 'gwc_pp_type' => $post_type ) ) ),
 			esc_html__( 'Cancel', 'groundwork-common-post-portal' )
 		);
 	}
@@ -390,11 +390,11 @@ function gwcpp_render_field_editor( string $post_type ): void {
  *
  * @param string $post_type Post type slug.
  */
-function gwcpp_render_synthetic_shortcuts( string $post_type ): void {
+function gwc_pp_render_synthetic_shortcuts( string $post_type ): void {
 	$available = array();
 
-	foreach ( gwcpp_synthetic_fields() as $key => $spec ) {
-		if ( null === gwcpp_find_field( $post_type, $key ) ) {
+	foreach ( gwc_pp_synthetic_fields() as $key => $spec ) {
+		if ( null === gwc_pp_find_field( $post_type, $key ) ) {
 			$available[ $key ] = $spec['label'];
 		}
 	}
@@ -410,7 +410,7 @@ function gwcpp_render_synthetic_shortcuts( string $post_type ): void {
 	$links = array();
 	foreach ( $available as $key => $label ) {
 		$links[] = sprintf(
-			'<button type="submit" class="button-link" name="gwcpp_field[key]" value="%s">%s</button>',
+			'<button type="submit" class="button-link" name="gwc_pp_field[key]" value="%s">%s</button>',
 			esc_attr( $key ),
 			esc_html( $label )
 		);
@@ -426,12 +426,12 @@ function gwcpp_render_synthetic_shortcuts( string $post_type ): void {
  *
  * @return array<string, array<string, string>>
  */
-function gwcpp_grouped_field_types(): array {
-	$groups = gwcpp_field_groups();
+function gwc_pp_grouped_field_types(): array {
+	$groups = gwc_pp_field_groups();
 	$out    = array();
 
-	foreach ( gwcpp_field_types() as $slug => $def ) {
-		if ( null === gwcpp_field_type( $slug ) ) {
+	foreach ( gwc_pp_field_types() as $slug => $def ) {
+		if ( null === gwc_pp_field_type( $slug ) ) {
 			continue;
 		}
 		$group                  = (string) ( $def['group'] ?? 'simple' );
@@ -449,11 +449,11 @@ function gwcpp_grouped_field_types(): array {
  *
  * @return string
  */
-function gwcpp_handler_post_type(): string {
+function gwc_pp_handler_post_type(): string {
 	// phpcs:ignore WordPress.Security.NonceVerification -- Every caller verifies its own nonce before calling this.
-	$raw = isset( $_REQUEST['gwcpp_type'] ) ? sanitize_key( wp_unslash( $_REQUEST['gwcpp_type'] ) ) : '';
+	$raw = isset( $_REQUEST['gwc_pp_type'] ) ? sanitize_key( wp_unslash( $_REQUEST['gwc_pp_type'] ) ) : '';
 
-	if ( ! gwcpp_type_enabled( $raw ) ) {
+	if ( ! gwc_pp_type_enabled( $raw ) ) {
 		wp_die(
 			esc_html__( 'That post type is not switched on for the portal.', 'groundwork-common-post-portal' ),
 			'',
@@ -470,12 +470,12 @@ function gwcpp_handler_post_type(): string {
  * @param string $post_type Post type slug.
  * @param string $code      Message code.
  */
-function gwcpp_fields_redirect( string $post_type, string $code ): void {
+function gwc_pp_fields_redirect( string $post_type, string $code ): void {
 	wp_safe_redirect(
-		gwcpp_fields_url(
+		gwc_pp_fields_url(
 			array(
-				'gwcpp_type'   => $post_type,
-				'gwcpp_notice' => $code,
+				'gwc_pp_type'   => $post_type,
+				'gwc_pp_notice' => $code,
 			)
 		)
 	);
@@ -485,16 +485,16 @@ function gwcpp_fields_redirect( string $post_type, string $code ): void {
 /**
  * Add or update a field.
  */
-function gwcpp_handle_save_field(): void {
-	gwcpp_require_admin_caps();
-	check_admin_referer( 'gwcpp_save_field' );
+function gwc_pp_handle_save_field(): void {
+	gwc_pp_require_admin_caps();
+	check_admin_referer( 'gwc_pp_save_field' );
 
-	$post_type = gwcpp_handler_post_type();
+	$post_type = gwc_pp_handler_post_type();
 
 	$raw = array();
-	if ( isset( $_POST['gwcpp_field'] ) && is_array( $_POST['gwcpp_field'] ) ) {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- An array cannot go through a scalar sanitizer; gwcpp_sanitize_field() below is an allow-list that sanitizes every leaf and drops everything it does not name.
-		$raw = (array) wp_unslash( $_POST['gwcpp_field'] );
+	if ( isset( $_POST['gwc_pp_field'] ) && is_array( $_POST['gwc_pp_field'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- An array cannot go through a scalar sanitizer; gwc_pp_sanitize_field() below is an allow-list that sanitizes every leaf and drops everything it does not name.
+		$raw = (array) wp_unslash( $_POST['gwc_pp_field'] );
 	}
 
 	/*
@@ -502,52 +502,52 @@ function gwcpp_handle_save_field(): void {
 	 * already knows about itself so the field is complete without the person
 	 * having to pick a type for something whose type is fixed.
 	 */
-	if ( isset( $raw['key'] ) && gwcpp_is_synthetic( (string) $raw['key'] ) && empty( $raw['type'] ) ) {
-		$spec         = gwcpp_synthetic_fields()[ (string) $raw['key'] ];
+	if ( isset( $raw['key'] ) && gwc_pp_is_synthetic( (string) $raw['key'] ) && empty( $raw['type'] ) ) {
+		$spec         = gwc_pp_synthetic_fields()[ (string) $raw['key'] ];
 		$raw['type']  = $spec['type'];
 		$raw['label'] = $spec['label'];
 	}
 
-	$field = gwcpp_sanitize_field( $raw );
+	$field = gwc_pp_sanitize_field( $raw );
 
 	if ( null === $field ) {
-		gwcpp_fields_redirect( $post_type, 'field_bad' );
+		gwc_pp_fields_redirect( $post_type, 'field_bad' );
 	}
 
-	gwcpp_put_field( $post_type, $field );
-	gwcpp_fields_redirect( $post_type, 'field_saved' );
+	gwc_pp_put_field( $post_type, $field );
+	gwc_pp_fields_redirect( $post_type, 'field_saved' );
 }
 
 /**
  * Take a field off the form.
  */
-function gwcpp_handle_retire_field(): void {
-	gwcpp_require_admin_caps();
+function gwc_pp_handle_retire_field(): void {
+	gwc_pp_require_admin_caps();
 
 	// Verified immediately below against this same value.
 	$key = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
 
-	check_admin_referer( 'gwcpp_retire_field_' . $key );
+	check_admin_referer( 'gwc_pp_retire_field_' . $key );
 
-	$post_type = gwcpp_handler_post_type();
+	$post_type = gwc_pp_handler_post_type();
 
-	gwcpp_retire_field( $post_type, $key );
-	gwcpp_fields_redirect( $post_type, 'field_retired' );
+	gwc_pp_retire_field( $post_type, $key );
+	gwc_pp_fields_redirect( $post_type, 'field_retired' );
 }
 
 /**
  * Save the order.
  */
-function gwcpp_handle_reorder_fields(): void {
-	gwcpp_require_admin_caps();
-	check_admin_referer( 'gwcpp_reorder_fields' );
+function gwc_pp_handle_reorder_fields(): void {
+	gwc_pp_require_admin_caps();
+	check_admin_referer( 'gwc_pp_reorder_fields' );
 
-	$post_type = gwcpp_handler_post_type();
+	$post_type = gwc_pp_handler_post_type();
 
 	$raw = array();
-	if ( isset( $_POST['gwcpp_order'] ) && is_array( $_POST['gwcpp_order'] ) ) {
+	if ( isset( $_POST['gwc_pp_order'] ) && is_array( $_POST['gwc_pp_order'] ) ) {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- An array cannot go through a scalar sanitizer; every key and every value is cast in the loop below.
-		$raw = (array) wp_unslash( $_POST['gwcpp_order'] );
+		$raw = (array) wp_unslash( $_POST['gwc_pp_order'] );
 	}
 
 	$positions = array();
@@ -558,13 +558,13 @@ function gwcpp_handle_reorder_fields(): void {
 	/*
 	 * asort keeps the key association while sorting by position, and two fields
 	 * given the same number keep the order they were already in rather than
-	 * swapping unpredictably. gwcpp_set_field_order() then drops anything
+	 * swapping unpredictably. gwc_pp_set_field_order() then drops anything
 	 * unknown and appends anything missing.
 	 */
 	asort( $positions );
 
-	gwcpp_set_field_order( $post_type, array_keys( $positions ) );
-	gwcpp_fields_redirect( $post_type, 'reordered' );
+	gwc_pp_set_field_order( $post_type, array_keys( $positions ) );
+	gwc_pp_fields_redirect( $post_type, 'reordered' );
 }
 
 /**
@@ -575,19 +575,19 @@ function gwcpp_handle_reorder_fields(): void {
  * running this twice is safe and running it after hand-editing a field does not
  * undo the edit.
  */
-function gwcpp_handle_import_fields(): void {
-	gwcpp_require_admin_caps();
-	check_admin_referer( 'gwcpp_import_fields' );
+function gwc_pp_handle_import_fields(): void {
+	gwc_pp_require_admin_caps();
+	check_admin_referer( 'gwc_pp_import_fields' );
 
-	$post_type = gwcpp_handler_post_type();
+	$post_type = gwc_pp_handler_post_type();
 	$found     = 0;
 
-	foreach ( gwcpp_registered_meta( $post_type ) as $key => $spec ) {
-		if ( null !== gwcpp_find_field( $post_type, $key ) ) {
+	foreach ( gwc_pp_registered_meta( $post_type ) as $key => $spec ) {
+		if ( null !== gwc_pp_find_field( $post_type, $key ) ) {
 			continue;
 		}
 
-		$field = gwcpp_sanitize_field(
+		$field = gwc_pp_sanitize_field(
 			array(
 				'key'   => $key,
 				'type'  => $spec['type'],
@@ -599,11 +599,11 @@ function gwcpp_handle_import_fields(): void {
 			continue;
 		}
 
-		gwcpp_put_field( $post_type, $field );
+		gwc_pp_put_field( $post_type, $field );
 		++$found;
 	}
 
-	gwcpp_fields_redirect( $post_type, $found > 0 ? 'imported' : 'nothing' );
+	gwc_pp_fields_redirect( $post_type, $found > 0 ? 'imported' : 'nothing' );
 }
 
 /**
@@ -617,7 +617,7 @@ function gwcpp_handle_import_fields(): void {
  * @param string $post_type Post type slug.
  * @return array<string, array{type:string,label:string}>
  */
-function gwcpp_registered_meta( string $post_type ): array {
+function gwc_pp_registered_meta( string $post_type ): array {
 	if ( ! function_exists( 'get_registered_meta_keys' ) ) {
 		return array();
 	}

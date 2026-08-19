@@ -39,9 +39,9 @@ defined( 'ABSPATH' ) || exit;
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-add_filter( 'gwcpp_field_types', 'gwcpp_register_media_type' );
-add_action( 'gwcpp_reap_orphan_uploads', 'gwcpp_reap_orphan_uploads' );
-add_action( 'init', 'gwcpp_schedule_upload_reaper' );
+add_filter( 'gwc_pp_field_types', 'gwc_pp_register_media_type' );
+add_action( 'gwc_pp_reap_orphan_uploads', 'gwc_pp_reap_orphan_uploads' );
+add_action( 'init', 'gwc_pp_schedule_upload_reaper' );
 
 /**
  * Register the type.
@@ -49,25 +49,25 @@ add_action( 'init', 'gwcpp_schedule_upload_reaper' );
  * @param array $types Registry.
  * @return array
  */
-function gwcpp_register_media_type( array $types ): array {
+function gwc_pp_register_media_type( array $types ): array {
 	$types['media'] = array(
 		'label'         => __( 'Image or file', 'groundwork-common-post-portal' ),
 		'group'         => 'rich',
-		'render_portal' => 'gwcpp_render_media',
-		'render_admin'  => 'gwcpp_render_media_admin',
-		'sanitize'      => 'gwcpp_sanitize_media',
-		'validate'      => 'gwcpp_validate_media',
-		'is_empty'      => 'gwcpp_empty_media',
-		'to_display'    => 'gwcpp_display_media',
-		'schema_form'   => 'gwcpp_schema_form_media',
+		'render_portal' => 'gwc_pp_render_media',
+		'render_admin'  => 'gwc_pp_render_media_admin',
+		'sanitize'      => 'gwc_pp_sanitize_media',
+		'validate'      => 'gwc_pp_validate_media',
+		'is_empty'      => 'gwc_pp_empty_media',
+		'to_display'    => 'gwc_pp_display_media',
+		'schema_form'   => 'gwc_pp_schema_form_media',
 		// Optional, and only this type has it. Run once per submission by
-		// gwcpp_apply_uploads() — see the note there about why a sanitizer must
+		// gwc_pp_apply_uploads() — see the note there about why a sanitizer must
 		// never be the thing that writes a file.
-		'upload'        => 'gwcpp_handle_media_upload',
-		// Also optional, also run from gwcpp_apply_uploads(), and for the same
+		'upload'        => 'gwc_pp_handle_media_upload',
+		// Also optional, also run from gwc_pp_apply_uploads(), and for the same
 		// structural reason: a sanitizer is handed a value with no idea which
 		// post it belongs to, and this check is entirely about that.
-		'reconcile'     => 'gwcpp_reconcile_media',
+		'reconcile'     => 'gwc_pp_reconcile_media',
 	);
 
 	return $types;
@@ -82,7 +82,7 @@ function gwcpp_register_media_type( array $types ): array {
  *
  * @return array<string, string> Extension pattern => MIME type.
  */
-function gwcpp_allowed_upload_types(): array {
+function gwc_pp_allowed_upload_types(): array {
 	/**
 	 * MIME types a portal user may upload.
 	 *
@@ -92,7 +92,7 @@ function gwcpp_allowed_upload_types(): array {
 	 * @param array $types Extension pattern => MIME type.
 	 */
 	return (array) apply_filters(
-		'gwcpp_allowed_upload_types',
+		'gwc_pp_allowed_upload_types',
 		array(
 			'jpg|jpeg|jpe' => 'image/jpeg',
 			'png'          => 'image/png',
@@ -113,8 +113,8 @@ function gwcpp_allowed_upload_types(): array {
  * @param array $field Field definition.
  * @return int
  */
-function gwcpp_max_upload_bytes( array $field = array() ): int {
-	$configured = (int) gwcpp_field_setting( $field, 'max_mb', 0 );
+function gwc_pp_max_upload_bytes( array $field = array() ): int {
+	$configured = (int) gwc_pp_field_setting( $field, 'max_mb', 0 );
 	$bytes      = $configured > 0 ? $configured * MB_IN_BYTES : 8 * MB_IN_BYTES;
 
 	return (int) min( $bytes, wp_max_upload_size() );
@@ -127,12 +127,12 @@ function gwcpp_max_upload_bytes( array $field = array() ): int {
  * @param int   $user_id Who is uploading.
  * @return int|WP_Error|null Attachment ID, an error, or null when no file came.
  */
-function gwcpp_handle_media_upload( array $field, int $user_id ) {
+function gwc_pp_handle_media_upload( array $field, int $user_id ) {
 	$key = (string) $field['key'];
 
 	// PHP nests $_FILES for array-named inputs in a shape that is famously
-	// awkward; gwcpp_file_from_post() flattens exactly the one we generate.
-	$file = gwcpp_file_from_post( $key );
+	// awkward; gwc_pp_file_from_post() flattens exactly the one we generate.
+	$file = gwc_pp_file_from_post( $key );
 
 	if ( null === $file ) {
 		return null;
@@ -144,17 +144,17 @@ function gwcpp_handle_media_upload( array $field, int $user_id ) {
 
 	if ( UPLOAD_ERR_OK !== $file['error'] ) {
 		return new WP_Error(
-			'gwcpp_upload_failed',
+			'gwc_pp_upload_failed',
 			UPLOAD_ERR_INI_SIZE === $file['error'] || UPLOAD_ERR_FORM_SIZE === $file['error']
 				? __( 'That file is too big to upload.', 'groundwork-common-post-portal' )
 				: __( 'That file did not upload properly. Please try again.', 'groundwork-common-post-portal' )
 		);
 	}
 
-	$max = gwcpp_max_upload_bytes( $field );
+	$max = gwc_pp_max_upload_bytes( $field );
 	if ( (int) $file['size'] > $max ) {
 		return new WP_Error(
-			'gwcpp_upload_too_big',
+			'gwc_pp_upload_too_big',
 			sprintf(
 				/* translators: %s: a file size, e.g. "8 MB". */
 				__( 'That file is too big. The limit is %s.', 'groundwork-common-post-portal' ),
@@ -163,7 +163,7 @@ function gwcpp_handle_media_upload( array $field, int $user_id ) {
 		);
 	}
 
-	$allowed = gwcpp_allowed_upload_types();
+	$allowed = gwc_pp_allowed_upload_types();
 
 	/*
 	 * Reads the file's own bytes. A .php renamed to .jpg reports its real type
@@ -175,7 +175,7 @@ function gwcpp_handle_media_upload( array $field, int $user_id ) {
 
 	if ( empty( $checked['type'] ) || ! in_array( $checked['type'], $allowed, true ) ) {
 		return new WP_Error(
-			'gwcpp_upload_type',
+			'gwc_pp_upload_type',
 			sprintf(
 				/* translators: %s: a list of file extensions. */
 				__( 'That kind of file cannot be uploaded. You can send: %s', 'groundwork-common-post-portal' ),
@@ -210,7 +210,7 @@ function gwcpp_handle_media_upload( array $field, int $user_id ) {
 
 	if ( ! is_array( $moved ) || isset( $moved['error'] ) ) {
 		return new WP_Error(
-			'gwcpp_upload_move',
+			'gwc_pp_upload_move',
 			is_array( $moved ) && isset( $moved['error'] )
 				? (string) $moved['error']
 				: __( 'That file could not be saved. Please try again.', 'groundwork-common-post-portal' )
@@ -238,7 +238,7 @@ function gwcpp_handle_media_upload( array $field, int $user_id ) {
 		 * cleanup of a file we just wrote and can no longer reference.
 		 */
 		wp_delete_file( $moved['file'] );
-		return new WP_Error( 'gwcpp_upload_attach', __( 'That file could not be saved. Please try again.', 'groundwork-common-post-portal' ) );
+		return new WP_Error( 'gwc_pp_upload_attach', __( 'That file could not be saved. Please try again.', 'groundwork-common-post-portal' ) );
 	}
 
 	$attachment_id = (int) $attachment_id;
@@ -248,14 +248,14 @@ function gwcpp_handle_media_upload( array $field, int $user_id ) {
 		wp_generate_attachment_metadata( $attachment_id, $moved['file'] )
 	);
 
-	gwcpp_strip_image_metadata( $attachment_id, $moved );
+	gwc_pp_strip_image_metadata( $attachment_id, $moved );
 
 	/*
-	 * Flagged until approved. gwcpp_discard_attachments() refuses to delete
+	 * Flagged until approved. gwc_pp_discard_attachments() refuses to delete
 	 * anything without this, which is what stops a reject or a cron sweep from
 	 * touching media somebody else put there.
 	 */
-	update_post_meta( $attachment_id, GWCPP_PENDING_ATTACHMENT_META, time() );
+	update_post_meta( $attachment_id, GWC_PP_PENDING_ATTACHMENT_META, time() );
 
 	return $attachment_id;
 }
@@ -274,7 +274,7 @@ function gwcpp_handle_media_upload( array $field, int $user_id ) {
  * @param int   $attachment_id Attachment ID.
  * @param array $moved         The result from wp_handle_upload().
  */
-function gwcpp_strip_image_metadata( int $attachment_id, array $moved ): void {
+function gwc_pp_strip_image_metadata( int $attachment_id, array $moved ): void {
 	unset( $attachment_id );
 
 	if ( ! preg_match( '#^image/(jpeg|png|webp)$#', (string) $moved['type'] ) ) {
@@ -292,21 +292,21 @@ function gwcpp_strip_image_metadata( int $attachment_id, array $moved ): void {
 /**
  * Flatten the one $_FILES shape this plugin generates.
  *
- * A control named gwcpp_f[photo][file] arrives as
- * $_FILES['gwcpp_f']['name']['photo']['file'] — PHP transposes the arrays, so
+ * A control named gwc_pp_f[photo][file] arrives as
+ * $_FILES['gwc_pp_f']['name']['photo']['file'] — PHP transposes the arrays, so
  * every key of the file record has to be walked separately. This is the reason
  * so much upload code quietly only supports a flat input name.
  *
  * @param string $key Field key.
  * @return array{name:string,type:string,tmp_name:string,error:int,size:int}|null
  */
-function gwcpp_file_from_post( string $key ): ?array {
-	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Reached only from gwcpp_apply_uploads(), which runs after the guard has verified a nonce bound to this post.
-	if ( ! isset( $_FILES[ GWCPP_FIELD_PARAM ] ) || ! is_array( $_FILES[ GWCPP_FIELD_PARAM ] ) ) {
+function gwc_pp_file_from_post( string $key ): ?array {
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Reached only from gwc_pp_apply_uploads(), which runs after the guard has verified a nonce bound to this post.
+	if ( ! isset( $_FILES[ GWC_PP_FIELD_PARAM ] ) || ! is_array( $_FILES[ GWC_PP_FIELD_PARAM ] ) ) {
 		return null;
 	}
 
-	$files = $_FILES[ GWCPP_FIELD_PARAM ]; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Each member is validated below and by wp_check_filetype_and_ext(); sanitize_text_field on a tmp_name would corrupt the path.
+	$files = $_FILES[ GWC_PP_FIELD_PARAM ]; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Each member is validated below and by wp_check_filetype_and_ext(); sanitize_text_field on a tmp_name would corrupt the path.
 
 	$out = array();
 	foreach ( array( 'name', 'type', 'tmp_name', 'error', 'size' ) as $part ) {
@@ -316,7 +316,7 @@ function gwcpp_file_from_post( string $key ): ?array {
 
 		/*
 		 * Scalar, or this is not the shape we generate. A crafted form posting
-		 * `gwcpp_f[photo][file][]` makes PHP hand back arrays here, and the
+		 * `gwc_pp_f[photo][file][]` makes PHP hand back arrays here, and the
 		 * casts below would then emit "Array to string conversion" into the
 		 * middle of the page on any host with display_errors on.
 		 *
@@ -359,10 +359,10 @@ function gwcpp_file_from_post( string $key ): ?array {
  * @param string $name  Form control name.
  * @param array  $ctx   Render context.
  */
-function gwcpp_render_media( array $field, $value, string $name, array $ctx = array() ): void {
-	$id            = gwcpp_field_id( $name );
+function gwc_pp_render_media( array $field, $value, string $name, array $ctx = array() ): void {
+	$id            = gwc_pp_field_id( $name );
 	$attachment_id = (int) $value;
-	$allowed       = gwcpp_allowed_upload_types();
+	$allowed       = gwc_pp_allowed_upload_types();
 
 	// Carries the current value forward, so a save that does not touch the file
 	// keeps it rather than clearing it.
@@ -409,7 +409,7 @@ function gwcpp_render_media( array $field, $value, string $name, array $ctx = ar
 				/* translators: 1: a list of file extensions, 2: a file size. */
 				__( 'Accepted: %1$s. Up to %2$s.', 'groundwork-common-post-portal' ),
 				str_replace( '|', ', ', implode( ', ', array_keys( $allowed ) ) ),
-				size_format( gwcpp_max_upload_bytes( $field ) )
+				size_format( gwc_pp_max_upload_bytes( $field ) )
 			)
 		)
 	);
@@ -426,7 +426,7 @@ function gwcpp_render_media( array $field, $value, string $name, array $ctx = ar
  * @param mixed  $value Stored attachment ID.
  * @param string $name  Form control name.
  */
-function gwcpp_render_media_admin( array $field, $value, string $name ): void {
+function gwc_pp_render_media_admin( array $field, $value, string $name ): void {
 	unset( $field );
 
 	$attachment_id = (int) $value;
@@ -449,14 +449,14 @@ function gwcpp_render_media_admin( array $field, $value, string $name ): void {
  * The stored value: an attachment ID, or ''.
  *
  * The file itself never reaches here — see the note at the top of
- * gwcpp_apply_uploads(). This only handles keeping and clearing what is already
+ * gwc_pp_apply_uploads(). This only handles keeping and clearing what is already
  * there.
  *
  * @param mixed $raw   Raw value.
  * @param array $field Field definition.
  * @return int|string
  */
-function gwcpp_sanitize_media( $raw, array $field = array() ) {
+function gwc_pp_sanitize_media( $raw, array $field = array() ) {
 	unset( $field );
 
 	if ( ! is_array( $raw ) ) {
@@ -473,7 +473,7 @@ function gwcpp_sanitize_media( $raw, array $field = array() ) {
 	 * Shape only. This value comes back from a hidden field, so a crafted
 	 * submission can name any attachment on the site — including one belonging
 	 * to another organisation — and confirming it is an attachment does nothing
-	 * about that. The ownership question is answered by gwcpp_reconcile_media()
+	 * about that. The ownership question is answered by gwc_pp_reconcile_media()
 	 * in the save path, which is the first place that knows which post is being
 	 * edited. A sanitizer never does.
 	 */
@@ -519,7 +519,7 @@ function gwcpp_sanitize_media( $raw, array $field = array() ) {
  * @param ?int  $fresh   Attachment uploaded for this field by this submission.
  * @return int|string
  */
-function gwcpp_reconcile_media( $value, array $field, int $post_id, ?int $fresh = null ) {
+function gwc_pp_reconcile_media( $value, array $field, int $post_id, ?int $fresh = null ) {
 	$value = (int) $value;
 
 	if ( $value <= 0 ) {
@@ -542,7 +542,7 @@ function gwcpp_reconcile_media( $value, array $field, int $post_id, ?int $fresh 
 		return $value;
 	}
 
-	$pending = gwcpp_get_changeset( $post_id );
+	$pending = gwc_pp_get_changeset( $post_id );
 	if ( null !== $pending && (int) ( $pending['values'][ $key ] ?? 0 ) === $value ) {
 		return $value;
 	}
@@ -557,7 +557,7 @@ function gwcpp_reconcile_media( $value, array $field, int $post_id, ?int $fresh 
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_validate_media( $value, array $field = array() ): string {
+function gwc_pp_validate_media( $value, array $field = array() ): string {
 	unset( $value, $field );
 	return '';
 }
@@ -569,7 +569,7 @@ function gwcpp_validate_media( $value, array $field = array() ): string {
  * @param array $field Field definition.
  * @return bool
  */
-function gwcpp_empty_media( $value, array $field = array() ): bool {
+function gwc_pp_empty_media( $value, array $field = array() ): bool {
 	unset( $field );
 	return (int) $value <= 0;
 }
@@ -584,7 +584,7 @@ function gwcpp_empty_media( $value, array $field = array() ): bool {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_display_media( $value, array $field = array() ): string {
+function gwc_pp_display_media( $value, array $field = array() ): string {
 	unset( $field );
 
 	$attachment_id = (int) $value;
@@ -600,11 +600,11 @@ function gwcpp_display_media( $value, array $field = array() ): string {
  *
  * @param array $field Field definition.
  */
-function gwcpp_schema_form_media( array $field ): void {
-	gwcpp_schema_setting_input(
+function gwc_pp_schema_form_media( array $field ): void {
+	gwc_pp_schema_setting_input(
 		'max_mb',
 		__( 'Largest file, in MB', 'groundwork-common-post-portal' ),
-		gwcpp_field_setting( $field, 'max_mb' ),
+		gwc_pp_field_setting( $field, 'max_mb' ),
 		'number',
 		sprintf(
 			/* translators: %s: a file size, e.g. "8 MB". */
@@ -627,14 +627,14 @@ function gwcpp_schema_form_media( array $field ): void {
  */
 
 /** How long a pending upload is left alone before it counts as abandoned. */
-const GWCPP_ORPHAN_AGE = 30 * DAY_IN_SECONDS;
+const GWC_PP_ORPHAN_AGE = 30 * DAY_IN_SECONDS;
 
 /**
  * Make sure the daily sweep is scheduled.
  */
-function gwcpp_schedule_upload_reaper(): void {
-	if ( ! wp_next_scheduled( 'gwcpp_reap_orphan_uploads' ) ) {
-		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'gwcpp_reap_orphan_uploads' );
+function gwc_pp_schedule_upload_reaper(): void {
+	if ( ! wp_next_scheduled( 'gwc_pp_reap_orphan_uploads' ) ) {
+		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'gwc_pp_reap_orphan_uploads' );
 	}
 }
 
@@ -643,7 +643,7 @@ function gwcpp_schedule_upload_reaper(): void {
  *
  * @return int How many were deleted.
  */
-function gwcpp_reap_orphan_uploads(): int {
+function gwc_pp_reap_orphan_uploads(): int {
 	/*
 	 * ── Oldest first, and the cap is why ────────────────────────────────────
 	 * A hundred at a time is right: this is cron, it force-deletes files, and a
@@ -652,14 +652,14 @@ function gwcpp_reap_orphan_uploads(): int {
 	 *
 	 * But a cap needs an order, and WordPress's default is newest first — which
 	 * pointed this query at exactly the wrong end. Only attachments past
-	 * GWCPP_ORPHAN_AGE are ever deleted, and the ones a pending changeset still
+	 * GWC_PP_ORPHAN_AGE are ever deleted, and the ones a pending changeset still
 	 * claims are skipped while still occupying a slot. So a site holding a
 	 * hundred flagged uploads newer than thirty days re-examined the same recent
 	 * files every night, forever, and the real orphans behind them were never
 	 * reached. The sweep ran daily, reported nothing, and never converged.
 	 *
 	 * Ordered by ID rather than by date for the same reason
-	 * gwcpp_every_pending_post_id() is: this run writes to the rows it walks, so
+	 * gwc_pp_every_pending_post_id() is: this run writes to the rows it walks, so
 	 * ordering by anything a concurrent request can change lets rows shift
 	 * between one night's page and the next.
 	 */
@@ -672,7 +672,7 @@ function gwcpp_reap_orphan_uploads(): int {
 			'orderby'        => 'ID',
 			'order'          => 'ASC',
 			'no_found_rows'  => true,
-			'meta_key'       => GWCPP_PENDING_ATTACHMENT_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- EXISTS on an indexed key, in cron, bounded to 100.
+			'meta_key'       => GWC_PP_PENDING_ATTACHMENT_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- EXISTS on an indexed key, in cron, bounded to 100.
 			'meta_compare'   => 'EXISTS',
 		)
 	);
@@ -685,13 +685,13 @@ function gwcpp_reap_orphan_uploads(): int {
 	 * old shape asked the question one attachment at a time, which meant a fresh
 	 * pass over the entire queue for each of up to a hundred files.
 	 */
-	$claimed = gwcpp_claimed_attachment_ids();
+	$claimed = gwc_pp_claimed_attachment_ids();
 
 	foreach ( $candidates as $attachment_id ) {
 		$attachment_id = (int) $attachment_id;
-		$flagged       = (int) get_post_meta( $attachment_id, GWCPP_PENDING_ATTACHMENT_META, true );
+		$flagged       = (int) get_post_meta( $attachment_id, GWC_PP_PENDING_ATTACHMENT_META, true );
 
-		if ( $flagged <= 0 || ( $now - $flagged ) < GWCPP_ORPHAN_AGE ) {
+		if ( $flagged <= 0 || ( $now - $flagged ) < GWC_PP_ORPHAN_AGE ) {
 			continue;
 		}
 
@@ -719,11 +719,11 @@ function gwcpp_reap_orphan_uploads(): int {
  *
  * @return array<int, true>
  */
-function gwcpp_claimed_attachment_ids(): array {
+function gwc_pp_claimed_attachment_ids(): array {
 	$claimed = array();
 
-	foreach ( gwcpp_every_pending_post_id() as $post_id ) {
-		$changeset = gwcpp_get_changeset( (int) $post_id );
+	foreach ( gwc_pp_every_pending_post_id() as $post_id ) {
+		$changeset = gwc_pp_get_changeset( (int) $post_id );
 
 		if ( null === $changeset ) {
 			continue;
@@ -743,6 +743,6 @@ function gwcpp_claimed_attachment_ids(): array {
  * @param int $attachment_id Attachment ID.
  * @return bool
  */
-function gwcpp_attachment_is_claimed( int $attachment_id ): bool {
-	return isset( gwcpp_claimed_attachment_ids()[ $attachment_id ] );
+function gwc_pp_attachment_is_claimed( int $attachment_id ): bool {
+	return isset( gwc_pp_claimed_attachment_ids()[ $attachment_id ] );
 }

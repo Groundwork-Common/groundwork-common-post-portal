@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
  * ── Why POSTs are dispatched from template_redirect ─────────────────────────
  * The obvious homes for a form handler are admin-post.php and admin-ajax.php.
  * Both live under /wp-admin/, and /wp-admin/ is exactly what the portal role is
- * redirected away from by gwcpp_block_admin_access(). Using either would mean
+ * redirected away from by gwc_pp_block_admin_access(). Using either would mean
  * carving an exception into the lockout, and an exception in a lockout is the
  * thing the lockout is protecting.
  *
@@ -22,17 +22,17 @@ defined( 'ABSPATH' ) || exit;
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-add_action( 'template_redirect', 'gwcpp_dispatch' );
+add_action( 'template_redirect', 'gwc_pp_dispatch' );
 
 /**
  * Route a request on the portal page.
  */
-function gwcpp_dispatch(): void {
-	if ( ! gwcpp_is_portal() ) {
+function gwc_pp_dispatch(): void {
+	if ( ! gwc_pp_is_portal() ) {
 		return;
 	}
 
-	gwcpp_send_no_cache_headers();
+	gwc_pp_send_no_cache_headers();
 
 	/*
 	 * Same reasoning as the POST block below: this only chooses which handler
@@ -42,13 +42,13 @@ function gwcpp_dispatch(): void {
 	// phpcs:disable WordPress.Security.NonceVerification.Recommended
 	$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
 
-	if ( 'GET' === $method && isset( $_GET['gwcpp_token'] ) ) {
-		gwcpp_handle_magic_link();
+	if ( 'GET' === $method && isset( $_GET['gwc_pp_token'] ) ) {
+		gwc_pp_handle_magic_link();
 		return;
 	}
 
-	if ( 'GET' === $method && isset( $_GET['gwcpp_review_token'] ) ) {
-		gwcpp_handle_review_link();
+	if ( 'GET' === $method && isset( $_GET['gwc_pp_review_token'] ) ) {
+		gwc_pp_handle_review_link();
 		return;
 	}
 
@@ -58,8 +58,8 @@ function gwcpp_dispatch(): void {
 	 * different person from whoever sent it, and usually has no account at all
 	 * until this runs.
 	 */
-	if ( 'GET' === $method && isset( $_GET['gwcpp_handoff_token'] ) ) {
-		gwcpp_handle_handoff_link();
+	if ( 'GET' === $method && isset( $_GET['gwc_pp_handoff_token'] ) ) {
+		gwc_pp_handle_handoff_link();
 		return;
 	}
 	// phpcs:enable WordPress.Security.NonceVerification.Recommended
@@ -77,26 +77,26 @@ function gwcpp_dispatch(): void {
 	 * matches the shape of the page.
 	 */
 	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Each handler verifies its own nonce as its first act; this only chooses which one runs.
-	if ( isset( $_POST['gwcpp_request_link'] ) ) {
-		gwcpp_handle_link_request();
-	} elseif ( isset( $_POST['gwcpp_login'] ) ) {
-		gwcpp_handle_password_login();
-	} elseif ( isset( $_POST['gwcpp_logout'] ) ) {
-		gwcpp_handle_logout();
-	} elseif ( isset( $_POST['gwcpp_save'] ) ) {
-		gwcpp_handle_save();
-	} elseif ( isset( $_POST['gwcpp_create'] ) ) {
-		gwcpp_handle_create();
-	} elseif ( isset( $_POST['gwcpp_unpublish'] ) ) {
-		gwcpp_handle_unpublish();
-	} elseif ( isset( $_POST['gwcpp_republish'] ) ) {
-		gwcpp_handle_republish();
-	} elseif ( isset( $_POST['gwcpp_confirm_review'] ) ) {
-		gwcpp_handle_confirm_review();
-	} elseif ( isset( $_POST['gwcpp_handoff'] ) ) {
-		gwcpp_handle_handoff_request();
-	} elseif ( isset( $_POST['gwcpp_handoff_cancel'] ) ) {
-		gwcpp_handle_handoff_cancel();
+	if ( isset( $_POST['gwc_pp_request_link'] ) ) {
+		gwc_pp_handle_link_request();
+	} elseif ( isset( $_POST['gwc_pp_login'] ) ) {
+		gwc_pp_handle_password_login();
+	} elseif ( isset( $_POST['gwc_pp_logout'] ) ) {
+		gwc_pp_handle_logout();
+	} elseif ( isset( $_POST['gwc_pp_save'] ) ) {
+		gwc_pp_handle_save();
+	} elseif ( isset( $_POST['gwc_pp_create'] ) ) {
+		gwc_pp_handle_create();
+	} elseif ( isset( $_POST['gwc_pp_unpublish'] ) ) {
+		gwc_pp_handle_unpublish();
+	} elseif ( isset( $_POST['gwc_pp_republish'] ) ) {
+		gwc_pp_handle_republish();
+	} elseif ( isset( $_POST['gwc_pp_confirm_review'] ) ) {
+		gwc_pp_handle_confirm_review();
+	} elseif ( isset( $_POST['gwc_pp_handoff'] ) ) {
+		gwc_pp_handle_handoff_request();
+	} elseif ( isset( $_POST['gwc_pp_handoff_cancel'] ) ) {
+		gwc_pp_handle_handoff_cancel();
 	}
 	// phpcs:enable WordPress.Security.NonceVerification.Missing
 }
@@ -119,7 +119,7 @@ function gwcpp_dispatch(): void {
  * an exclusion rule there too. That requirement lives outside PHP and nothing
  * here can enforce it — it is in README.md for that reason.
  */
-function gwcpp_send_no_cache_headers(): void {
+function gwc_pp_send_no_cache_headers(): void {
 	if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 		define( 'DONOTCACHEPAGE', true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- The name every caching plugin looks for; prefixing it would mean nothing reads it.
 	}
@@ -158,10 +158,10 @@ function gwcpp_send_no_cache_headers(): void {
  * @param string $text Message to show, or '' for silence.
  * @param string $type Flash type.
  */
-function gwcpp_bail( string $url = '', string $text = '', string $type = 'warn' ): void {
-	$url = '' !== $url ? $url : gwcpp_portal_url();
+function gwc_pp_bail( string $url = '', string $text = '', string $type = 'warn' ): void {
+	$url = '' !== $url ? $url : gwc_pp_portal_url();
 
-	wp_safe_redirect( '' === $text ? $url : gwcpp_flash_url( $url, $type, $text ) );
+	wp_safe_redirect( '' === $text ? $url : gwc_pp_flash_url( $url, $type, $text ) );
 	exit;
 }
 
@@ -178,17 +178,17 @@ function gwcpp_bail( string $url = '', string $text = '', string $type = 'warn' 
  * @param string $action      Nonce action, without the post ID.
  * @return int
  */
-function gwcpp_guard_post( string $nonce_field, string $action ): int {
+function gwc_pp_guard_post( string $nonce_field, string $action ): int {
 	if ( ! is_user_logged_in() ) {
-		gwcpp_bail();
+		gwc_pp_bail();
 	}
 
 	$user_id = get_current_user_id();
 	// The nonce is verified below, against this same value.
-	$post_id = isset( $_POST['gwcpp_post_id'] ) ? (int) $_POST['gwcpp_post_id'] : 0;
+	$post_id = isset( $_POST['gwc_pp_post_id'] ) ? (int) $_POST['gwc_pp_post_id'] : 0;
 
-	if ( ! gwcpp_user_can_edit_post( $user_id, $post_id ) ) {
-		gwcpp_bail();
+	if ( ! gwc_pp_user_can_edit_post( $user_id, $post_id ) ) {
+		gwc_pp_bail();
 	}
 
 	if (
@@ -201,14 +201,14 @@ function gwcpp_guard_post( string $nonce_field, string $action ): int {
 		 * and dropping somebody at the top of the portal after a long edit,
 		 * with a message about a form, is how the message goes unread.
 		 */
-		gwcpp_bail(
-			gwcpp_portal_url(
+		gwc_pp_bail(
+			gwc_pp_portal_url(
 				array(
-					'gwcpp_view' => 'edit',
-					'gwcpp_post' => $post_id,
+					'gwc_pp_view' => 'edit',
+					'gwc_pp_post' => $post_id,
 				)
 			),
-			gwcpp_stale_form_message()
+			gwc_pp_stale_form_message()
 		);
 	}
 
@@ -220,31 +220,31 @@ function gwcpp_guard_post( string $nonce_field, string $action ): int {
 /**
  * Save an edit.
  */
-function gwcpp_handle_save(): void {
-	$post_id = gwcpp_guard_post( 'gwcpp_save_nonce', 'gwcpp_save_' );
+function gwc_pp_handle_save(): void {
+	$post_id = gwc_pp_guard_post( 'gwc_pp_save_nonce', 'gwc_pp_save_' );
 	$user_id = get_current_user_id();
 	$post    = get_post( $post_id );
 
 	if ( ! $post instanceof WP_Post ) {
-		gwcpp_bail();
+		gwc_pp_bail();
 	}
 
-	// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- Nonce verified in the guard above; every value is sanitized by its field type inside gwcpp_collect_submission().
-	$raw     = isset( $_POST[ GWCPP_FIELD_PARAM ] ) && is_array( $_POST[ GWCPP_FIELD_PARAM ] ) ? $_POST[ GWCPP_FIELD_PARAM ] : array();
-	$values  = gwcpp_collect_submission( $post->post_type, $raw );
-	$dropped = gwcpp_dropped_fields( $post->post_type, $raw, $values );
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- Nonce verified in the guard above; every value is sanitized by its field type inside gwc_pp_collect_submission().
+	$raw     = isset( $_POST[ GWC_PP_FIELD_PARAM ] ) && is_array( $_POST[ GWC_PP_FIELD_PARAM ] ) ? $_POST[ GWC_PP_FIELD_PARAM ] : array();
+	$values  = gwc_pp_collect_submission( $post->post_type, $raw );
+	$dropped = gwc_pp_dropped_fields( $post->post_type, $raw, $values );
 
 	// Once, before validation, so a rejected upload is reported beside its own
 	// field rather than swallowed.
-	$upload = gwcpp_apply_uploads( $post->post_type, $values, $user_id, $post_id );
+	$upload = gwc_pp_apply_uploads( $post->post_type, $values, $user_id, $post_id );
 	$values = $upload['values'];
 
-	$errors = gwcpp_validate_submission( $post->post_type, $values, $dropped ) + $upload['errors'];
+	$errors = gwc_pp_validate_submission( $post->post_type, $values, $dropped ) + $upload['errors'];
 
-	$edit_url = gwcpp_portal_url(
+	$edit_url = gwc_pp_portal_url(
 		array(
-			'gwcpp_view' => 'edit',
-			'gwcpp_post' => $post_id,
+			'gwc_pp_view' => 'edit',
+			'gwc_pp_post' => $post_id,
 		)
 	);
 
@@ -254,9 +254,9 @@ function gwcpp_handle_save(): void {
 		 * pointing at it once the form redraws, so it goes now rather than
 		 * waiting for the cron sweep.
 		 */
-		gwcpp_discard_attachments( $upload['uploaded'] );
+		gwc_pp_discard_attachments( $upload['uploaded'] );
 
-		gwcpp_stash_submission( $user_id, $post_id, $values, $errors, $dropped );
+		gwc_pp_stash_submission( $user_id, $post_id, $values, $errors, $dropped );
 		// No flash message: the form redraws with a summary at the top and
 		// every message beside its own field, which says all of it better.
 		wp_safe_redirect( $edit_url . '#gwcpp-errors' );
@@ -267,7 +267,7 @@ function gwcpp_handle_save(): void {
 	 * Computed before anything is written, because afterwards the submitted
 	 * values are the stored values and there is nothing left to compare.
 	 */
-	$diff = gwcpp_diff_values( $post_id, $values );
+	$diff = gwc_pp_diff_values( $post_id, $values );
 
 	if ( ! $diff ) {
 		/*
@@ -276,32 +276,32 @@ function gwcpp_handle_save(): void {
 		 * them to approve nothing, and the person who submitted it is owed the
 		 * information that their edit made no difference.
 		 */
-		gwcpp_discard_attachments( $upload['uploaded'] );
+		gwc_pp_discard_attachments( $upload['uploaded'] );
 
-		gwcpp_bail(
+		gwc_pp_bail(
 			$edit_url,
 			__( 'Nothing had changed, so there was nothing to save.', 'groundwork-common-post-portal' ),
 			'ok'
 		);
 	}
 
-	if ( gwcpp_type_setting( $post->post_type, 'require_approval' ) ) {
-		gwcpp_store_changeset( $post_id, $user_id, $values, $upload['uploaded'] );
-		gwcpp_note_staff_notification( gwcpp_notify_staff_change( $post_id, $user_id, $diff, true ) );
+	if ( gwc_pp_type_setting( $post->post_type, 'require_approval' ) ) {
+		gwc_pp_store_changeset( $post_id, $user_id, $values, $upload['uploaded'] );
+		gwc_pp_note_staff_notification( gwc_pp_notify_staff_change( $post_id, $user_id, $diff, true ) );
 
-		gwcpp_bail(
+		gwc_pp_bail(
 			$edit_url,
 			__( 'Thank you. Your changes have been sent for review, and will appear once somebody has looked at them.', 'groundwork-common-post-portal' ),
 			'ok'
 		);
 	}
 
-	gwcpp_attach_uploads( $upload['uploaded'], $post_id );
-	gwcpp_save_fields( $post_id, $values );
-	gwcpp_log_change( $post_id, $user_id, 0, $diff );
-	gwcpp_note_staff_notification( gwcpp_notify_staff_change( $post_id, $user_id, $diff, false ) );
+	gwc_pp_attach_uploads( $upload['uploaded'], $post_id );
+	gwc_pp_save_fields( $post_id, $values );
+	gwc_pp_log_change( $post_id, $user_id, 0, $diff );
+	gwc_pp_note_staff_notification( gwc_pp_notify_staff_change( $post_id, $user_id, $diff, false ) );
 
-	gwcpp_bail(
+	gwc_pp_bail(
 		$edit_url,
 		__( 'Saved. Thank you.', 'groundwork-common-post-portal' ),
 		'ok'
@@ -315,49 +315,49 @@ function gwcpp_handle_save(): void {
  * access against. What is checked instead: the post type is enabled, it allows
  * creating, and the user belongs to an organisation to create it into.
  */
-function gwcpp_handle_create(): void {
+function gwc_pp_handle_create(): void {
 	if ( ! is_user_logged_in() ) {
-		gwcpp_bail();
+		gwc_pp_bail();
 	}
 
 	$user_id = get_current_user_id();
 	// Verified immediately below against this same value.
-	$post_type = isset( $_POST['gwcpp_post_type'] ) ? sanitize_key( wp_unslash( $_POST['gwcpp_post_type'] ) ) : '';
+	$post_type = isset( $_POST['gwc_pp_post_type'] ) ? sanitize_key( wp_unslash( $_POST['gwc_pp_post_type'] ) ) : '';
 
 	if (
-		! isset( $_POST['gwcpp_create_nonce'] )
-		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gwcpp_create_nonce'] ) ), 'gwcpp_create_' . $post_type )
+		! isset( $_POST['gwc_pp_create_nonce'] )
+		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gwc_pp_create_nonce'] ) ), 'gwc_pp_create_' . $post_type )
 	) {
-		gwcpp_bail( gwcpp_portal_url(), gwcpp_stale_form_message() );
+		gwc_pp_bail( gwc_pp_portal_url(), gwc_pp_stale_form_message() );
 	}
 
-	if ( ! gwcpp_type_enabled( $post_type ) || ! gwcpp_type_setting( $post_type, 'allow_create' ) ) {
-		gwcpp_bail();
+	if ( ! gwc_pp_type_enabled( $post_type ) || ! gwc_pp_type_setting( $post_type, 'allow_create' ) ) {
+		gwc_pp_bail();
 	}
 
-	$orgs = gwcpp_user_orgs( $user_id );
+	$orgs = gwc_pp_user_orgs( $user_id );
 	if ( ! $orgs ) {
-		gwcpp_bail();
+		gwc_pp_bail();
 	}
 
-	// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- Nonce verified above; every value is sanitized by its field type inside gwcpp_collect_submission().
-	$raw     = isset( $_POST[ GWCPP_FIELD_PARAM ] ) && is_array( $_POST[ GWCPP_FIELD_PARAM ] ) ? $_POST[ GWCPP_FIELD_PARAM ] : array();
-	$values  = gwcpp_collect_submission( $post_type, $raw );
-	$dropped = gwcpp_dropped_fields( $post_type, $raw, $values );
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- Nonce verified above; every value is sanitized by its field type inside gwc_pp_collect_submission().
+	$raw     = isset( $_POST[ GWC_PP_FIELD_PARAM ] ) && is_array( $_POST[ GWC_PP_FIELD_PARAM ] ) ? $_POST[ GWC_PP_FIELD_PARAM ] : array();
+	$values  = gwc_pp_collect_submission( $post_type, $raw );
+	$dropped = gwc_pp_dropped_fields( $post_type, $raw, $values );
 
-	$upload = gwcpp_apply_uploads( $post_type, $values, $user_id );
+	$upload = gwc_pp_apply_uploads( $post_type, $values, $user_id );
 	$values = $upload['values'];
 
-	$errors = gwcpp_validate_submission( $post_type, $values, $dropped ) + $upload['errors'];
+	$errors = gwc_pp_validate_submission( $post_type, $values, $dropped ) + $upload['errors'];
 
 	if ( $errors ) {
-		gwcpp_discard_attachments( $upload['uploaded'] );
-		gwcpp_stash_submission( $user_id, 0, $values, $errors, $dropped );
+		gwc_pp_discard_attachments( $upload['uploaded'] );
+		gwc_pp_stash_submission( $user_id, 0, $values, $errors, $dropped );
 		wp_safe_redirect(
-			gwcpp_portal_url(
+			gwc_pp_portal_url(
 				array(
-					'gwcpp_view' => 'new',
-					'gwcpp_type' => $post_type,
+					'gwc_pp_view' => 'new',
+					'gwc_pp_type' => $post_type,
 				)
 			) . '#gwcpp-errors'
 		);
@@ -371,11 +371,11 @@ function gwcpp_handle_create(): void {
 	 * case is exactly one organisation and a picker showing one option is
 	 * worse than no picker.
 	 */
-	$post_id = gwcpp_create_post( $post_type, $values, $user_id, (int) $orgs[0] );
+	$post_id = gwc_pp_create_post( $post_type, $values, $user_id, (int) $orgs[0] );
 
 	if ( is_wp_error( $post_id ) ) {
-		gwcpp_discard_attachments( $upload['uploaded'] );
-		gwcpp_bail( gwcpp_portal_url(), $post_id->get_error_message(), 'error' );
+		gwc_pp_discard_attachments( $upload['uploaded'] );
+		gwc_pp_bail( gwc_pp_portal_url(), $post_id->get_error_message(), 'error' );
 	}
 
 	/*
@@ -383,13 +383,13 @@ function gwcpp_handle_create(): void {
 	 * changeset to protect — the whole thing IS the pending item, and staff
 	 * review it by publishing it. Uploads therefore attach immediately.
 	 */
-	gwcpp_attach_uploads( $upload['uploaded'], (int) $post_id );
+	gwc_pp_attach_uploads( $upload['uploaded'], (int) $post_id );
 
-	gwcpp_bail(
-		gwcpp_portal_url(
+	gwc_pp_bail(
+		gwc_pp_portal_url(
 			array(
-				'gwcpp_view' => 'edit',
-				'gwcpp_post' => $post_id,
+				'gwc_pp_view' => 'edit',
+				'gwc_pp_post' => $post_id,
 			)
 		),
 		__( 'Added. It is not on the public site yet — somebody will review it first.', 'groundwork-common-post-portal' ),
@@ -400,16 +400,16 @@ function gwcpp_handle_create(): void {
 /**
  * Take a post off the public site.
  */
-function gwcpp_handle_unpublish(): void {
-	$post_id = gwcpp_guard_post( 'gwcpp_unpublish_nonce', 'gwcpp_unpublish_' );
+function gwc_pp_handle_unpublish(): void {
+	$post_id = gwc_pp_guard_post( 'gwc_pp_unpublish_nonce', 'gwc_pp_unpublish_' );
 
-	$done = gwcpp_unpublish_post( $post_id, get_current_user_id() );
+	$done = gwc_pp_unpublish_post( $post_id, get_current_user_id() );
 
-	gwcpp_bail(
-		gwcpp_portal_url(
+	gwc_pp_bail(
+		gwc_pp_portal_url(
 			array(
-				'gwcpp_view' => 'edit',
-				'gwcpp_post' => $post_id,
+				'gwc_pp_view' => 'edit',
+				'gwc_pp_post' => $post_id,
 			)
 		),
 		$done
@@ -422,16 +422,16 @@ function gwcpp_handle_unpublish(): void {
 /**
  * Put an unpublished post back.
  */
-function gwcpp_handle_republish(): void {
-	$post_id = gwcpp_guard_post( 'gwcpp_republish_nonce', 'gwcpp_republish_' );
+function gwc_pp_handle_republish(): void {
+	$post_id = gwc_pp_guard_post( 'gwc_pp_republish_nonce', 'gwc_pp_republish_' );
 
-	$done = gwcpp_republish_post( $post_id );
+	$done = gwc_pp_republish_post( $post_id );
 
-	gwcpp_bail(
-		gwcpp_portal_url(
+	gwc_pp_bail(
+		gwc_pp_portal_url(
 			array(
-				'gwcpp_view' => 'edit',
-				'gwcpp_post' => $post_id,
+				'gwc_pp_view' => 'edit',
+				'gwc_pp_post' => $post_id,
 			)
 		),
 		$done
@@ -450,11 +450,11 @@ function gwcpp_handle_republish(): void {
  *
  * @return string
  */
-function gwcpp_current_view(): string {
+function gwc_pp_current_view(): string {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view selection on a GET request.
-	$view = isset( $_GET['gwcpp_view'] ) ? sanitize_key( wp_unslash( $_GET['gwcpp_view'] ) ) : 'list';
+	$view = isset( $_GET['gwc_pp_view'] ) ? sanitize_key( wp_unslash( $_GET['gwc_pp_view'] ) ) : 'list';
 
-	return in_array( $view, GWCPP_PORTAL_VIEWS, true ) ? $view : 'list';
+	return in_array( $view, GWC_PP_PORTAL_VIEWS, true ) ? $view : 'list';
 }
 
 /**
@@ -462,22 +462,22 @@ function gwcpp_current_view(): string {
  *
  * @return string
  */
-function gwcpp_render_portal(): string {
+function gwc_pp_render_portal(): string {
 	// Assets are enqueued from here as well as from the cheap has_block() guess
 	// in enqueue.php, because that guess cannot see a shortcode inside a
 	// widget, a template part, or another block's content.
-	gwcpp_enqueue_portal_assets();
+	gwc_pp_enqueue_portal_assets();
 
 	ob_start();
 
 	echo '<div class="gwcpp">';
 
-	gwcpp_render_flash();
+	gwc_pp_render_flash();
 
-	if ( ! is_user_logged_in() || ! gwcpp_user_is_portal_user() ) {
-		gwcpp_render_signin();
+	if ( ! is_user_logged_in() || ! gwc_pp_user_is_portal_user() ) {
+		gwc_pp_render_signin();
 	} else {
-		gwcpp_render_signed_in();
+		gwc_pp_render_signed_in();
 	}
 
 	echo '</div>';
@@ -488,8 +488,8 @@ function gwcpp_render_portal(): string {
 /**
  * The one-time message left by the last redirect.
  */
-function gwcpp_render_flash(): void {
-	$flash = gwcpp_flash();
+function gwc_pp_render_flash(): void {
+	$flash = gwc_pp_flash();
 	if ( null === $flash ) {
 		return;
 	}
@@ -504,9 +504,9 @@ function gwcpp_render_flash(): void {
 /**
  * The signed-out view.
  */
-function gwcpp_render_signin(): void {
-	$magic    = (bool) gwcpp_setting( 'signin_magic' );
-	$password = (bool) gwcpp_setting( 'signin_password' );
+function gwc_pp_render_signin(): void {
+	$magic    = (bool) gwc_pp_setting( 'signin_magic' );
+	$password = (bool) gwc_pp_setting( 'signin_password' );
 
 	/*
 	 * Neither switched on is a configuration mistake rather than a state to
@@ -527,11 +527,11 @@ function gwcpp_render_signin(): void {
 		printf( '<h2 class="gwcpp-signin__title">%s</h2>', esc_html__( 'Sign in', 'groundwork-common-post-portal' ) );
 		printf( '<p>%s</p>', esc_html__( 'Enter your email address and we will send you a link. There is no password to remember.', 'groundwork-common-post-portal' ) );
 
-		echo '<form class="gwcpp-form" method="post" action="' . esc_url( gwcpp_portal_url() ) . '">';
-		wp_nonce_field( 'gwcpp_signin', 'gwcpp_signin_nonce' );
+		echo '<form class="gwcpp-form" method="post" action="' . esc_url( gwc_pp_portal_url() ) . '">';
+		wp_nonce_field( 'gwc_pp_signin', 'gwc_pp_signin_nonce' );
 
 		printf(
-			'<div class="gwcpp-field"><label class="gwcpp-label" for="gwcpp-email">%s</label><input class="gwcpp-input" type="email" id="gwcpp-email" name="gwcpp_email" autocomplete="email" required /></div>',
+			'<div class="gwcpp-field"><label class="gwcpp-label" for="gwcpp-email">%s</label><input class="gwcpp-input" type="email" id="gwcpp-email" name="gwc_pp_email" autocomplete="email" required /></div>',
 			esc_html__( 'Email address', 'groundwork-common-post-portal' )
 		);
 
@@ -542,10 +542,10 @@ function gwcpp_render_signin(): void {
 		 * silently discards their sign-in attempt with no way to find out why.
 		 * autocomplete="off" stops a password manager doing the same.
 		 */
-		echo '<div class="gwcpp-hp" aria-hidden="true"><label for="gwcpp-website">Website</label><input type="text" id="gwcpp-website" name="gwcpp_website" tabindex="-1" autocomplete="off" /></div>';
+		echo '<div class="gwcpp-hp" aria-hidden="true"><label for="gwcpp-website">Website</label><input type="text" id="gwcpp-website" name="gwc_pp_website" tabindex="-1" autocomplete="off" /></div>';
 
 		printf(
-			'<div class="gwcpp-actions"><button type="submit" name="gwcpp_request_link" value="1" class="gwcpp-button gwcpp-button--primary">%s</button></div>',
+			'<div class="gwcpp-actions"><button type="submit" name="gwc_pp_request_link" value="1" class="gwcpp-button gwcpp-button--primary">%s</button></div>',
 			esc_html__( 'Email me a link', 'groundwork-common-post-portal' )
 		);
 
@@ -559,19 +559,19 @@ function gwcpp_render_signin(): void {
 			printf( '<h2 class="gwcpp-signin__title">%s</h2>', esc_html__( 'Sign in', 'groundwork-common-post-portal' ) );
 		}
 
-		echo '<form class="gwcpp-form" method="post" action="' . esc_url( gwcpp_portal_url() ) . '">';
-		wp_nonce_field( 'gwcpp_login', 'gwcpp_login_nonce' );
+		echo '<form class="gwcpp-form" method="post" action="' . esc_url( gwc_pp_portal_url() ) . '">';
+		wp_nonce_field( 'gwc_pp_login', 'gwc_pp_login_nonce' );
 
 		printf(
-			'<div class="gwcpp-field"><label class="gwcpp-label" for="gwcpp-user">%s</label><input class="gwcpp-input" type="text" id="gwcpp-user" name="gwcpp_user" autocomplete="username" required /></div>',
+			'<div class="gwcpp-field"><label class="gwcpp-label" for="gwcpp-user">%s</label><input class="gwcpp-input" type="text" id="gwcpp-user" name="gwc_pp_user" autocomplete="username" required /></div>',
 			esc_html__( 'Username or email', 'groundwork-common-post-portal' )
 		);
 		printf(
-			'<div class="gwcpp-field"><label class="gwcpp-label" for="gwcpp-pass">%s</label><input class="gwcpp-input" type="password" id="gwcpp-pass" name="gwcpp_pass" autocomplete="current-password" required /></div>',
+			'<div class="gwcpp-field"><label class="gwcpp-label" for="gwcpp-pass">%s</label><input class="gwcpp-input" type="password" id="gwcpp-pass" name="gwc_pp_pass" autocomplete="current-password" required /></div>',
 			esc_html__( 'Password', 'groundwork-common-post-portal' )
 		);
 		printf(
-			'<div class="gwcpp-actions"><button type="submit" name="gwcpp_login" value="1" class="gwcpp-button gwcpp-button--primary">%s</button></div>',
+			'<div class="gwcpp-actions"><button type="submit" name="gwc_pp_login" value="1" class="gwcpp-button gwcpp-button--primary">%s</button></div>',
 			esc_html__( 'Sign in', 'groundwork-common-post-portal' )
 		);
 
@@ -584,22 +584,22 @@ function gwcpp_render_signin(): void {
 /**
  * The signed-in views.
  */
-function gwcpp_render_signed_in(): void {
+function gwc_pp_render_signed_in(): void {
 	$user_id = get_current_user_id();
 
-	gwcpp_render_portal_header( $user_id );
+	gwc_pp_render_portal_header( $user_id );
 
-	switch ( gwcpp_current_view() ) {
+	switch ( gwc_pp_current_view() ) {
 		case 'edit':
-			gwcpp_render_edit_view( $user_id );
+			gwc_pp_render_edit_view( $user_id );
 			break;
 
 		case 'new':
-			gwcpp_render_new_view( $user_id );
+			gwc_pp_render_new_view( $user_id );
 			break;
 
 		default:
-			gwcpp_render_post_list( $user_id );
+			gwc_pp_render_post_list( $user_id );
 	}
 }
 
@@ -608,9 +608,9 @@ function gwcpp_render_signed_in(): void {
  *
  * @param int $user_id User ID.
  */
-function gwcpp_render_portal_header( int $user_id ): void {
+function gwc_pp_render_portal_header( int $user_id ): void {
 	$user = get_userdata( $user_id );
-	$orgs = gwcpp_user_org_names( $user_id );
+	$orgs = gwc_pp_user_org_names( $user_id );
 
 	echo '<header class="gwcpp-header">';
 
@@ -624,20 +624,20 @@ function gwcpp_render_portal_header( int $user_id ): void {
 	}
 	echo '</div>';
 
-	echo '<form class="gwcpp-header__out" method="post" action="' . esc_url( gwcpp_portal_url() ) . '">';
-	wp_nonce_field( 'gwcpp_logout', 'gwcpp_logout_nonce' );
+	echo '<form class="gwcpp-header__out" method="post" action="' . esc_url( gwc_pp_portal_url() ) . '">';
+	wp_nonce_field( 'gwc_pp_logout', 'gwc_pp_logout_nonce' );
 	printf(
-		'<button type="submit" name="gwcpp_logout" value="1" class="gwcpp-button gwcpp-button--quiet">%s</button>',
+		'<button type="submit" name="gwc_pp_logout" value="1" class="gwcpp-button gwcpp-button--quiet">%s</button>',
 		esc_html__( 'Sign out', 'groundwork-common-post-portal' )
 	);
 	echo '</form>';
 
 	echo '</header>';
 
-	if ( 'list' !== gwcpp_current_view() ) {
+	if ( 'list' !== gwc_pp_current_view() ) {
 		printf(
 			'<p class="gwcpp-back"><a href="%s">%s</a></p>',
-			esc_url( gwcpp_portal_url() ),
+			esc_url( gwc_pp_portal_url() ),
 			esc_html__( '← Back to everything', 'groundwork-common-post-portal' )
 		);
 	}
@@ -648,11 +648,11 @@ function gwcpp_render_portal_header( int $user_id ): void {
  *
  * @param int $user_id User ID.
  */
-function gwcpp_render_edit_view( int $user_id ): void {
+function gwc_pp_render_edit_view( int $user_id ): void {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only; access is checked immediately below.
-	$post_id = isset( $_GET['gwcpp_post'] ) ? (int) $_GET['gwcpp_post'] : 0;
+	$post_id = isset( $_GET['gwc_pp_post'] ) ? (int) $_GET['gwc_pp_post'] : 0;
 
-	if ( ! gwcpp_user_can_edit_post( $user_id, $post_id ) ) {
+	if ( ! gwc_pp_user_can_edit_post( $user_id, $post_id ) ) {
 		/*
 		 * The same words for "no such post" and "not yours". A view that said
 		 * "you do not have access to this" would confirm the post exists.
@@ -669,9 +669,9 @@ function gwcpp_render_edit_view( int $user_id ): void {
 		return;
 	}
 
-	$current = gwcpp_current_values( $post_id, $post->post_type );
-	$stash   = gwcpp_take_stash( $user_id, $post_id );
-	$pending = gwcpp_get_changeset( $post_id );
+	$current = gwc_pp_current_values( $post_id, $post->post_type );
+	$stash   = gwc_pp_take_stash( $user_id, $post_id );
+	$pending = gwc_pp_get_changeset( $post_id );
 
 	/*
 	 * Three sources, in order of how recently the person touched them: a
@@ -701,7 +701,7 @@ function gwcpp_render_edit_view( int $user_id ): void {
 	);
 
 	if ( null !== $pending && null === $stash ) {
-		gwcpp_render_pending_banner( $pending, $post_id );
+		gwc_pp_render_pending_banner( $pending, $post_id );
 	} else {
 		/*
 		 * Not shown while something is already waiting for review. Asking
@@ -709,12 +709,12 @@ function gwcpp_render_edit_view( int $user_id ): void {
 		 * have not looked at yet, is asking them to vouch for a version of the
 		 * entry that does not exist.
 		 */
-		gwcpp_render_review_panel( $post );
+		gwc_pp_render_review_panel( $post );
 	}
 
-	gwcpp_render_edit_form( $post, $values, $errors );
+	gwc_pp_render_edit_form( $post, $values, $errors );
 
-	gwcpp_render_handoff_panel( $post, $user_id );
+	gwc_pp_render_handoff_panel( $post, $user_id );
 }
 
 /**
@@ -727,7 +727,7 @@ function gwcpp_render_edit_view( int $user_id ): void {
  * @param array $pending The changeset.
  * @param int   $post_id Post ID.
  */
-function gwcpp_render_pending_banner( array $pending, int $post_id ): void {
+function gwc_pp_render_pending_banner( array $pending, int $post_id ): void {
 	$when = $pending['time'] > 0
 		? sprintf(
 			/* translators: %s: a length of time, e.g. "2 hours". */
@@ -736,7 +736,7 @@ function gwcpp_render_pending_banner( array $pending, int $post_id ): void {
 		)
 		: __( 'You have changes waiting for review.', 'groundwork-common-post-portal' );
 
-	$count = count( gwcpp_changeset_diff( $post_id ) );
+	$count = count( gwc_pp_changeset_diff( $post_id ) );
 
 	printf(
 		'<div class="gwcpp-notice gwcpp-notice--pending" role="status"><p><strong>%s</strong></p><p>%s</p></div>',
@@ -761,14 +761,14 @@ function gwcpp_render_pending_banner( array $pending, int $post_id ): void {
  *
  * @param int $user_id User ID.
  */
-function gwcpp_render_new_view( int $user_id ): void {
+function gwc_pp_render_new_view( int $user_id ): void {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only; permission is checked immediately below.
-	$post_type = isset( $_GET['gwcpp_type'] ) ? sanitize_key( wp_unslash( $_GET['gwcpp_type'] ) ) : '';
+	$post_type = isset( $_GET['gwc_pp_type'] ) ? sanitize_key( wp_unslash( $_GET['gwc_pp_type'] ) ) : '';
 
 	if (
-		! gwcpp_type_enabled( $post_type )
-		|| ! gwcpp_type_setting( $post_type, 'allow_create' )
-		|| ! gwcpp_user_orgs( $user_id )
+		! gwc_pp_type_enabled( $post_type )
+		|| ! gwc_pp_type_setting( $post_type, 'allow_create' )
+		|| ! gwc_pp_user_orgs( $user_id )
 	) {
 		printf(
 			'<div class="gwcpp-empty"><p>%s</p></div>',
@@ -778,7 +778,7 @@ function gwcpp_render_new_view( int $user_id ): void {
 	}
 
 	$object = get_post_type_object( $post_type );
-	$stash  = gwcpp_take_stash( $user_id, 0 );
+	$stash  = gwc_pp_take_stash( $user_id, 0 );
 
 	printf(
 		'<h1 class="gwcpp-title">%s</h1>',
@@ -791,7 +791,7 @@ function gwcpp_render_new_view( int $user_id ): void {
 		)
 	);
 
-	gwcpp_render_create_form(
+	gwc_pp_render_create_form(
 		$post_type,
 		null !== $stash ? $stash['values'] : array(),
 		null !== $stash ? $stash['errors'] : array()
@@ -806,17 +806,17 @@ function gwcpp_render_new_view( int $user_id ): void {
  * The same shape as a sign-in link, using a durable token instead — see the
  * note in auth.php about why these do not live in a transient.
  */
-function gwcpp_handle_review_link(): void {
-	$token = isset( $_GET['gwcpp_review_token'] ) ? sanitize_text_field( wp_unslash( $_GET['gwcpp_review_token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A single-use token in the URL is the authentication here; the recipient has no session yet, so there is no nonce to check.
+function gwc_pp_handle_review_link(): void {
+	$token = isset( $_GET['gwc_pp_review_token'] ) ? sanitize_text_field( wp_unslash( $_GET['gwc_pp_review_token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A single-use token in the URL is the authentication here; the recipient has no session yet, so there is no nonce to check.
 
-	if ( gwcpp_request_is_automated() ) {
+	if ( gwc_pp_request_is_automated() ) {
 		return;
 	}
 
-	if ( gwcpp_consume_durable_token( $token, 'review' ) <= 0 ) {
+	if ( gwc_pp_consume_durable_token( $token, 'review' ) <= 0 ) {
 		wp_safe_redirect(
-			gwcpp_flash_url(
-				gwcpp_portal_url(),
+			gwc_pp_flash_url(
+				gwc_pp_portal_url(),
 				'warn',
 				__( 'That link has expired or has already been used. Please ask for a new sign-in link below.', 'groundwork-common-post-portal' )
 			)
@@ -824,23 +824,23 @@ function gwcpp_handle_review_link(): void {
 		exit;
 	}
 
-	wp_safe_redirect( gwcpp_portal_url() );
+	wp_safe_redirect( gwc_pp_portal_url() );
 	exit;
 }
 
 /**
  * Confirm an entry is still right, without changing anything.
  */
-function gwcpp_handle_confirm_review(): void {
-	$post_id = gwcpp_guard_post( 'gwcpp_confirm_nonce', 'gwcpp_confirm_' );
+function gwc_pp_handle_confirm_review(): void {
+	$post_id = gwc_pp_guard_post( 'gwc_pp_confirm_nonce', 'gwc_pp_confirm_' );
 
-	gwcpp_record_review( $post_id, get_current_user_id() );
+	gwc_pp_record_review( $post_id, get_current_user_id() );
 
-	gwcpp_bail(
-		gwcpp_portal_url(
+	gwc_pp_bail(
+		gwc_pp_portal_url(
 			array(
-				'gwcpp_view' => 'edit',
-				'gwcpp_post' => $post_id,
+				'gwc_pp_view' => 'edit',
+				'gwc_pp_post' => $post_id,
 			)
 		),
 		__( 'Thank you — that is noted as up to date.', 'groundwork-common-post-portal' ),
@@ -857,8 +857,8 @@ function gwcpp_handle_confirm_review(): void {
  *
  * @param WP_Post $post The post.
  */
-function gwcpp_render_review_panel( WP_Post $post ): void {
-	$state = gwcpp_review_state( $post->ID );
+function gwc_pp_render_review_panel( WP_Post $post ): void {
+	$state = gwc_pp_review_state( $post->ID );
 
 	if ( empty( $state['enabled'] ) || ! empty( $state['exempt'] ) ) {
 		return;
@@ -892,11 +892,11 @@ function gwcpp_render_review_panel( WP_Post $post ): void {
 		esc_html( $body )
 	);
 
-	echo '<form method="post" action="' . esc_url( gwcpp_portal_url() ) . '">';
-	wp_nonce_field( 'gwcpp_confirm_' . $post->ID, 'gwcpp_confirm_nonce' );
-	printf( '<input type="hidden" name="gwcpp_post_id" value="%d" />', (int) $post->ID );
+	echo '<form method="post" action="' . esc_url( gwc_pp_portal_url() ) . '">';
+	wp_nonce_field( 'gwc_pp_confirm_' . $post->ID, 'gwc_pp_confirm_nonce' );
+	printf( '<input type="hidden" name="gwc_pp_post_id" value="%d" />', (int) $post->ID );
 	printf(
-		'<button type="submit" name="gwcpp_confirm_review" value="1" class="gwcpp-button gwcpp-button--primary">%s</button>',
+		'<button type="submit" name="gwc_pp_confirm_review" value="1" class="gwcpp-button gwcpp-button--primary">%s</button>',
 		esc_html(
 			$hidden
 				? __( 'Yes, this is right — put it back', 'groundwork-common-post-portal' )

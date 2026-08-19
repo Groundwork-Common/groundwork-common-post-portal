@@ -35,19 +35,19 @@ defined( 'ABSPATH' ) || exit;
  */
 
 /** Post meta, single: Y-m-d of the last confirmed review. */
-const GWCPP_REVIEWED_META = '_gwcpp_reviewed_at';
+const GWC_PP_REVIEWED_META = '_gwc_pp_reviewed_at';
 
 /** Post meta, single: who confirmed it. */
-const GWCPP_REVIEWED_BY_META = '_gwcpp_reviewed_by';
+const GWC_PP_REVIEWED_BY_META = '_gwc_pp_reviewed_by';
 
 /** Post meta, single: this entry is never chased. */
-const GWCPP_REVIEW_EXEMPT_META = '_gwcpp_review_exempt';
+const GWC_PP_REVIEW_EXEMPT_META = '_gwc_pp_review_exempt';
 
 /** Post meta, single: this entry was unpublished by the cycle, not by a human. */
-const GWCPP_AUTO_EXPIRED_META = '_gwcpp_auto_expired';
+const GWC_PP_AUTO_EXPIRED_META = '_gwc_pp_auto_expired';
 
 /** Post meta, array: rungs of the notice ladder already delivered. */
-const GWCPP_NOTICES_META = '_gwcpp_review_notices_sent';
+const GWC_PP_NOTICES_META = '_gwc_pp_review_notices_sent';
 
 /**
  * How often an entry of this type should be reviewed, in months.
@@ -59,8 +59,8 @@ const GWCPP_NOTICES_META = '_gwcpp_review_notices_sent';
  * @param string $post_type Post type slug.
  * @return int
  */
-function gwcpp_review_cadence( string $post_type ): int {
-	$months = (int) gwcpp_type_setting( $post_type, 'review_months' );
+function gwc_pp_review_cadence( string $post_type ): int {
+	$months = (int) gwc_pp_type_setting( $post_type, 'review_months' );
 
 	// Clamped rather than trusted: a cadence of zero would make every date
 	// threshold identical and fire the whole ladder at once, and one of 600
@@ -74,8 +74,8 @@ function gwcpp_review_cadence( string $post_type ): int {
  * @param string $post_type Post type slug.
  * @return bool
  */
-function gwcpp_review_enabled( string $post_type ): bool {
-	return gwcpp_type_cadence_is_set( $post_type ) && gwcpp_type_enabled( $post_type );
+function gwc_pp_review_enabled( string $post_type ): bool {
+	return gwc_pp_type_cadence_is_set( $post_type ) && gwc_pp_type_enabled( $post_type );
 }
 
 /**
@@ -84,8 +84,8 @@ function gwcpp_review_enabled( string $post_type ): bool {
  * @param string $post_type Post type slug.
  * @return bool
  */
-function gwcpp_type_cadence_is_set( string $post_type ): bool {
-	return gwcpp_review_cadence( $post_type ) > 0;
+function gwc_pp_type_cadence_is_set( string $post_type ): bool {
+	return gwc_pp_review_cadence( $post_type ) > 0;
 }
 
 /**
@@ -97,7 +97,7 @@ function gwcpp_type_cadence_is_set( string $post_type ): bool {
  *
  * @return DateTimeImmutable
  */
-function gwcpp_review_today(): DateTimeImmutable {
+function gwc_pp_review_today(): DateTimeImmutable {
 	return new DateTimeImmutable( current_time( 'Y-m-d' ), wp_timezone() );
 }
 
@@ -107,7 +107,7 @@ function gwcpp_review_today(): DateTimeImmutable {
  * @param string $ymd Date.
  * @return DateTimeImmutable|null
  */
-function gwcpp_review_date( string $ymd ): ?DateTimeImmutable {
+function gwc_pp_review_date( string $ymd ): ?DateTimeImmutable {
 	if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $ymd ) ) {
 		return null;
 	}
@@ -134,7 +134,7 @@ function gwcpp_review_date( string $ymd ): ?DateTimeImmutable {
  * @param int $post_id Post ID.
  * @return array
  */
-function gwcpp_review_state( int $post_id ): array {
+function gwc_pp_review_state( int $post_id ): array {
 	$post = get_post( $post_id );
 
 	if ( ! $post instanceof WP_Post ) {
@@ -145,7 +145,7 @@ function gwcpp_review_state( int $post_id ): array {
 		);
 	}
 
-	$cadence = gwcpp_review_cadence( $post->post_type );
+	$cadence = gwc_pp_review_cadence( $post->post_type );
 
 	if ( $cadence < 1 ) {
 		return array(
@@ -155,8 +155,8 @@ function gwcpp_review_state( int $post_id ): array {
 		);
 	}
 
-	$reviewed_raw = (string) get_post_meta( $post_id, GWCPP_REVIEWED_META, true );
-	$base         = gwcpp_review_date( $reviewed_raw );
+	$reviewed_raw = (string) get_post_meta( $post_id, GWC_PP_REVIEWED_META, true );
+	$base         = gwc_pp_review_date( $reviewed_raw );
 
 	/*
 	 * No review date yet — an entry staff created before the cycle was switched
@@ -165,14 +165,14 @@ function gwcpp_review_state( int $post_id ): array {
 	 * the cycle on does not instantly mark a site's whole directory as current.
 	 */
 	if ( null === $base ) {
-		$base         = gwcpp_review_date( gmdate( 'Y-m-d', (int) strtotime( $post->post_date ) ) );
+		$base         = gwc_pp_review_date( gmdate( 'Y-m-d', (int) strtotime( $post->post_date ) ) );
 		$reviewed_raw = '';
 	}
 	if ( null === $base ) {
-		$base = gwcpp_review_today();
+		$base = gwc_pp_review_today();
 	}
 
-	$today   = gwcpp_review_today();
+	$today   = gwc_pp_review_today();
 	$due     = $base->modify( '+' . max( 1, $cadence - 1 ) . ' months' );
 	$named   = $base->modify( '+' . $cadence . ' months' );
 	$overdue = $base->modify( '+' . ( $cadence + 1 ) . ' months' );
@@ -188,8 +188,8 @@ function gwcpp_review_state( int $post_id ): array {
 		$stage = 'current';
 	}
 
-	$exempt = (bool) get_post_meta( $post_id, GWCPP_REVIEW_EXEMPT_META, true );
-	$hidden = (bool) get_post_meta( $post_id, GWCPP_AUTO_EXPIRED_META, true );
+	$exempt = (bool) get_post_meta( $post_id, GWC_PP_REVIEW_EXEMPT_META, true );
+	$hidden = (bool) get_post_meta( $post_id, GWC_PP_AUTO_EXPIRED_META, true );
 
 	/*
 	 * "Managed" means somebody exists who could actually review this. An entry
@@ -198,7 +198,7 @@ function gwcpp_review_state( int $post_id ): array {
 	 * staff in the digest instead. Capped here rather than in the cron so the
 	 * admin column tells the same story the cron acts on.
 	 */
-	$managed = gwcpp_post_has_owner( $post_id );
+	$managed = gwc_pp_post_has_owner( $post_id );
 
 	$state = $stage;
 	if ( $exempt ) {
@@ -211,7 +211,7 @@ function gwcpp_review_state( int $post_id ): array {
 		'enabled'     => true,
 		'cadence'     => $cadence,
 		'reviewed_at' => $reviewed_raw,
-		'reviewed_by' => (int) get_post_meta( $post_id, GWCPP_REVIEWED_BY_META, true ),
+		'reviewed_by' => (int) get_post_meta( $post_id, GWC_PP_REVIEWED_BY_META, true ),
 		'basis'       => $base->format( 'Y-m-d' ),
 		'due_on'      => $named->format( 'Y-m-d' ),
 		'expires_on'  => $expires->format( 'Y-m-d' ),
@@ -234,14 +234,14 @@ function gwcpp_review_state( int $post_id ): array {
  * @param int $post_id Post ID.
  * @return bool
  */
-function gwcpp_post_has_owner( int $post_id ): bool {
-	if ( gwcpp_post_editors( $post_id ) ) {
+function gwc_pp_post_has_owner( int $post_id ): bool {
+	if ( gwc_pp_post_editors( $post_id ) ) {
 		return true;
 	}
 
-	$org = gwcpp_post_org( $post_id );
+	$org = gwc_pp_post_org( $post_id );
 
-	return $org > 0 && gwcpp_org_members( $org ) !== array();
+	return $org > 0 && gwc_pp_org_members( $org ) !== array();
 }
 
 /**
@@ -250,12 +250,12 @@ function gwcpp_post_has_owner( int $post_id ): bool {
  * @param int $post_id Post ID.
  * @return int[] User IDs.
  */
-function gwcpp_post_owners( int $post_id ): array {
-	$ids = gwcpp_post_editors( $post_id );
-	$org = gwcpp_post_org( $post_id );
+function gwc_pp_post_owners( int $post_id ): array {
+	$ids = gwc_pp_post_editors( $post_id );
+	$org = gwc_pp_post_org( $post_id );
 
 	if ( $org > 0 ) {
-		foreach ( gwcpp_org_members( $org ) as $member ) {
+		foreach ( gwc_pp_org_members( $org ) as $member ) {
 			$ids[] = (int) $member->ID;
 		}
 	}
@@ -269,20 +269,20 @@ function gwcpp_post_owners( int $post_id ): array {
  * @param int $post_id Post ID.
  * @param int $user_id Who confirmed it.
  */
-function gwcpp_record_review( int $post_id, int $user_id = 0 ): void {
-	update_post_meta( $post_id, GWCPP_REVIEWED_META, gwcpp_review_today()->format( 'Y-m-d' ) );
-	update_post_meta( $post_id, GWCPP_REVIEWED_BY_META, $user_id );
+function gwc_pp_record_review( int $post_id, int $user_id = 0 ): void {
+	update_post_meta( $post_id, GWC_PP_REVIEWED_META, gwc_pp_review_today()->format( 'Y-m-d' ) );
+	update_post_meta( $post_id, GWC_PP_REVIEWED_BY_META, $user_id );
 
 	/*
 	 * The ladder resets with the clock. Without this, an entry reviewed at month
 	 * eleven would keep every rung it had already climbed and go silent for the
 	 * whole of its next cycle.
 	 */
-	delete_post_meta( $post_id, GWCPP_NOTICES_META );
+	delete_post_meta( $post_id, GWC_PP_NOTICES_META );
 
 	// Back on the site if the cycle was what took it off.
-	if ( get_post_meta( $post_id, GWCPP_AUTO_EXPIRED_META, true ) ) {
-		gwcpp_review_republish( $post_id );
+	if ( get_post_meta( $post_id, GWC_PP_AUTO_EXPIRED_META, true ) ) {
+		gwc_pp_review_republish( $post_id );
 	}
 
 	/**
@@ -291,7 +291,7 @@ function gwcpp_record_review( int $post_id, int $user_id = 0 ): void {
 	 * @param int $post_id Post ID.
 	 * @param int $user_id Who confirmed it.
 	 */
-	do_action( 'gwcpp_reviewed', $post_id, $user_id );
+	do_action( 'gwc_pp_reviewed', $post_id, $user_id );
 }
 
 /*
@@ -299,8 +299,8 @@ function gwcpp_record_review( int $post_id, int $user_id = 0 ): void {
  * field and pressed submit has done more than the confirm button asks for, and
  * making them press it afterwards as well would be asking twice.
  */
-add_action( 'gwcpp_fields_saved', 'gwcpp_review_on_save', 10, 1 );
-add_action( 'gwcpp_changeset_stored', 'gwcpp_review_on_save', 10, 1 );
+add_action( 'gwc_pp_fields_saved', 'gwc_pp_review_on_save', 10, 1 );
+add_action( 'gwc_pp_changeset_stored', 'gwc_pp_review_on_save', 10, 1 );
 
 /**
  * Count a portal save as a review.
@@ -311,8 +311,8 @@ add_action( 'gwcpp_changeset_stored', 'gwcpp_review_on_save', 10, 1 );
  *
  * @param int $post_id Post ID.
  */
-function gwcpp_review_on_save( $post_id ): void {
-	gwcpp_record_review( (int) $post_id, get_current_user_id() );
+function gwc_pp_review_on_save( $post_id ): void {
+	gwc_pp_record_review( (int) $post_id, get_current_user_id() );
 }
 
 /* ── Hiding and restoring ────────────────────────────────────────────────── */
@@ -323,7 +323,7 @@ function gwcpp_review_on_save( $post_id ): void {
  * @param int $post_id Post ID.
  * @return bool
  */
-function gwcpp_review_expire( int $post_id ): bool {
+function gwc_pp_review_expire( int $post_id ): bool {
 	$post = get_post( $post_id );
 
 	if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status ) {
@@ -343,14 +343,14 @@ function gwcpp_review_expire( int $post_id ): bool {
 	 * down deliberately, and nothing knows to put it back when its owner
 	 * finally confirms.
 	 */
-	update_post_meta( $post_id, GWCPP_AUTO_EXPIRED_META, time() );
+	update_post_meta( $post_id, GWC_PP_AUTO_EXPIRED_META, time() );
 
 	/**
 	 * Fires when the cycle hides an entry.
 	 *
 	 * @param int $post_id Post ID.
 	 */
-	do_action( 'gwcpp_review_expired', $post_id );
+	do_action( 'gwc_pp_review_expired', $post_id );
 
 	return true;
 }
@@ -364,8 +364,8 @@ function gwcpp_review_expire( int $post_id ): bool {
  * @param int $post_id Post ID.
  * @return bool
  */
-function gwcpp_review_republish( int $post_id ): bool {
-	if ( ! get_post_meta( $post_id, GWCPP_AUTO_EXPIRED_META, true ) ) {
+function gwc_pp_review_republish( int $post_id ): bool {
+	if ( ! get_post_meta( $post_id, GWC_PP_AUTO_EXPIRED_META, true ) ) {
 		return false;
 	}
 
@@ -379,7 +379,7 @@ function gwcpp_review_republish( int $post_id ): bool {
 		);
 	}
 
-	delete_post_meta( $post_id, GWCPP_AUTO_EXPIRED_META );
+	delete_post_meta( $post_id, GWC_PP_AUTO_EXPIRED_META );
 
 	return true;
 }
@@ -420,8 +420,8 @@ function gwcpp_review_republish( int $post_id ): bool {
  * @param int    $cadence   Months between reviews.
  * @return array<string, DateTimeImmutable>
  */
-function gwcpp_review_ladder( string $basis, int $cadence ): array {
-	$base = gwcpp_review_date( $basis );
+function gwc_pp_review_ladder( string $basis, int $cadence ): array {
+	$base = gwc_pp_review_date( $basis );
 
 	if ( null === $base || $cadence < 1 ) {
 		return array();
@@ -472,7 +472,7 @@ function gwcpp_review_ladder( string $basis, int $cadence ): array {
 /** Rungs that email the entry's owners. `staff_30` is deliberately absent — it
  *  goes to the site's staff, not to a partner.
  */
-const GWCPP_OWNER_RUNGS = array( 'due', 'named', 'overdue', 'final_15', 'expired' );
+const GWC_PP_OWNER_RUNGS = array( 'due', 'named', 'overdue', 'final_15', 'expired' );
 
 /**
  * Rungs already delivered for a post.
@@ -480,8 +480,8 @@ const GWCPP_OWNER_RUNGS = array( 'due', 'named', 'overdue', 'final_15', 'expired
  * @param int $post_id Post ID.
  * @return string[]
  */
-function gwcpp_review_notices_sent( int $post_id ): array {
-	$sent = get_post_meta( $post_id, GWCPP_NOTICES_META, true );
+function gwc_pp_review_notices_sent( int $post_id ): array {
+	$sent = get_post_meta( $post_id, GWC_PP_NOTICES_META, true );
 
 	return is_array( $sent ) ? array_map( 'strval', $sent ) : array();
 }
@@ -493,14 +493,14 @@ function gwcpp_review_notices_sent( int $post_id ): array {
  * @param string[] $sent    Rungs already recorded.
  * @param string[] $fresh   Rungs just delivered.
  */
-function gwcpp_review_record_notices( int $post_id, array $sent, array $fresh ): void {
+function gwc_pp_review_record_notices( int $post_id, array $sent, array $fresh ): void {
 	if ( ! $fresh ) {
 		return;
 	}
 
 	update_post_meta(
 		$post_id,
-		GWCPP_NOTICES_META,
+		GWC_PP_NOTICES_META,
 		array_values( array_unique( array_merge( $sent, $fresh ) ) )
 	);
 }
@@ -516,13 +516,13 @@ function gwcpp_review_record_notices( int $post_id, array $sent, array $fresh ):
  *                                      inferring the ladder from one snapshot.
  * @return string The rung to send now, or '' when there is nothing to send.
  */
-function gwcpp_review_due_rung( array $state, array $sent, ?DateTimeImmutable $today = null ): string {
+function gwc_pp_review_due_rung( array $state, array $sent, ?DateTimeImmutable $today = null ): string {
 	if ( empty( $state['enabled'] ) || ! empty( $state['exempt'] ) ) {
 		return '';
 	}
 
-	$ladder = gwcpp_review_ladder( (string) $state['basis'], (int) $state['cadence'] );
-	$today  = $today ?? gwcpp_review_today();
+	$ladder = gwc_pp_review_ladder( (string) $state['basis'], (int) $state['cadence'] );
+	$today  = $today ?? gwc_pp_review_today();
 
 	$standing = '';
 	foreach ( $ladder as $rung => $date ) {
@@ -540,26 +540,26 @@ function gwcpp_review_due_rung( array $state, array $sent, ?DateTimeImmutable $t
 
 /*
  * ── Scheduling ──────────────────────────────────────────────────────────────
- * Registered idempotently on init, matching gwcpp_ensure_role()'s "safe on
+ * Registered idempotently on init, matching gwc_pp_ensure_role()'s "safe on
  * every load" pattern, so a site that loses its cron entries gets them back
  * without anyone deactivating anything.
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-add_action( 'init', 'gwcpp_schedule_review_events', 21 );
-add_action( 'gwcpp_daily_review', 'gwcpp_run_daily_review' );
-add_action( 'gwcpp_weekly_review_digest', 'gwcpp_run_weekly_digest' );
-add_action( 'admin_init', 'gwcpp_review_catch_up' );
+add_action( 'init', 'gwc_pp_schedule_review_events', 21 );
+add_action( 'gwc_pp_daily_review', 'gwc_pp_run_daily_review' );
+add_action( 'gwc_pp_weekly_review_digest', 'gwc_pp_run_weekly_digest' );
+add_action( 'admin_init', 'gwc_pp_review_catch_up' );
 
 /**
  * Make sure both events exist.
  */
-function gwcpp_schedule_review_events(): void {
-	if ( ! wp_next_scheduled( 'gwcpp_daily_review' ) ) {
-		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'gwcpp_daily_review' );
+function gwc_pp_schedule_review_events(): void {
+	if ( ! wp_next_scheduled( 'gwc_pp_daily_review' ) ) {
+		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'gwc_pp_daily_review' );
 	}
-	if ( ! wp_next_scheduled( 'gwcpp_weekly_review_digest' ) ) {
-		wp_schedule_event( time() + 2 * HOUR_IN_SECONDS, 'weekly', 'gwcpp_weekly_review_digest' );
+	if ( ! wp_next_scheduled( 'gwc_pp_weekly_review_digest' ) ) {
+		wp_schedule_event( time() + 2 * HOUR_IN_SECONDS, 'weekly', 'gwc_pp_weekly_review_digest' );
 	}
 }
 
@@ -571,12 +571,12 @@ function gwcpp_schedule_review_events(): void {
  * exists for. Deliberately admin_init rather than a front-end hook, so a
  * visitor never pays for it.
  */
-function gwcpp_review_catch_up(): void {
+function gwc_pp_review_catch_up(): void {
 	if ( wp_doing_ajax() || wp_doing_cron() ) {
 		return;
 	}
 
-	$last = (int) get_option( 'gwcpp_review_last_run', 0 );
+	$last = (int) get_option( 'gwc_pp_review_last_run', 0 );
 	if ( $last && ( time() - $last ) < 36 * HOUR_IN_SECONDS ) {
 		return;
 	}
@@ -594,19 +594,19 @@ function gwcpp_review_catch_up(): void {
 	 * event is only for the case where the recurring one has gone missing.
 	 */
 	if ( ! defined( 'DISABLE_WP_CRON' ) || ! DISABLE_WP_CRON ) {
-		if ( ! wp_next_scheduled( 'gwcpp_daily_review' ) ) {
-			wp_schedule_single_event( time(), 'gwcpp_daily_review' );
+		if ( ! wp_next_scheduled( 'gwc_pp_daily_review' ) ) {
+			wp_schedule_single_event( time(), 'gwc_pp_daily_review' );
 		}
 		spawn_cron();
 		return;
 	}
 
 	// Nothing else will ever run it, so accept the stall.
-	gwcpp_run_daily_review();
+	gwc_pp_run_daily_review();
 }
 
 /** How many tracked entries are read from the database at a time. */
-const GWCPP_REVIEW_PAGE_SIZE = 500;
+const GWC_PP_REVIEW_PAGE_SIZE = 500;
 
 /**
  * Every post the cycle tracks.
@@ -625,8 +625,8 @@ const GWCPP_REVIEW_PAGE_SIZE = 500;
  *
  * @return int[]
  */
-function gwcpp_reviewable_post_ids(): array {
-	$types = array_values( array_filter( gwcpp_post_types(), 'gwcpp_review_enabled' ) );
+function gwc_pp_reviewable_post_ids(): array {
+	$types = array_values( array_filter( gwc_pp_post_types(), 'gwc_pp_review_enabled' ) );
 
 	if ( ! $types ) {
 		return array();
@@ -640,7 +640,7 @@ function gwcpp_reviewable_post_ids(): array {
 			array(
 				'post_type'              => $types,
 				'post_status'            => array( 'publish', 'draft' ),
-				'posts_per_page'         => GWCPP_REVIEW_PAGE_SIZE,
+				'posts_per_page'         => GWC_PP_REVIEW_PAGE_SIZE,
 				'paged'                  => $page,
 				'fields'                 => 'ids',
 				'orderby'                => 'ID',
@@ -656,7 +656,7 @@ function gwcpp_reviewable_post_ids(): array {
 		$ids   = array_merge( $ids, array_map( 'intval', $found ) );
 		++$page;
 		// A short page means that was the last one.
-	} while ( GWCPP_REVIEW_PAGE_SIZE === $count );
+	} while ( GWC_PP_REVIEW_PAGE_SIZE === $count );
 
 	return $ids;
 }
@@ -670,31 +670,31 @@ function gwcpp_reviewable_post_ids(): array {
  *
  * @return array{checked:int,mailed:int,expired:int}
  */
-function gwcpp_run_daily_review(): array {
+function gwc_pp_run_daily_review(): array {
 	$nothing = array(
 		'checked' => 0,
 		'mailed'  => 0,
 		'expired' => 0,
 	);
 
-	if ( ! gwcpp_review_claim_lock() ) {
+	if ( ! gwc_pp_review_claim_lock() ) {
 		return $nothing;
 	}
 
-	update_option( 'gwcpp_review_last_run', time(), false );
+	update_option( 'gwc_pp_review_last_run', time(), false );
 
 	$batches     = array();
 	$expired_now = array();
 	$staff_soon  = array();
 	$checked     = 0;
 
-	foreach ( gwcpp_reviewable_post_ids() as $post_id ) {
+	foreach ( gwc_pp_reviewable_post_ids() as $post_id ) {
 		$post_id = (int) $post_id;
 		++$checked;
 
-		$state = gwcpp_review_state( $post_id );
-		$sent  = gwcpp_review_notices_sent( $post_id );
-		$rung  = gwcpp_review_due_rung( $state, $sent );
+		$state = gwc_pp_review_state( $post_id );
+		$sent  = gwc_pp_review_notices_sent( $post_id );
+		$rung  = gwc_pp_review_due_rung( $state, $sent );
 
 		if ( '' === $rung ) {
 			continue;
@@ -707,24 +707,24 @@ function gwcpp_run_daily_review(): array {
 		 * a contradiction somebody has to write a support ticket about.
 		 */
 		if ( 'expired' === $rung && ! empty( $state['managed'] ) && empty( $state['exempt'] ) ) {
-			if ( gwcpp_review_expire( $post_id ) ) {
+			if ( gwc_pp_review_expire( $post_id ) ) {
 				$expired_now[] = $post_id;
 				// Re-read: the status changed underneath the state we captured.
-				$state = gwcpp_review_state( $post_id );
+				$state = gwc_pp_review_state( $post_id );
 			}
 		}
 
 		if ( 'staff_30' === $rung ) {
 			$staff_soon[] = $post_id;
-			gwcpp_review_record_notices( $post_id, $sent, array( $rung ) );
+			gwc_pp_review_record_notices( $post_id, $sent, array( $rung ) );
 			continue;
 		}
 
-		if ( ! in_array( $rung, GWCPP_OWNER_RUNGS, true ) ) {
+		if ( ! in_array( $rung, GWC_PP_OWNER_RUNGS, true ) ) {
 			continue;
 		}
 
-		foreach ( gwcpp_post_owners( $post_id ) as $user_id ) {
+		foreach ( gwc_pp_post_owners( $post_id ) as $user_id ) {
 			$batches[ $user_id ][] = array(
 				'post_id' => $post_id,
 				'state'   => $state,
@@ -750,29 +750,29 @@ function gwcpp_run_daily_review(): array {
 	 */
 	$mailed = 0;
 	foreach ( $batches as $user_id => $items ) {
-		if ( ! gwcpp_review_mail_owner( (int) $user_id, $items ) ) {
+		if ( ! gwc_pp_review_mail_owner( (int) $user_id, $items ) ) {
 			continue;
 		}
 
 		++$mailed;
 
 		foreach ( $items as $item ) {
-			gwcpp_review_record_notices( (int) $item['post_id'], $item['sent'], array( (string) $item['rung'] ) );
+			gwc_pp_review_record_notices( (int) $item['post_id'], $item['sent'], array( (string) $item['rung'] ) );
 		}
 	}
 
 	if ( $staff_soon ) {
-		gwcpp_review_mail_staff( $staff_soon, 'soon' );
+		gwc_pp_review_mail_staff( $staff_soon, 'soon' );
 	}
 	if ( $expired_now ) {
-		gwcpp_review_mail_staff( $expired_now, 'expired' );
+		gwc_pp_review_mail_staff( $expired_now, 'expired' );
 	}
 
 	// Review links live on the user rather than in transients, so nothing
 	// expires them for us. Sweep the ones nobody clicked.
-	gwcpp_purge_expired_durable_tokens();
+	gwc_pp_purge_expired_durable_tokens();
 
-	gwcpp_review_release_lock();
+	gwc_pp_review_release_lock();
 
 	return array(
 		'checked' => $checked,
@@ -783,13 +783,13 @@ function gwcpp_run_daily_review(): array {
 
 /*
  * ── The run lock ────────────────────────────────────────────────────────────
- * Two things can start this run: the cron event, and gwcpp_review_catch_up() on
- * admin_init. The catch-up checks gwcpp_review_last_run first, but the cron
+ * Two things can start this run: the cron event, and gwc_pp_review_catch_up() on
+ * admin_init. The catch-up checks gwc_pp_review_last_run first, but the cron
  * hook does not, and in any case both can read that option before either writes
  * it. The result is two walks over the same five hundred entries, each deciding
  * the same owners are due and each sending them mail.
  *
- * gwcpp_review_record_notices() narrows that — a rung already recorded is not
+ * gwc_pp_review_record_notices() narrows that — a rung already recorded is not
  * sent again — but it is written after the send, so it does not close the
  * window it sits inside. A lock does.
  *
@@ -802,38 +802,38 @@ function gwcpp_run_daily_review(): array {
  */
 
 /** Option: held while a review run is in progress. */
-const GWCPP_REVIEW_LOCK_OPTION = 'gwcpp_review_running';
+const GWC_PP_REVIEW_LOCK_OPTION = 'gwc_pp_review_running';
 
 /** How long before a held lock is assumed to belong to a run that died.
  *  Comfortably longer than any real run, and short enough that a process killed
  *  mid-walk does not stop the reminders for a day.
  */
-const GWCPP_REVIEW_LOCK_TTL = 30 * MINUTE_IN_SECONDS;
+const GWC_PP_REVIEW_LOCK_TTL = 30 * MINUTE_IN_SECONDS;
 
 /**
  * Take the lock, or report that somebody else has it.
  *
  * @return bool True when this process may proceed.
  */
-function gwcpp_review_claim_lock(): bool {
-	if ( add_option( GWCPP_REVIEW_LOCK_OPTION, time(), '', false ) ) {
+function gwc_pp_review_claim_lock(): bool {
+	if ( add_option( GWC_PP_REVIEW_LOCK_OPTION, time(), '', false ) ) {
 		return true;
 	}
 
-	$held = (int) get_option( GWCPP_REVIEW_LOCK_OPTION, 0 );
+	$held = (int) get_option( GWC_PP_REVIEW_LOCK_OPTION, 0 );
 
 	/*
 	 * Still warm: a run really is in progress. Refusing is the whole point —
 	 * the cost of skipping is that reminders go out on the next run instead,
 	 * and the cost of not skipping is that somebody gets the same email twice.
 	 */
-	if ( $held > 0 && ( time() - $held ) < GWCPP_REVIEW_LOCK_TTL ) {
+	if ( $held > 0 && ( time() - $held ) < GWC_PP_REVIEW_LOCK_TTL ) {
 		return false;
 	}
 
 	// Stale. An FPM timeout or a fatal killed the previous run before it could
 	// release, and nothing else is ever going to clear this.
-	update_option( GWCPP_REVIEW_LOCK_OPTION, time(), false );
+	update_option( GWC_PP_REVIEW_LOCK_OPTION, time(), false );
 
 	return true;
 }
@@ -841,8 +841,8 @@ function gwcpp_review_claim_lock(): bool {
 /**
  * Release the lock.
  */
-function gwcpp_review_release_lock(): void {
-	delete_option( GWCPP_REVIEW_LOCK_OPTION );
+function gwc_pp_review_release_lock(): void {
+	delete_option( GWC_PP_REVIEW_LOCK_OPTION );
 }
 
 /**
@@ -854,12 +854,12 @@ function gwcpp_review_release_lock(): void {
  *
  * @return array{unmanaged:int,hidden:int}
  */
-function gwcpp_run_weekly_digest(): array {
+function gwc_pp_run_weekly_digest(): array {
 	$unmanaged = array();
 	$hidden    = array();
 
-	foreach ( gwcpp_reviewable_post_ids() as $post_id ) {
-		$state = gwcpp_review_state( (int) $post_id );
+	foreach ( gwc_pp_reviewable_post_ids() as $post_id ) {
+		$state = gwc_pp_review_state( (int) $post_id );
 
 		if ( 'unmanaged' === $state['state'] ) {
 			$unmanaged[] = (int) $post_id;
@@ -869,7 +869,7 @@ function gwcpp_run_weekly_digest(): array {
 	}
 
 	if ( $unmanaged || $hidden ) {
-		gwcpp_review_mail_digest( $unmanaged, $hidden );
+		gwc_pp_review_mail_digest( $unmanaged, $hidden );
 	}
 
 	return array(
@@ -893,10 +893,10 @@ function gwcpp_run_weekly_digest(): array {
  * @param array $items   Entries needing attention, from the daily run.
  * @return bool True only when the message actually went.
  */
-function gwcpp_review_mail_owner( int $user_id, array $items ): bool {
+function gwc_pp_review_mail_owner( int $user_id, array $items ): bool {
 	$user = get_userdata( $user_id );
 
-	if ( ! $user || ! $items || ! gwcpp_user_is_portal_user( $user_id ) ) {
+	if ( ! $user || ! $items || ! gwc_pp_user_is_portal_user( $user_id ) ) {
 		return false;
 	}
 
@@ -941,7 +941,7 @@ function gwcpp_review_mail_owner( int $user_id, array $items ): bool {
 	 * a deploy running `wp transient delete --all` would otherwise kill every
 	 * reminder link in every inbox at once, silently.
 	 */
-	$url = gwcpp_portal_url( array( 'gwcpp_review_token' => gwcpp_mint_durable_token( $user_id, 'review' ) ) );
+	$url = gwc_pp_portal_url( array( 'gwc_pp_review_token' => gwc_pp_mint_durable_token( $user_id, 'review' ) ) );
 
 	$list = '';
 	foreach ( $items as $item ) {
@@ -957,16 +957,16 @@ function gwcpp_review_mail_owner( int $user_id, array $items ): bool {
 		);
 	}
 
-	$body = gwcpp_email_p( $opening[ $worst ] ?? $opening['due'] )
+	$body = gwc_pp_email_p( $opening[ $worst ] ?? $opening['due'] )
 		. sprintf( '<ul style="margin:0 0 16px;padding-left:20px;">%s</ul>', $list )
-		. gwcpp_email_button( $url, __( 'Check my details', 'groundwork-common-post-portal' ) )
-		. gwcpp_email_raw_link( $url )
-		. gwcpp_email_p( __( 'The link signs you in for a week. If it stops working, you can always ask for a new one from the portal.', 'groundwork-common-post-portal' ) );
+		. gwc_pp_email_button( $url, __( 'Check my details', 'groundwork-common-post-portal' ) )
+		. gwc_pp_email_raw_link( $url )
+		. gwc_pp_email_p( __( 'The link signs you in for a week. If it stops working, you can always ask for a new one from the portal.', 'groundwork-common-post-portal' ) );
 
-	return gwcpp_send_email(
+	return gwc_pp_send_email(
 		$user->user_email,
 		$heading[ $worst ] ?? $heading['due'],
-		gwcpp_email_shell( $heading[ $worst ] ?? $heading['due'], $body )
+		gwc_pp_email_shell( $heading[ $worst ] ?? $heading['due'], $body )
 	);
 }
 
@@ -977,7 +977,7 @@ function gwcpp_review_mail_owner( int $user_id, array $items ): bool {
  * @param string $which    'soon' or 'expired'.
  * @return bool
  */
-function gwcpp_review_mail_staff( array $post_ids, string $which ): bool {
+function gwc_pp_review_mail_staff( array $post_ids, string $which ): bool {
 	if ( ! $post_ids ) {
 		return false;
 	}
@@ -994,10 +994,10 @@ function gwcpp_review_mail_staff( array $post_ids, string $which ): bool {
 		// partner ends up blamed for ignoring an email nobody sent.
 		: __( 'These have not been confirmed and will stop being shown in 30 days. Their owners are being reminded.', 'groundwork-common-post-portal' );
 
-	return gwcpp_send_email(
-		gwcpp_staff_email(),
+	return gwc_pp_send_email(
+		gwc_pp_staff_email(),
 		$heading,
-		gwcpp_email_shell( $heading, gwcpp_email_p( $intro ) . gwcpp_email_post_list( $post_ids ) )
+		gwc_pp_email_shell( $heading, gwc_pp_email_p( $intro ) . gwc_pp_email_post_list( $post_ids ) )
 	);
 }
 
@@ -1008,27 +1008,27 @@ function gwcpp_review_mail_staff( array $post_ids, string $which ): bool {
  * @param int[] $hidden    Entries the cycle has hidden.
  * @return bool
  */
-function gwcpp_review_mail_digest( array $unmanaged, array $hidden ): bool {
+function gwc_pp_review_mail_digest( array $unmanaged, array $hidden ): bool {
 	$body = '';
 
 	if ( $unmanaged ) {
-		$body .= gwcpp_email_p( __( 'Nobody has been given access to these, so there is no one to ask. They will never be hidden automatically — somebody needs to invite an owner, or mark them as not needing review.', 'groundwork-common-post-portal' ) )
-			. gwcpp_email_post_list( $unmanaged );
+		$body .= gwc_pp_email_p( __( 'Nobody has been given access to these, so there is no one to ask. They will never be hidden automatically — somebody needs to invite an owner, or mark them as not needing review.', 'groundwork-common-post-portal' ) )
+			. gwc_pp_email_post_list( $unmanaged );
 	}
 
 	if ( $hidden ) {
-		$body .= gwcpp_email_p( __( 'These are currently not shown, waiting for their owner to confirm their details.', 'groundwork-common-post-portal' ) )
-			. gwcpp_email_post_list( $hidden );
+		$body .= gwc_pp_email_p( __( 'These are currently not shown, waiting for their owner to confirm their details.', 'groundwork-common-post-portal' ) )
+			. gwc_pp_email_post_list( $hidden );
 	}
 
 	if ( '' === $body ) {
 		return false;
 	}
 
-	return gwcpp_send_email(
-		gwcpp_staff_email(),
+	return gwc_pp_send_email(
+		gwc_pp_staff_email(),
 		__( 'Portal: entries needing your attention', 'groundwork-common-post-portal' ),
-		gwcpp_email_shell( __( 'Entries needing your attention', 'groundwork-common-post-portal' ), $body )
+		gwc_pp_email_shell( __( 'Entries needing your attention', 'groundwork-common-post-portal' ), $body )
 	);
 }
 
@@ -1038,7 +1038,7 @@ function gwcpp_review_mail_digest( array $unmanaged, array $hidden ): bool {
  * @param int[] $post_ids Post IDs.
  * @return string
  */
-function gwcpp_email_post_list( array $post_ids ): string {
+function gwc_pp_email_post_list( array $post_ids ): string {
 	$items = '';
 
 	// Bounded: a first run on a neglected directory can find hundreds, and a

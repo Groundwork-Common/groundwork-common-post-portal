@@ -22,7 +22,7 @@ use PHPUnit\Framework\TestCase;
 final class RichTextTest extends TestCase {
 
 	protected function setUp(): void {
-		gwcpp_test_reset();
+		gwc_pp_test_reset();
 	}
 
 	/* ── The allow-list ──────────────────────────────────────────────────── */
@@ -34,7 +34,7 @@ final class RichTextTest extends TestCase {
 	public function test_dangerous_tags_are_not_on_the_list( string $tag ): void {
 		$this->assertArrayNotHasKey(
 			$tag,
-			gwcpp_richtext_allowed_html(),
+			gwc_pp_richtext_allowed_html(),
 			$tag . ' would turn a text field into a way to run or collect something on a page the site owns.'
 		);
 	}
@@ -60,7 +60,7 @@ final class RichTextTest extends TestCase {
 	}
 
 	public function test_no_tag_may_carry_style_or_class(): void {
-		foreach ( gwcpp_richtext_allowed_html() as $tag => $attrs ) {
+		foreach ( gwc_pp_richtext_allowed_html() as $tag => $attrs ) {
 			if ( ! is_array( $attrs ) ) {
 				continue;
 			}
@@ -75,7 +75,7 @@ final class RichTextTest extends TestCase {
 	}
 
 	public function test_no_tag_may_carry_an_id(): void {
-		foreach ( gwcpp_richtext_allowed_html() as $tag => $attrs ) {
+		foreach ( gwc_pp_richtext_allowed_html() as $tag => $attrs ) {
 			if ( ! is_array( $attrs ) ) {
 				continue;
 			}
@@ -102,7 +102,7 @@ final class RichTextTest extends TestCase {
 	 * person who reaches for the same intuitive-but-wrong spelling.
 	 */
 	public function test_no_attribute_is_spelled_as_a_bare_false(): void {
-		foreach ( gwcpp_richtext_allowed_html() as $tag => $attrs ) {
+		foreach ( gwc_pp_richtext_allowed_html() as $tag => $attrs ) {
 			if ( ! is_array( $attrs ) ) {
 				continue;
 			}
@@ -117,7 +117,7 @@ final class RichTextTest extends TestCase {
 	}
 
 	public function test_no_tag_may_carry_an_event_handler(): void {
-		foreach ( gwcpp_richtext_allowed_html() as $tag => $attrs ) {
+		foreach ( gwc_pp_richtext_allowed_html() as $tag => $attrs ) {
 			if ( ! is_array( $attrs ) ) {
 				continue;
 			}
@@ -129,7 +129,7 @@ final class RichTextTest extends TestCase {
 	}
 
 	public function test_the_ordinary_writing_tags_are_allowed(): void {
-		$allowed = gwcpp_richtext_allowed_html();
+		$allowed = gwc_pp_richtext_allowed_html();
 
 		foreach ( array( 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'a' ) as $tag ) {
 			$this->assertArrayHasKey( $tag, $allowed, 'People have to be able to write ordinary text.' );
@@ -137,7 +137,7 @@ final class RichTextTest extends TestCase {
 	}
 
 	public function test_links_may_carry_href_but_not_target_or_rel(): void {
-		$a = gwcpp_richtext_allowed_html()['a'];
+		$a = gwc_pp_richtext_allowed_html()['a'];
 
 		$this->assertArrayHasKey( 'href', $a );
 		$this->assertArrayNotHasKey( 'rel', $a, 'rel is set by us, not accepted from input.' );
@@ -147,28 +147,28 @@ final class RichTextTest extends TestCase {
 	/* ── Link hardening, which is ours ───────────────────────────────────── */
 
 	public function test_links_get_nofollow_and_noopener(): void {
-		$html = gwcpp_harden_links( '<a href="https://example.org">x</a>' );
+		$html = gwc_pp_harden_links( '<a href="https://example.org">x</a>' );
 
 		$this->assertStringContainsString( 'rel="nofollow noopener"', $html );
 		$this->assertStringContainsString( 'target="_blank"', $html );
 	}
 
 	public function test_a_submitted_rel_is_replaced_not_appended(): void {
-		$html = gwcpp_harden_links( '<a href="https://example.org" rel="dofollow">x</a>' );
+		$html = gwc_pp_harden_links( '<a href="https://example.org" rel="dofollow">x</a>' );
 
 		$this->assertStringNotContainsString( 'dofollow', $html );
 		$this->assertSame( 1, substr_count( $html, 'rel=' ) );
 	}
 
 	public function test_a_submitted_target_is_replaced_not_duplicated(): void {
-		$html = gwcpp_harden_links( '<a href="https://example.org" target="_self">x</a>' );
+		$html = gwc_pp_harden_links( '<a href="https://example.org" target="_self">x</a>' );
 
 		$this->assertSame( 1, substr_count( $html, 'target=' ) );
 		$this->assertStringContainsString( 'target="_blank"', $html );
 	}
 
 	public function test_the_href_survives(): void {
-		$html = gwcpp_harden_links( '<a href="https://example.org/a?b=1">x</a>' );
+		$html = gwc_pp_harden_links( '<a href="https://example.org/a?b=1">x</a>' );
 
 		$this->assertStringContainsString( 'href="https://example.org/a?b=1"', $html );
 	}
@@ -177,15 +177,15 @@ final class RichTextTest extends TestCase {
 
 	public function test_an_editor_left_alone_counts_as_empty(): void {
 		// What TinyMCE submits for an untouched editor.
-		$this->assertTrue( gwcpp_empty_richtext( '<p></p>' ) );
-		$this->assertTrue( gwcpp_empty_richtext( '<p><br></p>' ) );
-		$this->assertTrue( gwcpp_empty_richtext( '<p>&nbsp;</p>' ) );
-		$this->assertTrue( gwcpp_empty_richtext( '' ) );
-		$this->assertTrue( gwcpp_empty_richtext( '   ' ) );
+		$this->assertTrue( gwc_pp_empty_richtext( '<p></p>' ) );
+		$this->assertTrue( gwc_pp_empty_richtext( '<p><br></p>' ) );
+		$this->assertTrue( gwc_pp_empty_richtext( '<p>&nbsp;</p>' ) );
+		$this->assertTrue( gwc_pp_empty_richtext( '' ) );
+		$this->assertTrue( gwc_pp_empty_richtext( '   ' ) );
 	}
 
 	public function test_real_text_is_not_empty(): void {
-		$this->assertFalse( gwcpp_empty_richtext( '<p>We open at nine.</p>' ) );
+		$this->assertFalse( gwc_pp_empty_richtext( '<p>We open at nine.</p>' ) );
 	}
 
 	/* ── Display, which is what the diff and the emails show ─────────────── */
@@ -193,12 +193,12 @@ final class RichTextTest extends TestCase {
 	public function test_display_strips_markup_and_collapses_space(): void {
 		$this->assertSame(
 			'We open at nine. Closed Sundays.',
-			gwcpp_display_richtext( "<p>We open at nine.</p>\n<p>Closed  Sundays.</p>" )
+			gwc_pp_display_richtext( "<p>We open at nine.</p>\n<p>Closed  Sundays.</p>" )
 		);
 	}
 
 	public function test_display_truncates_a_long_body(): void {
-		$text = gwcpp_display_richtext( '<p>' . str_repeat( 'a', 500 ) . '</p>' );
+		$text = gwc_pp_display_richtext( '<p>' . str_repeat( 'a', 500 ) . '</p>' );
 
 		$this->assertLessThanOrEqual( 301, mb_strlen( $text ) );
 		$this->assertStringEndsWith( '…', $text );
@@ -214,7 +214,7 @@ final class RichTextTest extends TestCase {
 
 		$this->assertSame(
 			'',
-			gwcpp_sanitize_richtext( '<p>' . str_repeat( 'a', 50 ) . '</p>', $field ),
+			gwc_pp_sanitize_richtext( '<p>' . str_repeat( 'a', 50 ) . '</p>', $field ),
 			'Truncating HTML by length closes elements the page never opened.'
 		);
 	}
@@ -225,7 +225,7 @@ final class RichTextTest extends TestCase {
 			'settings' => array( 'maxlength' => 100 ),
 		);
 
-		$this->assertNotSame( '', gwcpp_sanitize_richtext( '<p>Short.</p>', $field ) );
+		$this->assertNotSame( '', gwc_pp_sanitize_richtext( '<p>Short.</p>', $field ) );
 	}
 
 	/* ── Length, counted in characters ───────────────────────────────────────
@@ -233,7 +233,7 @@ final class RichTextTest extends TestCase {
 	 * same thing — which is precisely why the limit was able to be measured in
 	 * the wrong one for as long as it was. The setting is labelled "Character
 	 * limit" and the refusal says "under %d characters", so these pin it to what
-	 * it claims, and to what gwcpp_sanitize_text() has always done.
+	 * it claims, and to what gwc_pp_sanitize_text() has always done.
 	 * ─────────────────────────────────────────────────────────────────────── */
 
 	public function test_the_limit_counts_characters_not_bytes(): void {
@@ -248,7 +248,7 @@ final class RichTextTest extends TestCase {
 
 		$this->assertNotSame(
 			'',
-			gwcpp_sanitize_richtext( $body, $field ),
+			gwc_pp_sanitize_richtext( $body, $field ),
 			'A 60-character body was refused by a 100-character limit because the check was counting bytes.'
 		);
 	}
@@ -263,7 +263,7 @@ final class RichTextTest extends TestCase {
 		// the test that stops the fix above from simply switching the check off.
 		$body = '<p>' . str_repeat( 'あ', 150 ) . '</p>';
 
-		$this->assertSame( '', gwcpp_sanitize_richtext( $body, $field ) );
+		$this->assertSame( '', gwc_pp_sanitize_richtext( $body, $field ) );
 	}
 
 	public function test_the_boundary_is_the_character_count(): void {
@@ -272,8 +272,8 @@ final class RichTextTest extends TestCase {
 			'settings' => array( 'maxlength' => 10 ),
 		);
 
-		$this->assertNotSame( '', gwcpp_sanitize_richtext( '<p>' . str_repeat( 'あ', 10 ) . '</p>', $field ) );
-		$this->assertSame( '', gwcpp_sanitize_richtext( '<p>' . str_repeat( 'あ', 11 ) . '</p>', $field ) );
+		$this->assertNotSame( '', gwc_pp_sanitize_richtext( '<p>' . str_repeat( 'あ', 10 ) . '</p>', $field ) );
+		$this->assertSame( '', gwc_pp_sanitize_richtext( '<p>' . str_repeat( 'あ', 11 ) . '</p>', $field ) );
 	}
 
 	/* ── The display cut, which feeds the diff and the review emails ─────── */
@@ -288,7 +288,7 @@ final class RichTextTest extends TestCase {
 		 * UTF-8 through, so the diff row and the review email showed nothing at
 		 * all where the changed text should have been.
 		 */
-		$text = gwcpp_display_richtext( '<p>x' . str_repeat( 'あ', 400 ) . '</p>' );
+		$text = gwc_pp_display_richtext( '<p>x' . str_repeat( 'あ', 400 ) . '</p>' );
 
 		$this->assertTrue(
 			mb_check_encoding( $text, 'UTF-8' ),
@@ -297,7 +297,7 @@ final class RichTextTest extends TestCase {
 	}
 
 	public function test_the_display_cut_keeps_300_characters(): void {
-		$text = gwcpp_display_richtext( '<p>' . str_repeat( 'あ', 400 ) . '</p>' );
+		$text = gwc_pp_display_richtext( '<p>' . str_repeat( 'あ', 400 ) . '</p>' );
 
 		// 300 characters plus the ellipsis this appends.
 		$this->assertSame( 301, mb_strlen( $text ) );
@@ -305,7 +305,7 @@ final class RichTextTest extends TestCase {
 	}
 
 	public function test_short_multibyte_text_is_not_cut_at_all(): void {
-		$text = gwcpp_display_richtext( '<p>' . str_repeat( 'あ', 50 ) . '</p>' );
+		$text = gwc_pp_display_richtext( '<p>' . str_repeat( 'あ', 50 ) . '</p>' );
 
 		$this->assertSame( 50, mb_strlen( $text ) );
 		$this->assertStringEndsNotWith( '…', $text );

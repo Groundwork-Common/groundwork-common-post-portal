@@ -21,10 +21,10 @@ use PHPUnit\Framework\TestCase;
 final class ValidateTest extends TestCase {
 
 	protected function setUp(): void {
-		gwcpp_test_reset();
-		$GLOBALS['gwcpp_test']['types'][] = 'clinic';
+		gwc_pp_test_reset();
+		$GLOBALS['gwc_pp_test']['types'][] = 'clinic';
 
-		gwcpp_save_schema(
+		gwc_pp_save_schema(
 			array(
 				'types' => array(
 					'clinic' => array(
@@ -79,7 +79,7 @@ final class ValidateTest extends TestCase {
 	}
 
 	public function test_a_good_submission_has_no_errors(): void {
-		$errors = gwcpp_validate_submission(
+		$errors = gwc_pp_validate_submission(
 			'clinic',
 			array(
 				'__title' => 'Main Street Clinic',
@@ -91,7 +91,7 @@ final class ValidateTest extends TestCase {
 	}
 
 	public function test_every_broken_field_is_reported_not_just_the_first(): void {
-		$errors = gwcpp_validate_submission(
+		$errors = gwc_pp_validate_submission(
 			'clinic',
 			array(
 				'__title'  => '',
@@ -115,7 +115,7 @@ final class ValidateTest extends TestCase {
 	}
 
 	public function test_every_message_is_a_non_empty_string(): void {
-		$errors = gwcpp_validate_submission(
+		$errors = gwc_pp_validate_submission(
 			'clinic',
 			array(
 				'__title' => '',
@@ -131,7 +131,7 @@ final class ValidateTest extends TestCase {
 
 	public function test_a_field_the_form_did_not_submit_is_not_validated(): void {
 		// `phone` is required, and absent — because this form never showed it.
-		$errors = gwcpp_validate_submission( 'clinic', array( '__title' => 'A clinic' ) );
+		$errors = gwc_pp_validate_submission( 'clinic', array( '__title' => 'A clinic' ) );
 
 		$this->assertSame(
 			array(),
@@ -141,7 +141,7 @@ final class ValidateTest extends TestCase {
 	}
 
 	public function test_an_empty_optional_field_is_not_validated(): void {
-		$errors = gwcpp_validate_submission(
+		$errors = gwc_pp_validate_submission(
 			'clinic',
 			array(
 				'__title' => 'A clinic',
@@ -159,7 +159,7 @@ final class ValidateTest extends TestCase {
 	}
 
 	public function test_a_required_field_left_blank_is_reported(): void {
-		$errors = gwcpp_validate_submission(
+		$errors = gwc_pp_validate_submission(
 			'clinic',
 			array(
 				'__title' => '   ',
@@ -172,7 +172,7 @@ final class ValidateTest extends TestCase {
 	}
 
 	public function test_a_required_multi_choice_left_empty_is_reported(): void {
-		gwcpp_put_field(
+		gwc_pp_put_field(
 			'clinic',
 			array(
 				'key'      => 'services',
@@ -190,7 +190,7 @@ final class ValidateTest extends TestCase {
 			)
 		);
 
-		$errors = gwcpp_validate_submission(
+		$errors = gwc_pp_validate_submission(
 			'clinic',
 			array(
 				'__title'  => 'A clinic',
@@ -204,7 +204,7 @@ final class ValidateTest extends TestCase {
 	}
 
 	public function test_a_field_whose_type_no_longer_exists_is_skipped_not_fatal(): void {
-		gwcpp_save_schema(
+		gwc_pp_save_schema(
 			array(
 				'types' => array(
 					'clinic' => array(
@@ -223,7 +223,7 @@ final class ValidateTest extends TestCase {
 			)
 		);
 
-		$this->assertSame( array(), gwcpp_validate_submission( 'clinic', array( 'ghost' => '' ) ) );
+		$this->assertSame( array(), gwc_pp_validate_submission( 'clinic', array( 'ghost' => '' ) ) );
 	}
 
 	/* ── Values that sanitize away to nothing ────────────────────────────────
@@ -236,9 +236,9 @@ final class ValidateTest extends TestCase {
 	public function test_an_optional_field_that_sanitized_away_is_reported_not_silently_dropped(): void {
 		$raw = array( 'website' => 'not a website' );
 
-		$values  = gwcpp_collect_submission( 'clinic', $raw );
-		$dropped = gwcpp_dropped_fields( 'clinic', $raw, $values );
-		$errors  = gwcpp_validate_submission( 'clinic', $values, $dropped );
+		$values  = gwc_pp_collect_submission( 'clinic', $raw );
+		$dropped = gwc_pp_dropped_fields( 'clinic', $raw, $values );
+		$errors  = gwc_pp_validate_submission( 'clinic', $values, $dropped );
 
 		$this->assertSame( '', $values['website'], 'It should not be stored.' );
 		$this->assertSame( array( 'website' => 'not a website' ), $dropped );
@@ -252,15 +252,15 @@ final class ValidateTest extends TestCase {
 	public function test_the_message_for_a_dropped_value_comes_from_its_own_type(): void {
 		$raw = array( 'website' => 'not a website' );
 
-		$values  = gwcpp_collect_submission( 'clinic', $raw );
-		$dropped = gwcpp_dropped_fields( 'clinic', $raw, $values );
-		$errors  = gwcpp_validate_submission( 'clinic', $values, $dropped );
+		$values  = gwc_pp_collect_submission( 'clinic', $raw );
+		$dropped = gwc_pp_dropped_fields( 'clinic', $raw, $values );
+		$errors  = gwc_pp_validate_submission( 'clinic', $values, $dropped );
 
 		$this->assertStringContainsString( 'web address', $errors['website'] );
 	}
 
 	public function test_a_required_field_that_sanitized_away_does_not_say_please_fill_it_in(): void {
-		gwcpp_put_field(
+		gwc_pp_put_field(
 			'clinic',
 			array(
 				'key'      => 'contact',
@@ -276,9 +276,9 @@ final class ValidateTest extends TestCase {
 			'contact' => 'jane at shelter dot org',
 		);
 
-		$values  = gwcpp_collect_submission( 'clinic', $raw );
-		$dropped = gwcpp_dropped_fields( 'clinic', $raw, $values );
-		$errors  = gwcpp_validate_submission( 'clinic', $values, $dropped );
+		$values  = gwc_pp_collect_submission( 'clinic', $raw );
+		$dropped = gwc_pp_dropped_fields( 'clinic', $raw, $values );
+		$errors  = gwc_pp_validate_submission( 'clinic', $values, $dropped );
 
 		$this->assertArrayHasKey( 'contact', $errors );
 		$this->assertStringNotContainsString(
@@ -291,19 +291,19 @@ final class ValidateTest extends TestCase {
 	public function test_a_genuinely_blank_field_is_not_reported_as_dropped(): void {
 		$raw = array( 'website' => '   ' );
 
-		$values  = gwcpp_collect_submission( 'clinic', $raw );
-		$dropped = gwcpp_dropped_fields( 'clinic', $raw, $values );
+		$values  = gwc_pp_collect_submission( 'clinic', $raw );
+		$dropped = gwc_pp_dropped_fields( 'clinic', $raw, $values );
 
 		$this->assertSame( array(), $dropped );
-		$this->assertSame( array(), gwcpp_validate_submission( 'clinic', $values, $dropped ) );
+		$this->assertSame( array(), gwc_pp_validate_submission( 'clinic', $values, $dropped ) );
 	}
 
 	public function test_an_untouched_checkbox_group_is_not_reported_as_dropped(): void {
 		// Just the hidden marker, which is what an emptied group submits.
 		$raw = array( 'services' => array( '__present' => '1' ) );
 
-		$values  = gwcpp_collect_submission( 'clinic', $raw );
-		$dropped = gwcpp_dropped_fields( 'clinic', $raw, $values );
+		$values  = gwc_pp_collect_submission( 'clinic', $raw );
+		$dropped = gwc_pp_dropped_fields( 'clinic', $raw, $values );
 
 		$this->assertSame(
 			array(),
@@ -313,7 +313,7 @@ final class ValidateTest extends TestCase {
 	}
 
 	public function test_a_bad_date_is_reported_rather_than_shifted_or_dropped(): void {
-		gwcpp_put_field(
+		gwc_pp_put_field(
 			'clinic',
 			array(
 				'key'   => 'opened',
@@ -324,9 +324,9 @@ final class ValidateTest extends TestCase {
 
 		$raw = array( 'opened' => '28/02/2026' );
 
-		$values  = gwcpp_collect_submission( 'clinic', $raw );
-		$dropped = gwcpp_dropped_fields( 'clinic', $raw, $values );
-		$errors  = gwcpp_validate_submission( 'clinic', $values, $dropped );
+		$values  = gwc_pp_collect_submission( 'clinic', $raw );
+		$dropped = gwc_pp_dropped_fields( 'clinic', $raw, $values );
+		$errors  = gwc_pp_validate_submission( 'clinic', $values, $dropped );
 
 		$this->assertArrayHasKey( 'opened', $errors );
 	}
@@ -334,12 +334,12 @@ final class ValidateTest extends TestCase {
 	/* ── The summary ─────────────────────────────────────────────────────── */
 
 	public function test_the_summary_counts_fields_not_array_entries(): void {
-		$this->assertSame( '', gwcpp_error_summary( array() ) );
+		$this->assertSame( '', gwc_pp_error_summary( array() ) );
 
-		$one = gwcpp_error_summary( array( 'a' => 'x' ) );
+		$one = gwc_pp_error_summary( array( 'a' => 'x' ) );
 		$this->assertStringContainsString( '1 thing needs', $one );
 
-		$three = gwcpp_error_summary(
+		$three = gwc_pp_error_summary(
 			array(
 				'a' => 'x',
 				'b' => 'y',
@@ -350,7 +350,7 @@ final class ValidateTest extends TestCase {
 	}
 
 	public function test_the_summary_does_not_repeat_the_messages(): void {
-		$summary = gwcpp_error_summary( array( 'phone' => 'Please add an area code.' ) );
+		$summary = gwc_pp_error_summary( array( 'phone' => 'Please add an area code.' ) );
 
 		$this->assertStringNotContainsString(
 			'area code',

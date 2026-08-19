@@ -33,12 +33,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit( 1 );
 }
 
-if ( ! function_exists( 'gwcpp_setting' ) ) {
+if ( ! function_exists( 'gwc_pp_setting' ) ) {
 	echo "The plugin is not active. Run: wp plugin activate groundwork-common-post-portal\n";
 	exit( 1 );
 }
 
-$marker    = '_gwcpp_seeded';
+$marker    = '_gwc_pp_seeded';
 $post_type = isset( $args[0] ) && post_type_exists( (string) $args[0] ) ? (string) $args[0] : 'post';
 $filler    = isset( $args[1] ) ? max( 0, min( 2000, (int) $args[1] ) ) : 0;
 $cadence   = 6;
@@ -49,8 +49,8 @@ $cadence   = 6;
  * @param int $months How far back.
  * @return string Y-m-d.
  */
-function gwcpp_seed_months_ago( int $months ): string {
-	return gwcpp_review_today()->modify( '-' . $months . ' months' )->format( 'Y-m-d' );
+function gwc_pp_seed_months_ago( int $months ): string {
+	return gwc_pp_review_today()->modify( '-' . $months . ' months' )->format( 'Y-m-d' );
 }
 
 /**
@@ -61,7 +61,7 @@ function gwcpp_seed_months_ago( int $months ): string {
  * @param string $status    Post status.
  * @return int
  */
-function gwcpp_seed_post( string $post_type, string $title, string $status = 'publish' ): int {
+function gwc_pp_seed_post( string $post_type, string $title, string $status = 'publish' ): int {
 	$id = wp_insert_post(
 		array(
 			'post_type'   => $post_type,
@@ -74,7 +74,7 @@ function gwcpp_seed_post( string $post_type, string $title, string $status = 'pu
 		return 0;
 	}
 
-	update_post_meta( (int) $id, '_gwcpp_seeded', 1 );
+	update_post_meta( (int) $id, '_gwc_pp_seeded', 1 );
 
 	return (int) $id;
 }
@@ -84,7 +84,7 @@ function gwcpp_seed_post( string $post_type, string $title, string $status = 'pu
 /* Every registered type by name, not the string 'any'.
  *
  * `post_type => 'any'` looks like "no filter" and is not: WP_Query expands it to
- * the registered types whose `exclude_from_search` is false. GWCPP_ORG_TYPE sets
+ * the registered types whose `exclude_from_search` is false. GWC_PP_ORG_TYPE sets
  * `exclude_from_search => true` — as a private type should — so the teardown
  * could not see the organisations it had just created, and every re-run left the
  * previous lot behind. Three runs, nine organisations, each with the same name.
@@ -141,7 +141,7 @@ if ( $page ) {
 
 /* ── Settings ────────────────────────────────────────────────────────────── */
 
-$settings = get_option( 'gwcpp_settings' );
+$settings = get_option( 'gwc_pp_settings' );
 $settings = is_array( $settings ) ? $settings : array();
 
 $settings['post_types']  = array( $post_type );
@@ -161,14 +161,14 @@ $settings['types'][ $post_type ] = array(
 	'review_months'    => $cadence,
 );
 
-update_option( 'gwcpp_settings', $settings );
-gwcpp_settings_cache( null, true );
+update_option( 'gwc_pp_settings', $settings );
+gwc_pp_settings_cache( null, true );
 
 /* ── Fields: one of every type ───────────────────────────────────────────── */
 
-$schema = gwcpp_get_schema();
+$schema = gwc_pp_get_schema();
 unset( $schema['types'][ $post_type ] );
-gwcpp_save_schema( $schema );
+gwc_pp_save_schema( $schema );
 
 $fields = array(
 	array(
@@ -263,14 +263,14 @@ $fields = array(
 
 $mapped = 0;
 foreach ( $fields as $raw ) {
-	$field = gwcpp_sanitize_field( $raw );
+	$field = gwc_pp_sanitize_field( $raw );
 
 	if ( null === $field ) {
 		echo "  ! could not build field {$raw['key']}\n";
 		continue;
 	}
 
-	gwcpp_put_field( $post_type, $field );
+	gwc_pp_put_field( $post_type, $field );
 	++$mapped;
 }
 
@@ -291,7 +291,7 @@ foreach ( array( 'Food bank', 'Advice service', 'Drop-in centre' ) as $name ) {
 
 $orgs = array();
 foreach ( array( 'Shelter of Hope', 'Eastside Pantry', 'Northside Clinic' ) as $name ) {
-	$orgs[ $name ] = gwcpp_seed_post( GWCPP_ORG_TYPE, $name );
+	$orgs[ $name ] = gwc_pp_seed_post( GWC_PP_ORG_TYPE, $name );
 }
 
 $people = array(
@@ -302,7 +302,7 @@ $people = array(
 
 $users = array();
 foreach ( $people as $email => $org_name ) {
-	$result = gwcpp_grant_access( $orgs[ $org_name ], $email );
+	$result = gwc_pp_grant_access( $orgs[ $org_name ], $email );
 
 	if ( is_wp_error( $result ) ) {
 		echo "  ! {$email}: " . $result->get_error_message() . "\n";
@@ -316,7 +316,7 @@ foreach ( $people as $email => $org_name ) {
  * shows that, and "have they ever actually got in" is the first question staff
  * ask about a partner who says the portal is not working. */
 if ( isset( $users['jane@shelter.test'] ) ) {
-	update_user_meta( $users['jane@shelter.test'], 'gwcpp_last_login', time() - ( 2 * DAY_IN_SECONDS ) );
+	update_user_meta( $users['jane@shelter.test'], 'gwc_pp_last_login', time() - ( 2 * DAY_IN_SECONDS ) );
 }
 
 /* Northside Clinic deliberately has nobody. That is what produces the
@@ -346,7 +346,7 @@ if ( empty( $put['error'] ) ) {
 	if ( $attachment_id > 0 ) {
 		require_once ABSPATH . 'wp-admin/includes/image.php';
 		wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $put['file'] ) );
-		update_post_meta( $attachment_id, '_gwcpp_seeded', 1 );
+		update_post_meta( $attachment_id, '_gwc_pp_seeded', 1 );
 	}
 }
 
@@ -398,58 +398,58 @@ $fill = static function ( int $id ) use ( $terms, $attachment_id ): void {
 };
 
 // 1. Everything normal, confirmed recently.
-$id = gwcpp_seed_post( $post_type, 'Shelter of Hope — Bessemer' );
-gwcpp_set_post_org( $id, $orgs['Shelter of Hope'] );
+$id = gwc_pp_seed_post( $post_type, 'Shelter of Hope — Bessemer' );
+gwc_pp_set_post_org( $id, $orgs['Shelter of Hope'] );
 $fill( $id );
-update_post_meta( $id, GWCPP_REVIEWED_META, gwcpp_seed_months_ago( 1 ) );
+update_post_meta( $id, GWC_PP_REVIEWED_META, gwc_pp_seed_months_ago( 1 ) );
 $scenarios['up to date'] = $id;
 
 // 2. Due — the first nudge.
-$id = gwcpp_seed_post( $post_type, 'Shelter of Hope — Fairfield' );
-gwcpp_set_post_org( $id, $orgs['Shelter of Hope'] );
+$id = gwc_pp_seed_post( $post_type, 'Shelter of Hope — Fairfield' );
+gwc_pp_set_post_org( $id, $orgs['Shelter of Hope'] );
 $fill( $id );
-update_post_meta( $id, GWCPP_REVIEWED_META, gwcpp_seed_months_ago( $cadence - 1 ) );
+update_post_meta( $id, GWC_PP_REVIEWED_META, gwc_pp_seed_months_ago( $cadence - 1 ) );
 $scenarios['due soon'] = $id;
 
 // 3. Overdue.
-$id = gwcpp_seed_post( $post_type, 'Eastside Pantry — Irondale' );
-gwcpp_set_post_org( $id, $orgs['Eastside Pantry'] );
+$id = gwc_pp_seed_post( $post_type, 'Eastside Pantry — Irondale' );
+gwc_pp_set_post_org( $id, $orgs['Eastside Pantry'] );
 $fill( $id );
-update_post_meta( $id, GWCPP_REVIEWED_META, gwcpp_seed_months_ago( $cadence + 1 ) );
+update_post_meta( $id, GWC_PP_REVIEWED_META, gwc_pp_seed_months_ago( $cadence + 1 ) );
 $scenarios['overdue'] = $id;
 
 // 4. Past expiry, and actually hidden by the cycle.
-$id = gwcpp_seed_post( $post_type, 'Eastside Pantry — Centrepoint' );
-gwcpp_set_post_org( $id, $orgs['Eastside Pantry'] );
+$id = gwc_pp_seed_post( $post_type, 'Eastside Pantry — Centrepoint' );
+gwc_pp_set_post_org( $id, $orgs['Eastside Pantry'] );
 $fill( $id );
-update_post_meta( $id, GWCPP_REVIEWED_META, gwcpp_seed_months_ago( $cadence * 2 ) );
-gwcpp_review_expire( $id );
+update_post_meta( $id, GWC_PP_REVIEWED_META, gwc_pp_seed_months_ago( $cadence * 2 ) );
+gwc_pp_review_expire( $id );
 $scenarios['hidden by the cycle'] = $id;
 
 // 5. Long overdue but exempt, so nothing ever happens to it.
-$id = gwcpp_seed_post( $post_type, 'Shelter of Hope — Head Office' );
-gwcpp_set_post_org( $id, $orgs['Shelter of Hope'] );
+$id = gwc_pp_seed_post( $post_type, 'Shelter of Hope — Head Office' );
+gwc_pp_set_post_org( $id, $orgs['Shelter of Hope'] );
 $fill( $id );
-update_post_meta( $id, GWCPP_REVIEWED_META, gwcpp_seed_months_ago( 36 ) );
-update_post_meta( $id, GWCPP_REVIEW_EXEMPT_META, 1 );
+update_post_meta( $id, GWC_PP_REVIEWED_META, gwc_pp_seed_months_ago( 36 ) );
+update_post_meta( $id, GWC_PP_REVIEW_EXEMPT_META, 1 );
 $scenarios['exempt'] = $id;
 
 // 6. Long overdue with nobody who could confirm it. Never hidden; escalates to
 //    the weekly digest instead.
-$id = gwcpp_seed_post( $post_type, 'Northside Clinic — Gardendale' );
-gwcpp_set_post_org( $id, $orgs['Northside Clinic'] );
+$id = gwc_pp_seed_post( $post_type, 'Northside Clinic — Gardendale' );
+gwc_pp_set_post_org( $id, $orgs['Northside Clinic'] );
 $fill( $id );
-update_post_meta( $id, GWCPP_REVIEWED_META, gwcpp_seed_months_ago( 36 ) );
+update_post_meta( $id, GWC_PP_REVIEWED_META, gwc_pp_seed_months_ago( 36 ) );
 $scenarios['nobody to ask'] = $id;
 
 // 7. Never confirmed at all. With no review date the cycle counts from the
 //    publish date, so the post is backdated — created today it would sit at
 //    "current" and demonstrate nothing.
-$id = gwcpp_seed_post( $post_type, 'Shelter of Hope — Hueytown' );
-gwcpp_set_post_org( $id, $orgs['Shelter of Hope'] );
+$id = gwc_pp_seed_post( $post_type, 'Shelter of Hope — Hueytown' );
+gwc_pp_set_post_org( $id, $orgs['Shelter of Hope'] );
 $fill( $id );
-delete_post_meta( $id, GWCPP_REVIEWED_META );
-$published = gwcpp_review_today()->modify( '-' . ( $cadence + 2 ) . ' months' )->format( 'Y-m-d H:i:s' );
+delete_post_meta( $id, GWC_PP_REVIEWED_META );
+$published = gwc_pp_review_today()->modify( '-' . ( $cadence + 2 ) . ' months' )->format( 'Y-m-d H:i:s' );
 wp_update_post(
 	array(
 		'ID'            => $id,
@@ -460,13 +460,13 @@ wp_update_post(
 $scenarios['never confirmed'] = $id;
 
 // 8. A submission waiting in the approval queue.
-$id = gwcpp_seed_post( $post_type, 'Eastside Pantry — Roebuck' );
-gwcpp_set_post_org( $id, $orgs['Eastside Pantry'] );
+$id = gwc_pp_seed_post( $post_type, 'Eastside Pantry — Roebuck' );
+gwc_pp_set_post_org( $id, $orgs['Eastside Pantry'] );
 $fill( $id );
-update_post_meta( $id, GWCPP_REVIEWED_META, gwcpp_seed_months_ago( 1 ) );
+update_post_meta( $id, GWC_PP_REVIEWED_META, gwc_pp_seed_months_ago( 1 ) );
 
 if ( isset( $users['sam@eastside.test'] ) ) {
-	gwcpp_store_changeset(
+	gwc_pp_store_changeset(
 		$id,
 		$users['sam@eastside.test'],
 		array(
@@ -480,33 +480,33 @@ $scenarios['waiting for approval'] = $id;
 
 // 9. An existing value containing a blocked word, typed by staff before the
 //    word was on the list. Its owner must still be able to save other fields.
-$id = gwcpp_seed_post( $post_type, 'Shelter of Hope — Scam Awareness Desk' );
-gwcpp_set_post_org( $id, $orgs['Shelter of Hope'] );
+$id = gwc_pp_seed_post( $post_type, 'Shelter of Hope — Scam Awareness Desk' );
+gwc_pp_set_post_org( $id, $orgs['Shelter of Hope'] );
 $fill( $id );
 update_post_meta( $id, 'seed_note', 'We help people who have been targeted by a scam.' );
-update_post_meta( $id, GWCPP_REVIEWED_META, gwcpp_seed_months_ago( 1 ) );
+update_post_meta( $id, GWC_PP_REVIEWED_META, gwc_pp_seed_months_ago( 1 ) );
 $scenarios['blocked word, grandfathered'] = $id;
 
 // 10. A handover invitation in flight.
-$id = gwcpp_seed_post( $post_type, 'Shelter of Hope — Midfield' );
-gwcpp_set_post_org( $id, $orgs['Shelter of Hope'] );
+$id = gwc_pp_seed_post( $post_type, 'Shelter of Hope — Midfield' );
+gwc_pp_set_post_org( $id, $orgs['Shelter of Hope'] );
 $fill( $id );
-update_post_meta( $id, GWCPP_REVIEWED_META, gwcpp_seed_months_ago( 1 ) );
+update_post_meta( $id, GWC_PP_REVIEWED_META, gwc_pp_seed_months_ago( 1 ) );
 
 $handoff_note = '';
 if ( isset( $users['jane@shelter.test'] ) ) {
-	$sent = gwcpp_send_handoff( $id, $users['jane@shelter.test'], 'newcomer@shelter.test' );
+	$sent = gwc_pp_send_handoff( $id, $users['jane@shelter.test'], 'newcomer@shelter.test' );
 	$handoff_note = is_wp_error( $sent ) ? $sent->get_error_message() : 'invitation sent to newcomer@shelter.test';
 }
 $scenarios['handover pending'] = $id;
 
 // 11. A direct grant with no organisation — reachable, but not handoverable,
 //     since only a member of an organisation may invite into it.
-$id = gwcpp_seed_post( $post_type, 'Unaffiliated Drop-in' );
+$id = gwc_pp_seed_post( $post_type, 'Unaffiliated Drop-in' );
 $fill( $id );
-update_post_meta( $id, GWCPP_REVIEWED_META, gwcpp_seed_months_ago( 1 ) );
+update_post_meta( $id, GWC_PP_REVIEWED_META, gwc_pp_seed_months_ago( 1 ) );
 if ( isset( $users['jane@shelter.test'] ) ) {
-	gwcpp_add_post_editor( $users['jane@shelter.test'], $id );
+	gwc_pp_add_post_editor( $users['jane@shelter.test'], $id );
 }
 $scenarios['direct grant, no organisation'] = $id;
 
@@ -514,28 +514,28 @@ $scenarios['direct grant, no organisation'] = $id;
 
 if ( $filler > 0 ) {
 	for ( $i = 1; $i <= $filler; $i++ ) {
-		$id = gwcpp_seed_post( $post_type, sprintf( 'Filler entry %03d', $i ) );
-		gwcpp_set_post_org( $id, $orgs['Shelter of Hope'] );
+		$id = gwc_pp_seed_post( $post_type, sprintf( 'Filler entry %03d', $i ) );
+		gwc_pp_set_post_org( $id, $orgs['Shelter of Hope'] );
 		update_post_meta( $id, 'seed_phone', '(205) 555-' . str_pad( (string) $i, 4, '0', STR_PAD_LEFT ) );
-		update_post_meta( $id, GWCPP_REVIEWED_META, gwcpp_seed_months_ago( $i % 14 ) );
+		update_post_meta( $id, GWC_PP_REVIEWED_META, gwc_pp_seed_months_ago( $i % 14 ) );
 	}
 }
 
-gwcpp_flush_pending_count();
+gwc_pp_flush_pending_count();
 
 /* ── What to look at ─────────────────────────────────────────────────────── */
 
-$portal = gwcpp_portal_url();
+$portal = gwc_pp_portal_url();
 
 echo "Seeded.\n\n";
 echo "  Portal     {$portal}\n";
 echo '  wp-admin   ' . admin_url() . "  (admin / password)\n";
-echo '  Queue      ' . admin_url( 'admin.php?page=' . GWCPP_QUEUE_SLUG ) . "\n";
+echo '  Queue      ' . admin_url( 'admin.php?page=' . GWC_PP_QUEUE_SLUG ) . "\n";
 echo '  Entries    ' . admin_url( 'edit.php?post_type=' . $post_type ) . "\n\n";
 
 echo "People (all sign in by emailed link — no passwords)\n";
 foreach ( $users as $email => $user_id ) {
-	$reach = gwcpp_editable_post_ids( $user_id );
+	$reach = gwc_pp_editable_post_ids( $user_id );
 	printf( "  %-22s %d entries\n", $email, count( $reach ) );
 }
 echo "  newcomer@shelter.test  no account yet — has a handover invitation waiting\n\n";
@@ -545,19 +545,19 @@ foreach ( $orgs as $name => $org_id ) {
 	printf(
 		"  %-18s %d members   %s\n",
 		$name,
-		count( gwcpp_org_members( $org_id ) ),
+		count( gwc_pp_org_members( $org_id ) ),
 		admin_url( 'post.php?post=' . $org_id . '&action=edit' )
 	);
 }
 
 echo "\nScenarios\n";
 foreach ( $scenarios as $label => $id ) {
-	$state = gwcpp_review_state( $id );
+	$state = gwc_pp_review_state( $id );
 	printf(
 		"  %-30s %-12s %s\n",
 		$label,
 		(string) ( $state['state'] ?? '-' ),
-		$portal . ( false === strpos( $portal, '?' ) ? '?' : '&' ) . 'gwcpp_view=edit&gwcpp_post=' . $id
+		$portal . ( false === strpos( $portal, '?' ) ? '?' : '&' ) . 'gwc_pp_view=edit&gwc_pp_post=' . $id
 	);
 }
 
@@ -574,9 +574,9 @@ if ( $filler > 0 ) {
 
 if ( isset( $users['jane@shelter.test'] ) ) {
 	echo "\nA sign-in link for jane, to skip the email step once:\n";
-	echo '  ' . gwcpp_portal_url( array( 'gwcpp_token' => gwcpp_mint_token( $users['jane@shelter.test'] ) ) ) . "\n";
+	echo '  ' . gwc_pp_portal_url( array( 'gwc_pp_token' => gwc_pp_mint_token( $users['jane@shelter.test'] ) ) ) . "\n";
 	echo "  (works once, expires in 15 minutes)\n";
 }
 
 echo "\nTry: run the review cycle and watch the reminders go out —\n";
-echo "  wp eval 'var_dump( gwcpp_run_daily_review() );'\n";
+echo "  wp eval 'var_dump( gwc_pp_run_daily_review() );'\n";

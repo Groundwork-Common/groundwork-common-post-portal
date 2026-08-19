@@ -10,10 +10,10 @@ defined( 'ABSPATH' ) || exit;
 /** How long a sign-in link works for. Short, because it is single-use and
  *  requesting another is one click.
  */
-const GWCPP_TOKEN_TTL = 900;
+const GWC_PP_TOKEN_TTL = 900;
 
 /** The floor every sign-in request is padded to, in microseconds. */
-const GWCPP_CONSTANT_TIME_FLOOR = 150000;
+const GWC_PP_CONSTANT_TIME_FLOOR = 150000;
 
 /*
  * ── The portal page, and why its ID is pinned ───────────────────────────────
@@ -34,8 +34,8 @@ const GWCPP_CONSTANT_TIME_FLOOR = 150000;
  *
  * @return int
  */
-function gwcpp_portal_page_id(): int {
-	$id = (int) gwcpp_setting( 'portal_page' );
+function gwc_pp_portal_page_id(): int {
+	$id = (int) gwc_pp_setting( 'portal_page' );
 
 	if ( $id > 0 && 'page' === get_post_type( $id ) && 'publish' === get_post_status( $id ) ) {
 		return $id;
@@ -54,8 +54,8 @@ function gwcpp_portal_page_id(): int {
  * @param array $args Query arguments to add.
  * @return string
  */
-function gwcpp_portal_url( array $args = array() ): string {
-	$id  = gwcpp_portal_page_id();
+function gwc_pp_portal_url( array $args = array() ): string {
+	$id  = gwc_pp_portal_page_id();
 	$url = $id > 0 ? (string) get_permalink( $id ) : home_url( '/' );
 
 	return $args ? add_query_arg( $args, $url ) : $url;
@@ -70,20 +70,20 @@ function gwcpp_portal_url( array $args = array() ): string {
  *
  * @return bool
  */
-function gwcpp_is_portal(): bool {
+function gwc_pp_is_portal(): bool {
 	if ( ! is_page() ) {
 		return false;
 	}
 
-	$id = gwcpp_portal_page_id();
+	$id = gwc_pp_portal_page_id();
 
 	return $id > 0 && is_page( $id );
 }
 
 /* ── Sessions ────────────────────────────────────────────────────────────── */
 
-add_filter( 'auth_cookie_expiration', 'gwcpp_session_length', 10, 3 );
-add_filter( 'allow_password_reset', 'gwcpp_allow_password_reset', 10, 2 );
+add_filter( 'auth_cookie_expiration', 'gwc_pp_session_length', 10, 3 );
+add_filter( 'allow_password_reset', 'gwc_pp_allow_password_reset', 10, 2 );
 
 /**
  * Shorten the session for portal users.
@@ -97,11 +97,11 @@ add_filter( 'allow_password_reset', 'gwcpp_allow_password_reset', 10, 2 );
  * @param bool $remember_me Whether the box was ticked.
  * @return int
  */
-function gwcpp_session_length( $length, $user_id, $remember_me ) {
+function gwc_pp_session_length( $length, $user_id, $remember_me ) {
 	unset( $remember_me );
 
-	if ( gwcpp_user_is_portal_user( (int) $user_id ) ) {
-		return gwcpp_session_seconds();
+	if ( gwc_pp_user_is_portal_user( (int) $user_id ) ) {
+		return gwc_pp_session_seconds();
 	}
 
 	return $length;
@@ -120,12 +120,12 @@ function gwcpp_session_length( $length, $user_id, $remember_me ) {
  * @param int  $user_id User ID.
  * @return bool
  */
-function gwcpp_allow_password_reset( $allow, $user_id ) {
-	if ( ! gwcpp_user_is_portal_user( (int) $user_id ) ) {
+function gwc_pp_allow_password_reset( $allow, $user_id ) {
+	if ( ! gwc_pp_user_is_portal_user( (int) $user_id ) ) {
 		return $allow;
 	}
 
-	return (bool) gwcpp_setting( 'signin_password' );
+	return (bool) gwc_pp_setting( 'signin_password' );
 }
 
 /* ── Tokens ──────────────────────────────────────────────────────────────── */
@@ -143,7 +143,7 @@ function gwcpp_allow_password_reset( $allow, $user_id ) {
  *                        sign-in link cannot be replayed as something else.
  * @return string The token to put in a URL.
  */
-function gwcpp_mint_token( int $user_id, string $purpose = 'signin' ): string {
+function gwc_pp_mint_token( int $user_id, string $purpose = 'signin' ): string {
 	$token = bin2hex( random_bytes( 32 ) );
 
 	/**
@@ -151,11 +151,11 @@ function gwcpp_mint_token( int $user_id, string $purpose = 'signin' ): string {
 	 *
 	 * @param int $ttl Seconds.
 	 */
-	$ttl = (int) apply_filters( 'gwcpp_token_ttl', GWCPP_TOKEN_TTL );
+	$ttl = (int) apply_filters( 'gwc_pp_token_ttl', GWC_PP_TOKEN_TTL );
 	$ttl = max( 60, min( DAY_IN_SECONDS, $ttl ) );
 
 	set_transient(
-		'gwcpp_tok_' . hash( 'sha256', $token ),
+		'gwc_pp_tok_' . hash( 'sha256', $token ),
 		array(
 			'user'    => $user_id,
 			'purpose' => $purpose,
@@ -177,12 +177,12 @@ function gwcpp_mint_token( int $user_id, string $purpose = 'signin' ): string {
  * @param string $purpose Expected purpose.
  * @return int User ID on success, 0 otherwise.
  */
-function gwcpp_consume_token( string $token, string $purpose = 'signin' ): int {
+function gwc_pp_consume_token( string $token, string $purpose = 'signin' ): int {
 	if ( ! preg_match( '/^[a-f0-9]{64}$/', $token ) ) {
 		return 0;
 	}
 
-	$key     = 'gwcpp_tok_' . hash( 'sha256', $token );
+	$key     = 'gwc_pp_tok_' . hash( 'sha256', $token );
 	$payload = get_transient( $key );
 	delete_transient( $key );
 
@@ -205,7 +205,7 @@ function gwcpp_consume_token( string $token, string $purpose = 'signin' ): int {
 	 * days ago names a user who may since have had their role changed or their
 	 * access revoked, and the token itself cannot know that.
 	 */
-	if ( ! gwcpp_user_is_portal_user( $user_id ) ) {
+	if ( ! gwc_pp_user_is_portal_user( $user_id ) ) {
 		return 0;
 	}
 
@@ -244,10 +244,10 @@ function gwcpp_consume_token( string $token, string $purpose = 'signin' ): int {
  */
 
 /** User meta, single: durable tokens, keyed by hash. */
-const GWCPP_TOKENS_META = '_gwcpp_tokens';
+const GWC_PP_TOKENS_META = '_gwc_pp_tokens';
 
 /** How long a review-reminder link lasts. */
-const GWCPP_DURABLE_TTL = 7 * DAY_IN_SECONDS;
+const GWC_PP_DURABLE_TTL = 7 * DAY_IN_SECONDS;
 
 /**
  * Mint a token that survives a cache flush.
@@ -257,10 +257,10 @@ const GWCPP_DURABLE_TTL = 7 * DAY_IN_SECONDS;
  * @param int    $ttl     Lifetime in seconds.
  * @return string
  */
-function gwcpp_mint_durable_token( int $user_id, string $purpose = 'review', int $ttl = GWCPP_DURABLE_TTL ): string {
+function gwc_pp_mint_durable_token( int $user_id, string $purpose = 'review', int $ttl = GWC_PP_DURABLE_TTL ): string {
 	$token = bin2hex( random_bytes( 32 ) );
 
-	$stored = get_user_meta( $user_id, GWCPP_TOKENS_META, true );
+	$stored = get_user_meta( $user_id, GWC_PP_TOKENS_META, true );
 	$stored = is_array( $stored ) ? $stored : array();
 
 	/*
@@ -287,7 +287,7 @@ function gwcpp_mint_durable_token( int $user_id, string $purpose = 'review', int
 		$stored = array_slice( $stored, 0, 20, true );
 	}
 
-	update_user_meta( $user_id, GWCPP_TOKENS_META, $stored );
+	update_user_meta( $user_id, GWC_PP_TOKENS_META, $stored );
 
 	return $token;
 }
@@ -299,7 +299,7 @@ function gwcpp_mint_durable_token( int $user_id, string $purpose = 'review', int
  * @param string $purpose Expected purpose.
  * @return int User ID, or 0.
  */
-function gwcpp_consume_durable_token( string $token, string $purpose = 'review' ): int {
+function gwc_pp_consume_durable_token( string $token, string $purpose = 'review' ): int {
 	if ( ! preg_match( '/^[a-f0-9]{64}$/', $token ) ) {
 		return 0;
 	}
@@ -315,7 +315,7 @@ function gwcpp_consume_durable_token( string $token, string $purpose = 'review' 
 	$users = get_users(
 		array(
 			'number'       => 2,
-			'meta_key'     => GWCPP_TOKENS_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- The token does not carry its user; a hash lookup is the only route.
+			'meta_key'     => GWC_PP_TOKENS_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- The token does not carry its user; a hash lookup is the only route.
 			'meta_value'   => $hash,             // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- As above.
 			'meta_compare' => 'LIKE',
 			'fields'       => 'ID',
@@ -327,14 +327,14 @@ function gwcpp_consume_durable_token( string $token, string $purpose = 'review' 
 	}
 
 	$user_id = (int) $users[0];
-	$stored  = get_user_meta( $user_id, GWCPP_TOKENS_META, true );
+	$stored  = get_user_meta( $user_id, GWC_PP_TOKENS_META, true );
 	$stored  = is_array( $stored ) ? $stored : array();
 
 	$entry = $stored[ $hash ] ?? null;
 
 	// Single use, whatever happens next.
 	unset( $stored[ $hash ] );
-	update_user_meta( $user_id, GWCPP_TOKENS_META, $stored );
+	update_user_meta( $user_id, GWC_PP_TOKENS_META, $stored );
 
 	if ( ! is_array( $entry ) || ( $entry['purpose'] ?? '' ) !== $purpose ) {
 		return 0;
@@ -342,7 +342,7 @@ function gwcpp_consume_durable_token( string $token, string $purpose = 'review' 
 	if ( (int) ( $entry['expires'] ?? 0 ) < time() ) {
 		return 0;
 	}
-	if ( ! gwcpp_user_is_portal_user( $user_id ) ) {
+	if ( ! gwc_pp_user_is_portal_user( $user_id ) ) {
 		return 0;
 	}
 
@@ -366,11 +366,11 @@ function gwcpp_consume_durable_token( string $token, string $purpose = 'review' 
  *
  * @return int How many were dropped.
  */
-function gwcpp_purge_expired_durable_tokens(): int {
+function gwc_pp_purge_expired_durable_tokens(): int {
 	$users = get_users(
 		array(
 			'number'       => 500,
-			'meta_key'     => GWCPP_TOKENS_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- EXISTS on an indexed key, in cron.
+			'meta_key'     => GWC_PP_TOKENS_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- EXISTS on an indexed key, in cron.
 			'meta_compare' => 'EXISTS',
 			'fields'       => 'ID',
 		)
@@ -380,7 +380,7 @@ function gwcpp_purge_expired_durable_tokens(): int {
 	$dropped = 0;
 
 	foreach ( $users as $user_id ) {
-		$stored = get_user_meta( (int) $user_id, GWCPP_TOKENS_META, true );
+		$stored = get_user_meta( (int) $user_id, GWC_PP_TOKENS_META, true );
 		if ( ! is_array( $stored ) ) {
 			continue;
 		}
@@ -399,9 +399,9 @@ function gwcpp_purge_expired_durable_tokens(): int {
 		}
 
 		if ( $kept ) {
-			update_user_meta( (int) $user_id, GWCPP_TOKENS_META, $kept );
+			update_user_meta( (int) $user_id, GWC_PP_TOKENS_META, $kept );
 		} else {
-			delete_user_meta( (int) $user_id, GWCPP_TOKENS_META );
+			delete_user_meta( (int) $user_id, GWC_PP_TOKENS_META );
 		}
 	}
 
@@ -433,14 +433,14 @@ function gwcpp_purge_expired_durable_tokens(): int {
  *
  * @return array<string, array{limit:int, window:int}>
  */
-function gwcpp_rate_limits(): array {
+function gwc_pp_rate_limits(): array {
 	/**
 	 * Sign-in rate limits.
 	 *
 	 * @param array $limits Keyed by scope.
 	 */
 	return (array) apply_filters(
-		'gwcpp_rate_limits',
+		'gwc_pp_rate_limits',
 		array(
 			// Generous: one office behind one NAT is many people.
 			'ip'     => array(
@@ -478,14 +478,14 @@ function gwcpp_rate_limits(): array {
  *
  * @return array<string, array{limit:int, window:int}>
  */
-function gwcpp_login_rate_limits(): array {
+function gwc_pp_login_rate_limits(): array {
 	/**
 	 * Password sign-in rate limits.
 	 *
 	 * @param array $limits Keyed by scope.
 	 */
 	return (array) apply_filters(
-		'gwcpp_login_rate_limits',
+		'gwc_pp_login_rate_limits',
 		array(
 			'ip'     => array(
 				'limit'  => 10,
@@ -520,14 +520,14 @@ function gwcpp_login_rate_limits(): array {
  *
  * @return array<string, array{limit:int, window:int}>
  */
-function gwcpp_handoff_rate_limits(): array {
+function gwc_pp_handoff_rate_limits(): array {
 	/**
 	 * Handoff invitation rate limits.
 	 *
 	 * @param array $limits Keyed by scope.
 	 */
 	return (array) apply_filters(
-		'gwcpp_handoff_rate_limits',
+		'gwc_pp_handoff_rate_limits',
 		array(
 			'ip'     => array(
 				'limit'  => 10,
@@ -555,13 +555,13 @@ function gwcpp_handoff_rate_limits(): array {
  *
  * @return array<string, array{limit:int, window:int}>
  */
-function gwcpp_all_rate_limits(): array {
+function gwc_pp_all_rate_limits(): array {
 	$all = array();
 
 	$purposes = array(
-		'signin'  => gwcpp_rate_limits(),
-		'login'   => gwcpp_login_rate_limits(),
-		'handoff' => gwcpp_handoff_rate_limits(),
+		'signin'  => gwc_pp_rate_limits(),
+		'login'   => gwc_pp_login_rate_limits(),
+		'handoff' => gwc_pp_handoff_rate_limits(),
 	);
 
 	foreach ( $purposes as $purpose => $limits ) {
@@ -583,8 +583,8 @@ function gwcpp_all_rate_limits(): array {
  * @param string $email Email address being requested.
  * @return bool True when the request should be refused.
  */
-function gwcpp_rate_limited( string $email ): bool {
-	return gwcpp_rate_limit_hit( 'signin', $email, gwcpp_rate_limits() );
+function gwc_pp_rate_limited( string $email ): bool {
+	return gwc_pp_rate_limit_hit( 'signin', $email, gwc_pp_rate_limits() );
 }
 
 /**
@@ -593,8 +593,8 @@ function gwcpp_rate_limited( string $email ): bool {
  * @param string $login Username being attempted.
  * @return bool True when the request should be refused.
  */
-function gwcpp_login_rate_limited( string $login ): bool {
-	return gwcpp_rate_limit_hit( 'login', strtolower( $login ), gwcpp_login_rate_limits() );
+function gwc_pp_login_rate_limited( string $login ): bool {
+	return gwc_pp_rate_limit_hit( 'login', strtolower( $login ), gwc_pp_login_rate_limits() );
 }
 
 /**
@@ -603,8 +603,8 @@ function gwcpp_login_rate_limited( string $login ): bool {
  * @param int $user_id Who is handing over.
  * @return bool True when the request should be refused.
  */
-function gwcpp_handoff_rate_limited( int $user_id ): bool {
-	return gwcpp_rate_limit_hit( 'handoff', 'user-' . $user_id, gwcpp_handoff_rate_limits() );
+function gwc_pp_handoff_rate_limited( int $user_id ): bool {
+	return gwc_pp_rate_limit_hit( 'handoff', 'user-' . $user_id, gwc_pp_handoff_rate_limits() );
 }
 
 /**
@@ -612,7 +612,7 @@ function gwcpp_handoff_rate_limited( int $user_id ): bool {
  *
  * Scopes are stored under `purpose:scope` so that two throttles protecting
  * different things never share a budget — see the note on
- * gwcpp_login_rate_limits() for what happens when they do.
+ * gwc_pp_login_rate_limits() for what happens when they do.
  *
  * The subject is hashed rather than stored. The option is readable by anything
  * with database access, and a list of every address and username that ever tried
@@ -623,13 +623,13 @@ function gwcpp_handoff_rate_limited( int $user_id ): bool {
  * @param array  $limits  Windows for this purpose, keyed by scope.
  * @return bool True when the request should be refused.
  */
-function gwcpp_rate_limit_hit( string $purpose, string $subject, array $limits ): bool {
+function gwc_pp_rate_limit_hit( string $purpose, string $subject, array $limits ): bool {
 	$now   = time();
-	$state = get_option( 'gwcpp_rate_limits' );
+	$state = get_option( 'gwc_pp_rate_limits' );
 	$state = is_array( $state ) ? $state : array();
 
 	$keys = array(
-		'ip'     => hash( 'sha256', gwcpp_client_ip() ),
+		'ip'     => hash( 'sha256', gwc_pp_client_ip() ),
 		'id'     => hash( 'sha256', $subject ),
 		'global' => 'all',
 	);
@@ -682,9 +682,9 @@ function gwcpp_rate_limit_hit( string $purpose, string $subject, array $limits )
 		}
 	}
 
-	$state = gwcpp_prune_rate_state( $state, gwcpp_all_rate_limits(), $now );
+	$state = gwc_pp_prune_rate_state( $state, gwc_pp_all_rate_limits(), $now );
 
-	update_option( 'gwcpp_rate_limits', $state, false );
+	update_option( 'gwc_pp_rate_limits', $state, false );
 
 	return $over;
 }
@@ -698,7 +698,7 @@ function gwcpp_rate_limit_hit( string $purpose, string $subject, array $limits )
  * it rather than in cron, which is the right place for it: an attacker filling
  * the table is also the one paying to clean it.
  *
- * Given the flattened `purpose:scope` map from gwcpp_all_rate_limits(), so it
+ * Given the flattened `purpose:scope` map from gwc_pp_all_rate_limits(), so it
  * can age out a bucket without knowing which throttle wrote it. A key it does
  * not recognise falls back to an hour — which is also how counters left behind
  * by the older unprefixed shape clear themselves after one upgrade, with no
@@ -709,7 +709,7 @@ function gwcpp_rate_limit_hit( string $purpose, string $subject, array $limits )
  * @param int   $now    Timestamp.
  * @return array
  */
-function gwcpp_prune_rate_state( array $state, array $limits, int $now ): array {
+function gwc_pp_prune_rate_state( array $state, array $limits, int $now ): array {
 	foreach ( $state as $scope => $entries ) {
 		if ( ! is_array( $entries ) ) {
 			unset( $state[ $scope ] );
@@ -761,7 +761,7 @@ function gwcpp_prune_rate_state( array $state, array $limits, int $now ): array 
  *
  * @return string
  */
-function gwcpp_client_ip(): string {
+function gwc_pp_client_ip(): string {
 	$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 
 	return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : 'unknown';
@@ -777,7 +777,7 @@ function gwcpp_client_ip(): string {
  * inline condition is exactly the kind of thing that gets quietly reordered by
  * somebody tidying up.
  *
- * gwcpp_rate_limited() counts before it reports — deliberately; see the note on
+ * gwc_pp_rate_limited() counts before it reports — deliberately; see the note on
  * it — so calling it on a submission that was never going to send anything hands
  * an attacker the counter for free. The `global` window is thirty an hour, and a
  * WordPress nonce for a logged-out visitor is the same nonce for every other
@@ -797,7 +797,7 @@ function gwcpp_client_ip(): string {
  * @param string $email    The submitted address, already sanitized.
  * @return bool
  */
-function gwcpp_signin_worth_counting( string $honeypot, string $email ): bool {
+function gwc_pp_signin_worth_counting( string $honeypot, string $email ): bool {
 	return '' === $honeypot && '' !== $email && is_email( $email );
 }
 
@@ -815,14 +815,14 @@ function gwcpp_signin_worth_counting( string $honeypot, string $email ): bool {
  * response flushed to the browser before the mail is sent, so the send's
  * duration is not observable at all.
  */
-function gwcpp_handle_link_request(): void {
+function gwc_pp_handle_link_request(): void {
 	$start = microtime( true );
 
 	if (
-		! isset( $_POST['gwcpp_signin_nonce'] )
-		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gwcpp_signin_nonce'] ) ), 'gwcpp_signin' )
+		! isset( $_POST['gwc_pp_signin_nonce'] )
+		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gwc_pp_signin_nonce'] ) ), 'gwc_pp_signin' )
 	) {
-		gwcpp_bail( gwcpp_portal_url(), gwcpp_stale_form_message() );
+		gwc_pp_bail( gwc_pp_portal_url(), gwc_pp_stale_form_message() );
 	}
 
 	/*
@@ -837,7 +837,7 @@ function gwcpp_handle_link_request(): void {
 	 * is the one outcome the trap exists to prevent.
 	 */
 	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Emptiness test only; see above. Sanitizing would defeat the trap.
-	$honeypot = isset( $_POST['gwcpp_website'] ) ? trim( (string) wp_unslash( $_POST['gwcpp_website'] ) ) : '';
+	$honeypot = isset( $_POST['gwc_pp_website'] ) ? trim( (string) wp_unslash( $_POST['gwc_pp_website'] ) ) : '';
 
 	/*
 	 * sanitize_email() wraps the superglobal directly rather than sitting
@@ -845,16 +845,16 @@ function gwcpp_handle_link_request(): void {
 	 * this line. It strips whitespace itself; the outer trim() costs nothing and
 	 * holds whichever way that behaviour goes.
 	 */
-	$email = isset( $_POST['gwcpp_email'] )
-		? trim( sanitize_email( wp_unslash( $_POST['gwcpp_email'] ) ) )
+	$email = isset( $_POST['gwc_pp_email'] )
+		? trim( sanitize_email( wp_unslash( $_POST['gwc_pp_email'] ) ) )
 		: '';
 
-	$wanted  = gwcpp_signin_worth_counting( $honeypot, $email );
-	$limited = $wanted && gwcpp_rate_limited( $email );
+	$wanted  = gwc_pp_signin_worth_counting( $honeypot, $email );
+	$limited = $wanted && gwc_pp_rate_limited( $email );
 	$send    = $wanted && ! $limited;
 
 	$user = $send ? get_user_by( 'email', $email ) : false;
-	$send = $send && $user instanceof WP_User && gwcpp_user_is_portal_user( $user->ID );
+	$send = $send && $user instanceof WP_User && gwc_pp_user_is_portal_user( $user->ID );
 
 	/*
 	 * The same words whether or not an account was found, whether or not the
@@ -863,10 +863,10 @@ function gwcpp_handle_link_request(): void {
 	 */
 	$message = __( 'If that address has portal access, a sign-in link is on its way. It works once and expires in fifteen minutes.', 'groundwork-common-post-portal' );
 
-	gwcpp_flush_response( gwcpp_flash_url( gwcpp_portal_url(), 'ok', $message ), $start );
+	gwc_pp_flush_response( gwc_pp_flash_url( gwc_pp_portal_url(), 'ok', $message ), $start );
 
 	if ( $send && $user instanceof WP_User ) {
-		gwcpp_send_magic_link( $user );
+		gwc_pp_send_magic_link( $user );
 	}
 
 	exit;
@@ -888,10 +888,10 @@ function gwcpp_handle_link_request(): void {
  * @param string $url   Where to send the browser.
  * @param float  $start microtime(true) at the top of the handler.
  */
-function gwcpp_flush_response( string $url, float $start ): void {
+function gwc_pp_flush_response( string $url, float $start ): void {
 	$elapsed = (int) ( ( microtime( true ) - $start ) * 1000000 );
-	if ( $elapsed < GWCPP_CONSTANT_TIME_FLOOR ) {
-		usleep( GWCPP_CONSTANT_TIME_FLOOR - $elapsed );
+	if ( $elapsed < GWC_PP_CONSTANT_TIME_FLOOR ) {
+		usleep( GWC_PP_CONSTANT_TIME_FLOOR - $elapsed );
 	}
 
 	wp_safe_redirect( $url );
@@ -907,18 +907,18 @@ function gwcpp_flush_response( string $url, float $start ): void {
  * @param WP_User $user The user.
  * @return bool
  */
-function gwcpp_send_magic_link( WP_User $user ): bool {
-	$url = gwcpp_portal_url( array( 'gwcpp_token' => gwcpp_mint_token( $user->ID ) ) );
+function gwc_pp_send_magic_link( WP_User $user ): bool {
+	$url = gwc_pp_portal_url( array( 'gwc_pp_token' => gwc_pp_mint_token( $user->ID ) ) );
 
-	$body = gwcpp_email_shell(
+	$body = gwc_pp_email_shell(
 		__( 'Your sign-in link', 'groundwork-common-post-portal' ),
-		gwcpp_email_p( __( 'Click below to sign in. The link works once and expires in fifteen minutes.', 'groundwork-common-post-portal' ) )
-		. gwcpp_email_button( $url, __( 'Sign in', 'groundwork-common-post-portal' ) )
-		. gwcpp_email_raw_link( $url )
-		. gwcpp_email_p( __( 'If you did not ask for this, you can ignore it. Nobody can sign in without the link.', 'groundwork-common-post-portal' ) )
+		gwc_pp_email_p( __( 'Click below to sign in. The link works once and expires in fifteen minutes.', 'groundwork-common-post-portal' ) )
+		. gwc_pp_email_button( $url, __( 'Sign in', 'groundwork-common-post-portal' ) )
+		. gwc_pp_email_raw_link( $url )
+		. gwc_pp_email_p( __( 'If you did not ask for this, you can ignore it. Nobody can sign in without the link.', 'groundwork-common-post-portal' ) )
 	);
 
-	return gwcpp_send_email(
+	return gwc_pp_send_email(
 		$user->user_email,
 		sprintf(
 			/* translators: %s: the site name. */
@@ -932,8 +932,8 @@ function gwcpp_send_magic_link( WP_User $user ): bool {
 /**
  * Handle a magic link arriving.
  */
-function gwcpp_handle_magic_link(): void {
-	$token = isset( $_GET['gwcpp_token'] ) ? sanitize_text_field( wp_unslash( $_GET['gwcpp_token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A single-use token in the URL is the authentication here; the recipient has no session yet, so there is no nonce to check.
+function gwc_pp_handle_magic_link(): void {
+	$token = isset( $_GET['gwc_pp_token'] ) ? sanitize_text_field( wp_unslash( $_GET['gwc_pp_token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A single-use token in the URL is the authentication here; the recipient has no session yet, so there is no nonce to check.
 
 	/*
 	 * Automated fetches are refused before the token is spent. A mail client
@@ -942,16 +942,16 @@ function gwcpp_handle_magic_link(): void {
 	 * person ever clicked it — and the symptom is "the link says it expired the
 	 * moment I opened it", which is unreportable and impossible to reproduce.
 	 */
-	if ( gwcpp_request_is_automated() ) {
+	if ( gwc_pp_request_is_automated() ) {
 		return;
 	}
 
-	$user_id = gwcpp_consume_token( $token );
+	$user_id = gwc_pp_consume_token( $token );
 
 	if ( $user_id <= 0 ) {
 		wp_safe_redirect(
-			gwcpp_flash_url(
-				gwcpp_portal_url(),
+			gwc_pp_flash_url(
+				gwc_pp_portal_url(),
 				'warn',
 				__( 'That sign-in link has expired or has already been used. Please ask for a new one.', 'groundwork-common-post-portal' )
 			)
@@ -962,7 +962,7 @@ function gwcpp_handle_magic_link(): void {
 	// Redirect rather than render, so the token is out of the address bar
 	// before anything is displayed — and out of the browser history, and out of
 	// the Referer header of every asset the page loads.
-	wp_safe_redirect( gwcpp_portal_url() );
+	wp_safe_redirect( gwc_pp_portal_url() );
 	exit;
 }
 
@@ -971,7 +971,7 @@ function gwcpp_handle_magic_link(): void {
  *
  * @return bool
  */
-function gwcpp_request_is_automated(): bool {
+function gwc_pp_request_is_automated(): bool {
 	$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
 	if ( 'HEAD' === $method ) {
 		return true;
@@ -997,24 +997,24 @@ function gwcpp_request_is_automated(): bool {
  * logged-out visitor, so it is fetched once and replayed for as long as it
  * lasts. Nothing else here costs an attacker anything.
  *
- * The counters are gwcpp_login_rate_limits(), separate from the magic-link
+ * The counters are gwc_pp_login_rate_limits(), separate from the magic-link
  * windows on purpose — see the note there.
  */
-function gwcpp_handle_password_login(): void {
+function gwc_pp_handle_password_login(): void {
 	$start = microtime( true );
 
 	if (
-		! isset( $_POST['gwcpp_login_nonce'] )
-		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gwcpp_login_nonce'] ) ), 'gwcpp_login' )
+		! isset( $_POST['gwc_pp_login_nonce'] )
+		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gwc_pp_login_nonce'] ) ), 'gwc_pp_login' )
 	) {
-		gwcpp_bail( gwcpp_portal_url(), gwcpp_stale_form_message() );
+		gwc_pp_bail( gwc_pp_portal_url(), gwc_pp_stale_form_message() );
 	}
 
-	if ( ! gwcpp_setting( 'signin_password' ) ) {
-		gwcpp_bail( gwcpp_portal_url() );
+	if ( ! gwc_pp_setting( 'signin_password' ) ) {
+		gwc_pp_bail( gwc_pp_portal_url() );
 	}
 
-	$login = isset( $_POST['gwcpp_user'] ) ? sanitize_user( wp_unslash( $_POST['gwcpp_user'] ) ) : '';
+	$login = isset( $_POST['gwc_pp_user'] ) ? sanitize_user( wp_unslash( $_POST['gwc_pp_user'] ) ) : '';
 
 	/*
 	 * Counted before the attempt, and only for a submission that named
@@ -1025,10 +1025,10 @@ function gwcpp_handle_password_login(): void {
 	 * password. Saying "too many attempts" would confirm the username is worth
 	 * attacking, which is the one thing this form must not tell anybody.
 	 */
-	$refuse = '' === $login || gwcpp_login_rate_limited( $login );
+	$refuse = '' === $login || gwc_pp_login_rate_limited( $login );
 
 	$user = $refuse
-		? new WP_Error( 'gwcpp_throttled', 'Refused before the attempt.' )
+		? new WP_Error( 'gwc_pp_throttled', 'Refused before the attempt.' )
 		: wp_signon(
 			array(
 				// Not sanitized, and not unslashed: wp_signon compares the
@@ -1036,7 +1036,7 @@ function gwcpp_handle_password_login(): void {
 				// here is a silent authentication failure for passwords
 				// containing quotes.
 				'user_login'    => $login,
-				'user_password' => isset( $_POST['gwcpp_pass'] ) ? (string) $_POST['gwcpp_pass'] : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- A password must reach wp_signon() unmodified.
+				'user_password' => isset( $_POST['gwc_pp_pass'] ) ? (string) $_POST['gwc_pp_pass'] : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- A password must reach wp_signon() unmodified.
 				'remember'      => false,
 			),
 			is_ssl()
@@ -1053,9 +1053,9 @@ function gwcpp_handle_password_login(): void {
 		 * otherwise return conspicuously fast — is not distinguishable from a
 		 * real check.
 		 */
-		gwcpp_flush_response(
-			gwcpp_flash_url(
-				gwcpp_portal_url(),
+		gwc_pp_flush_response(
+			gwc_pp_flash_url(
+				gwc_pp_portal_url(),
 				'warn',
 				__( 'That username and password did not match. Please try again.', 'groundwork-common-post-portal' )
 			),
@@ -1064,26 +1064,26 @@ function gwcpp_handle_password_login(): void {
 		exit;
 	}
 
-	wp_safe_redirect( gwcpp_portal_url() );
+	wp_safe_redirect( gwc_pp_portal_url() );
 	exit;
 }
 
 /**
  * Handle signing out.
  */
-function gwcpp_handle_logout(): void {
+function gwc_pp_handle_logout(): void {
 	if (
-		! isset( $_POST['gwcpp_logout_nonce'] )
-		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gwcpp_logout_nonce'] ) ), 'gwcpp_logout' )
+		! isset( $_POST['gwc_pp_logout_nonce'] )
+		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gwc_pp_logout_nonce'] ) ), 'gwc_pp_logout' )
 	) {
-		gwcpp_bail( gwcpp_portal_url() );
+		gwc_pp_bail( gwc_pp_portal_url() );
 	}
 
 	wp_logout();
 
 	wp_safe_redirect(
-		gwcpp_flash_url(
-			gwcpp_portal_url(),
+		gwc_pp_flash_url(
+			gwc_pp_portal_url(),
 			'ok',
 			__( 'You are signed out.', 'groundwork-common-post-portal' )
 		)
@@ -1116,7 +1116,7 @@ function gwcpp_handle_logout(): void {
  * @param string $text Message.
  * @return string
  */
-function gwcpp_flash_url( string $url, string $type, string $text ): string {
+function gwc_pp_flash_url( string $url, string $type, string $text ): string {
 	if ( '' === $text ) {
 		return $url;
 	}
@@ -1124,7 +1124,7 @@ function gwcpp_flash_url( string $url, string $type, string $text ): string {
 	$key = bin2hex( random_bytes( 16 ) );
 
 	set_transient(
-		'gwcpp_flash_' . $key,
+		'gwc_pp_flash_' . $key,
 		array(
 			'type' => in_array( $type, array( 'ok', 'warn', 'error' ), true ) ? $type : 'ok',
 			'text' => $text,
@@ -1132,7 +1132,7 @@ function gwcpp_flash_url( string $url, string $type, string $text ): string {
 		10 * MINUTE_IN_SECONDS
 	);
 
-	return add_query_arg( 'gwcpp_flash', $key, $url );
+	return add_query_arg( 'gwc_pp_flash', $key, $url );
 }
 
 /**
@@ -1140,7 +1140,7 @@ function gwcpp_flash_url( string $url, string $type, string $text ): string {
  *
  * @return array{type:string,text:string}|null
  */
-function gwcpp_flash(): ?array {
+function gwc_pp_flash(): ?array {
 	static $flash = null;
 	static $read  = false;
 
@@ -1150,14 +1150,14 @@ function gwcpp_flash(): ?array {
 	$read = true;
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A read-only lookup of a random server-minted key; there is no action to forge.
-	$key = isset( $_GET['gwcpp_flash'] ) ? sanitize_text_field( wp_unslash( $_GET['gwcpp_flash'] ) ) : '';
+	$key = isset( $_GET['gwc_pp_flash'] ) ? sanitize_text_field( wp_unslash( $_GET['gwc_pp_flash'] ) ) : '';
 
 	if ( ! preg_match( '/^[a-f0-9]{32}$/', $key ) ) {
 		return null;
 	}
 
-	$stored = get_transient( 'gwcpp_flash_' . $key );
-	delete_transient( 'gwcpp_flash_' . $key );
+	$stored = get_transient( 'gwc_pp_flash_' . $key );
+	delete_transient( 'gwc_pp_flash_' . $key );
 
 	if ( ! is_array( $stored ) || ! isset( $stored['text'] ) ) {
 		return null;

@@ -20,5 +20,5 @@ return array(
 		'wp-components',
 		'wp-i18n',
 	),
-	'version'      => defined( 'GWCPP_VERSION' ) ? GWCPP_VERSION : '0.1.0',
+	'version'      => defined( 'GWC_PP_VERSION' ) ? GWC_PP_VERSION : '0.1.0',
 );

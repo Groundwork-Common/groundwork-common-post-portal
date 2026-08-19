@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-05T11:41:07+00:00\n"
+"POT-Creation-Date: 2026-08-19T16:23:06+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: groundwork-common-post-portal\n"
@@ -20,8 +20,9 @@ msgid "Groundwork Common Post Portal"
 msgstr ""
 
 #. Plugin URI of the plugin
+#. Author URI of the plugin
 #: groundwork-common-post-portal.php
-msgid "https://github.com/Groundwork-Common/groundwork-common-post-portal"
+msgid "https://www.groundworkcommon.com/"
 msgstr ""
 
 #. Description of the plugin
@@ -32,11 +33,6 @@ msgstr ""
 #. Author of the plugin
 #: groundwork-common-post-portal.php
 msgid "Groundwork Common LLC"
-msgstr ""
-
-#. Author URI of the plugin
-#: groundwork-common-post-portal.php
-msgid "https://www.groundworkcommon.com/"
 msgstr ""
 
 #: inc/access.php:66
@@ -256,9 +252,9 @@ msgid "More"
 msgstr ""
 
 #: inc/admin-help.php:65
-#: inc/admin-screen.php:894
-#: inc/admin-screen.php:925
-#: inc/admin-screen.php:941
+#: inc/admin-screen.php:895
+#: inc/admin-screen.php:926
+#: inc/admin-screen.php:942
 msgid "Groundwork Common"
 msgstr ""
 
@@ -424,39 +420,39 @@ msgstr ""
 msgid "Any review state"
 msgstr ""
 
-#: inc/admin-review.php:264
+#: inc/admin-review.php:270
 msgid "Review"
 msgstr ""
 
 #. translators: %s: a date.
-#: inc/admin-review.php:296
+#: inc/admin-review.php:302
 #, php-format
 msgid "Last confirmed %s."
 msgstr ""
 
-#: inc/admin-review.php:299
+#: inc/admin-review.php:305
 msgid "Never confirmed. Counting from when it was published."
 msgstr ""
 
 #. translators: %s: a date.
-#: inc/admin-review.php:304
+#: inc/admin-review.php:310
 #, php-format
 msgid "Stops being shown on %s."
 msgstr ""
 
-#: inc/admin-review.php:313
+#: inc/admin-review.php:319
 msgid "Nobody has access to this, so nobody can confirm it — and it will never be hidden automatically. Invite somebody, or mark it below."
 msgstr ""
 
-#: inc/admin-review.php:321
+#: inc/admin-review.php:327
 msgid "Never ask about this one"
 msgstr ""
 
-#: inc/admin-review.php:327
+#: inc/admin-review.php:333
 msgid "This was taken off the site by the review cycle. Publishing it again by hand also clears that."
 msgstr ""
 
-#: inc/admin-review.php:333
+#: inc/admin-review.php:339
 msgid "Mark as confirmed today"
 msgstr ""
 
@@ -672,130 +668,130 @@ msgstr ""
 msgid "Everything here is optional. Left blank, the portal uses neutral defaults that sit reasonably inside most themes."
 msgstr ""
 
-#: inc/admin-screen.php:747
+#: inc/admin-screen.php:748
 msgid "Settings saved."
 msgstr ""
 
-#: inc/admin-screen.php:748
+#: inc/admin-screen.php:749
 msgid "Field saved."
 msgstr ""
 
-#: inc/admin-screen.php:749
+#: inc/admin-screen.php:750
 msgid "Field removed from the form. The data on each post has been left alone."
 msgstr ""
 
-#: inc/admin-screen.php:750
+#: inc/admin-screen.php:751
 msgid "That field could not be saved. It needs a name and a type."
 msgstr ""
 
-#: inc/admin-screen.php:751
+#: inc/admin-screen.php:752
 msgid "Order saved."
 msgstr ""
 
-#: inc/admin-screen.php:752
+#: inc/admin-screen.php:753
 msgid "Imported. Check the labels and types, then reorder them to suit."
 msgstr ""
 
-#: inc/admin-screen.php:753
+#: inc/admin-screen.php:754
 msgid "Nothing was found to import for that post type."
 msgstr ""
 
-#: inc/admin-screen.php:754
+#: inc/admin-screen.php:755
 msgid "Invitation sent."
 msgstr ""
 
-#: inc/admin-screen.php:755
+#: inc/admin-screen.php:756
 msgid "That person could not be invited. See the message on the organisation."
 msgstr ""
 
-#: inc/admin-screen.php:756
+#: inc/admin-screen.php:757
 msgid "Removed."
 msgstr ""
 
-#: inc/admin-screen.php:757
+#: inc/admin-screen.php:758
 msgid "Approved. The changes are on the site, and the person who sent them has been told."
 msgstr ""
 
-#: inc/admin-screen.php:758
+#: inc/admin-screen.php:759
 msgid "Rejected. The entry is unchanged, and the person who sent the changes has been told."
 msgstr ""
 
-#: inc/admin-screen.php:759
+#: inc/admin-screen.php:760
 msgid "That change had already been dealt with — somebody else got there first."
 msgstr ""
 
-#: inc/admin-screen.php:896
+#: inc/admin-screen.php:897
 msgid "Show"
 msgstr ""
 
-#: inc/admin-screen.php:905
+#: inc/admin-screen.php:906
 msgid "Hide for 30 days"
 msgstr ""
 
 #. translators: %s: Groundwork Common, linked to the company site.
-#: inc/admin-screen.php:946
+#: inc/admin-screen.php:947
 #, php-format
 msgid "%s provides technology leadership and support for nonprofits — fractional, by the project, or alongside an in-house team. We release tools like this one because good technology work should leave an organization more capable, not more dependent on whoever built it."
 msgstr ""
 
-#: inc/admin-screen.php:954
+#: inc/admin-screen.php:955
 msgid "If you find this plugin useful, the most valuable thing you can do for us is mention us to a nonprofit who might benefit from our services. Referrals are how our business continues to grow its impact and reach."
 msgstr ""
 
-#: inc/admin-screen.php:960
+#: inc/admin-screen.php:961
 msgid "Learn about Groundwork Common"
 msgstr ""
 
-#: inc/admin-screen.php:969
+#: inc/admin-screen.php:970
 msgid "You can also support our WordPress plugins directly. While we offer the plugin free to you, it costs us to maintain it — the security updates, the compatibility testing against each new WordPress release, the bug nobody but you has hit. We can’t do it without your support, and we appreciate whatever support you can give."
 msgstr ""
 
-#: inc/admin-screen.php:974
+#: inc/admin-screen.php:975
 msgid "Support our work"
 msgstr ""
 
-#: inc/admin-screen.php:981
+#: inc/admin-screen.php:982
 msgid "Report a problem"
 msgstr ""
 
-#: inc/auth.php:851
+#: inc/auth.php:864
 msgid "If that address has portal access, a sign-in link is on its way. It works once and expires in fifteen minutes."
 msgstr ""
 
-#: inc/auth.php:901
+#: inc/auth.php:914
 msgid "Your sign-in link"
 msgstr ""
 
-#: inc/auth.php:902
+#: inc/auth.php:915
 msgid "Click below to sign in. The link works once and expires in fifteen minutes."
 msgstr ""
 
-#: inc/auth.php:903
+#: inc/auth.php:916
 #: inc/portal.php:527
 #: inc/portal.php:559
 #: inc/portal.php:575
 msgid "Sign in"
 msgstr ""
 
-#: inc/auth.php:905
+#: inc/auth.php:918
 msgid "If you did not ask for this, you can ignore it. Nobody can sign in without the link."
 msgstr ""
 
 #. translators: %s: the site name.
-#: inc/auth.php:912
+#: inc/auth.php:925
 #, php-format
 msgid "Your sign-in link for %s"
 msgstr ""
 
-#: inc/auth.php:943
+#: inc/auth.php:956
 msgid "That sign-in link has expired or has already been used. Please ask for a new one."
 msgstr ""
 
-#: inc/auth.php:1047
+#: inc/auth.php:1060
 msgid "That username and password did not match. Please try again."
 msgstr ""
 
-#: inc/auth.php:1075
+#: inc/auth.php:1088
 msgid "You are signed out."
 msgstr ""
 
@@ -1020,26 +1016,26 @@ msgid "Formatted text"
 msgstr ""
 
 #. translators: %d: a number of characters.
-#: inc/field-richtext.php:240
+#: inc/field-richtext.php:253
 #, php-format
 msgid "Please keep this under %d characters."
 msgstr ""
 
-#: inc/field-richtext.php:313
+#: inc/field-richtext.php:336
 #: inc/field-types.php:1249
 msgid "Rows"
 msgstr ""
 
-#: inc/field-richtext.php:316
+#: inc/field-richtext.php:339
 #: inc/field-types.php:1236
 msgid "Character limit"
 msgstr ""
 
-#: inc/field-richtext.php:319
+#: inc/field-richtext.php:342
 msgid "Counted on the text, not the markup. Leave blank for no limit."
 msgstr ""
 
-#: inc/field-richtext.php:323
+#: inc/field-richtext.php:346
 msgid "Portal users can write paragraphs, bold, italic, lists, links and small headings. Anything else — embeds, scripts, styling — is removed when they save, whoever they are."
 msgstr ""
 
@@ -1856,7 +1852,7 @@ msgid_plural "and %d more"
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/save.php:407
+#: inc/save.php:421
 msgid "You cannot add new entries of this kind."
 msgstr ""
 

@@ -58,7 +58,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @return array<string, array>
  */
-function gwcpp_field_types(): array {
+function gwc_pp_field_types(): array {
 	static $types = null;
 	if ( null !== $types ) {
 		return $types;
@@ -83,7 +83,7 @@ function gwcpp_field_types(): array {
 			'label'     => __( 'Website', 'groundwork-common-post-portal' ),
 			// Deliberately text, not url. type="url" makes the browser demand an
 			// absolute URL, so "shelterofhope.org" is refused client-side with a
-			// bubble the person cannot argue with — and gwcpp_sanitize_url()'s
+			// bubble the person cannot argue with — and gwc_pp_sanitize_url()'s
 			// whole point is that a bare domain is what people actually type and
 			// should be upgraded to https:// rather than rejected. With
 			// type="url" that upgrade is unreachable, because the form never
@@ -116,64 +116,64 @@ function gwcpp_field_types(): array {
 			'group'         => 'simple',
 			'input'         => $meta['input'],
 			'inputmode'     => $meta['inputmode'] ?? '',
-			'render_portal' => 'gwcpp_render_input',
-			'render_admin'  => 'gwcpp_render_input',
-			'sanitize'      => 'gwcpp_sanitize_' . $key,
-			'validate'      => 'gwcpp_validate_' . $key,
-			'is_empty'      => 'gwcpp_empty_scalar',
-			'to_display'    => 'gwcpp_display_scalar',
-			'schema_form'   => 'gwcpp_schema_form_scalar',
+			'render_portal' => 'gwc_pp_render_input',
+			'render_admin'  => 'gwc_pp_render_input',
+			'sanitize'      => 'gwc_pp_sanitize_' . $key,
+			'validate'      => 'gwc_pp_validate_' . $key,
+			'is_empty'      => 'gwc_pp_empty_scalar',
+			'to_display'    => 'gwc_pp_display_scalar',
+			'schema_form'   => 'gwc_pp_schema_form_scalar',
 		);
 	}
 
 	$types['textarea'] = array(
 		'label'         => __( 'Long text', 'groundwork-common-post-portal' ),
 		'group'         => 'simple',
-		'render_portal' => 'gwcpp_render_textarea',
-		'render_admin'  => 'gwcpp_render_textarea',
-		'sanitize'      => 'gwcpp_sanitize_textarea',
-		'validate'      => 'gwcpp_validate_text',
-		'is_empty'      => 'gwcpp_empty_scalar',
-		'to_display'    => 'gwcpp_display_scalar',
-		'schema_form'   => 'gwcpp_schema_form_textarea',
+		'render_portal' => 'gwc_pp_render_textarea',
+		'render_admin'  => 'gwc_pp_render_textarea',
+		'sanitize'      => 'gwc_pp_sanitize_textarea',
+		'validate'      => 'gwc_pp_validate_text',
+		'is_empty'      => 'gwc_pp_empty_scalar',
+		'to_display'    => 'gwc_pp_display_scalar',
+		'schema_form'   => 'gwc_pp_schema_form_textarea',
 	);
 
 	$types['boolean'] = array(
 		'label'         => __( 'Yes / no', 'groundwork-common-post-portal' ),
 		'group'         => 'choice',
-		'render_portal' => 'gwcpp_render_boolean',
-		'render_admin'  => 'gwcpp_render_boolean',
-		'sanitize'      => 'gwcpp_sanitize_boolean',
-		'validate'      => 'gwcpp_validate_boolean',
-		'is_empty'      => 'gwcpp_empty_boolean',
-		'to_display'    => 'gwcpp_display_boolean',
-		'schema_form'   => 'gwcpp_schema_form_boolean',
+		'render_portal' => 'gwc_pp_render_boolean',
+		'render_admin'  => 'gwc_pp_render_boolean',
+		'sanitize'      => 'gwc_pp_sanitize_boolean',
+		'validate'      => 'gwc_pp_validate_boolean',
+		'is_empty'      => 'gwc_pp_empty_boolean',
+		'to_display'    => 'gwc_pp_display_boolean',
+		'schema_form'   => 'gwc_pp_schema_form_boolean',
 		'needs_present' => true,
 	);
 
 	$types['select'] = array(
 		'label'         => __( 'Choice (one)', 'groundwork-common-post-portal' ),
 		'group'         => 'choice',
-		'render_portal' => 'gwcpp_render_select',
-		'render_admin'  => 'gwcpp_render_select',
-		'sanitize'      => 'gwcpp_sanitize_choice',
-		'validate'      => 'gwcpp_validate_choice',
-		'is_empty'      => 'gwcpp_empty_scalar',
-		'to_display'    => 'gwcpp_display_choice',
-		'schema_form'   => 'gwcpp_schema_form_choice',
+		'render_portal' => 'gwc_pp_render_select',
+		'render_admin'  => 'gwc_pp_render_select',
+		'sanitize'      => 'gwc_pp_sanitize_choice',
+		'validate'      => 'gwc_pp_validate_choice',
+		'is_empty'      => 'gwc_pp_empty_scalar',
+		'to_display'    => 'gwc_pp_display_choice',
+		'schema_form'   => 'gwc_pp_schema_form_choice',
 		'has_options'   => true,
 	);
 
 	$types['radio'] = array(
 		'label'         => __( 'Choice (one, all shown)', 'groundwork-common-post-portal' ),
 		'group'         => 'choice',
-		'render_portal' => 'gwcpp_render_radio',
-		'render_admin'  => 'gwcpp_render_radio',
-		'sanitize'      => 'gwcpp_sanitize_choice',
-		'validate'      => 'gwcpp_validate_choice',
-		'is_empty'      => 'gwcpp_empty_scalar',
-		'to_display'    => 'gwcpp_display_choice',
-		'schema_form'   => 'gwcpp_schema_form_choice',
+		'render_portal' => 'gwc_pp_render_radio',
+		'render_admin'  => 'gwc_pp_render_radio',
+		'sanitize'      => 'gwc_pp_sanitize_choice',
+		'validate'      => 'gwc_pp_validate_choice',
+		'is_empty'      => 'gwc_pp_empty_scalar',
+		'to_display'    => 'gwc_pp_display_choice',
+		'schema_form'   => 'gwc_pp_schema_form_choice',
 		'has_options'   => true,
 		'needs_present' => true,
 	);
@@ -181,13 +181,13 @@ function gwcpp_field_types(): array {
 	$types['multiselect'] = array(
 		'label'         => __( 'Choice (many)', 'groundwork-common-post-portal' ),
 		'group'         => 'choice',
-		'render_portal' => 'gwcpp_render_multiselect',
-		'render_admin'  => 'gwcpp_render_multiselect',
-		'sanitize'      => 'gwcpp_sanitize_multiselect',
-		'validate'      => 'gwcpp_validate_multiselect',
-		'is_empty'      => 'gwcpp_empty_array',
-		'to_display'    => 'gwcpp_display_multiselect',
-		'schema_form'   => 'gwcpp_schema_form_choice',
+		'render_portal' => 'gwc_pp_render_multiselect',
+		'render_admin'  => 'gwc_pp_render_multiselect',
+		'sanitize'      => 'gwc_pp_sanitize_multiselect',
+		'validate'      => 'gwc_pp_validate_multiselect',
+		'is_empty'      => 'gwc_pp_empty_array',
+		'to_display'    => 'gwc_pp_display_multiselect',
+		'schema_form'   => 'gwc_pp_schema_form_choice',
 		'has_options'   => true,
 		'needs_present' => true,
 	);
@@ -196,25 +196,25 @@ function gwcpp_field_types(): array {
 	 * Register a custom field type.
 	 *
 	 * A type must supply every callable in the contract at the top of this file.
-	 * A missing one is not defaulted — gwcpp_field_type() drops the type
+	 * A missing one is not defaulted — gwc_pp_field_type() drops the type
 	 * entirely and logs, because a type whose sanitize callable is absent would
 	 * otherwise store raw POST, and failing loudly at registration is far
 	 * better than failing quietly at save.
 	 *
 	 * @param array $types Registry keyed by type slug.
 	 */
-	$types = (array) apply_filters( 'gwcpp_field_types', $types );
+	$types = (array) apply_filters( 'gwc_pp_field_types', $types );
 
 	return $types;
 }
 
 /** The callables every type must supply. */
-const GWCPP_TYPE_CONTRACT = array( 'render_portal', 'render_admin', 'sanitize', 'validate', 'is_empty', 'to_display', 'schema_form' );
+const GWC_PP_TYPE_CONTRACT = array( 'render_portal', 'render_admin', 'sanitize', 'validate', 'is_empty', 'to_display', 'schema_form' );
 
 /**
  * One type, or null.
  *
- * The contract check happens here rather than in gwcpp_field_types() so a badly
+ * The contract check happens here rather than in gwc_pp_field_types() so a badly
  * registered type costs one lookup instead of invalidating the whole registry
  * for every caller. A type that fails it is treated as if it were never
  * registered — which, for a save path, is the only safe reading.
@@ -222,14 +222,14 @@ const GWCPP_TYPE_CONTRACT = array( 'render_portal', 'render_admin', 'sanitize', 
  * @param string $type Type slug.
  * @return array|null
  */
-function gwcpp_field_type( string $type ): ?array {
-	$types = gwcpp_field_types();
+function gwc_pp_field_type( string $type ): ?array {
+	$types = gwc_pp_field_types();
 	if ( ! isset( $types[ $type ] ) || ! is_array( $types[ $type ] ) ) {
 		return null;
 	}
 
 	$def = $types[ $type ];
-	foreach ( GWCPP_TYPE_CONTRACT as $callable ) {
+	foreach ( GWC_PP_TYPE_CONTRACT as $callable ) {
 		if ( empty( $def[ $callable ] ) || ! is_callable( $def[ $callable ] ) ) {
 			return null;
 		}
@@ -255,8 +255,8 @@ function gwcpp_field_type( string $type ): ?array {
  * @param array  $args     Arguments after the ones this helper supplies.
  * @return mixed
  */
-function gwcpp_field_call( array $field, string $callable, array $args = array() ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.callableFound -- The parameter holds the name of a callable in the type registry; there is no clearer word for it.
-	$def = gwcpp_field_type( (string) ( $field['type'] ?? '' ) );
+function gwc_pp_field_call( array $field, string $callable, array $args = array() ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.callableFound -- The parameter holds the name of a callable in the type registry; there is no clearer word for it.
+	$def = gwc_pp_field_type( (string) ( $field['type'] ?? '' ) );
 
 	if ( null === $def ) {
 		switch ( $callable ) {
@@ -284,10 +284,10 @@ function gwcpp_field_call( array $field, string $callable, array $args = array()
  * rendered by the type are produced in different functions and must agree
  * without passing an id between them.
  *
- * @param string $name Form control name, e.g. gwcpp_f[phone].
+ * @param string $name Form control name, e.g. gwc_pp_f[phone].
  * @return string
  */
-function gwcpp_field_id( string $name ): string {
+function gwc_pp_field_id( string $name ): string {
 	$id = preg_replace( '/[^A-Za-z0-9_-]+/', '-', $name );
 	return trim( (string) $id, '-' );
 }
@@ -300,7 +300,7 @@ function gwcpp_field_id( string $name ): string {
  * @param mixed  $default Value when unset.
  * @return mixed
  */
-function gwcpp_field_setting( array $field, string $key, $default = '' ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound -- Named after get_option()'s own third parameter, which is what this mirrors.
+function gwc_pp_field_setting( array $field, string $key, $default = '' ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound -- Named after get_option()'s own third parameter, which is what this mirrors.
 	return $field['settings'][ $key ] ?? $default;
 }
 
@@ -313,8 +313,8 @@ function gwcpp_field_setting( array $field, string $key, $default = '' ) { // ph
  * @param array $field Field definition.
  * @return array<int, array{value:string,label:string}>
  */
-function gwcpp_field_options( array $field ): array {
-	$raw = gwcpp_field_setting( $field, 'options', array() );
+function gwc_pp_field_options( array $field ): array {
+	$raw = gwc_pp_field_setting( $field, 'options', array() );
 	if ( ! is_array( $raw ) ) {
 		return array();
 	}
@@ -348,8 +348,8 @@ function gwcpp_field_options( array $field ): array {
  * @param array $field Field definition.
  * @return string[]
  */
-function gwcpp_field_option_values( array $field ): array {
-	return array_column( gwcpp_field_options( $field ), 'value' );
+function gwc_pp_field_option_values( array $field ): array {
+	return array_column( gwc_pp_field_options( $field ), 'value' );
 }
 
 /**
@@ -359,8 +359,8 @@ function gwcpp_field_option_values( array $field ): array {
  * @param string $value Stored value.
  * @return string
  */
-function gwcpp_field_option_label( array $field, string $value ): string {
-	foreach ( gwcpp_field_options( $field ) as $option ) {
+function gwc_pp_field_option_label( array $field, string $value ): string {
+	foreach ( gwc_pp_field_options( $field ) as $option ) {
 		if ( $option['value'] === $value ) {
 			return $option['label'];
 		}
@@ -379,7 +379,7 @@ function gwcpp_field_option_label( array $field, string $value ): string {
  *
  * @param string $name Form control name.
  */
-function gwcpp_render_present_marker( string $name ): void {
+function gwc_pp_render_present_marker( string $name ): void {
 	printf(
 		'<input type="hidden" name="%s" value="1" />',
 		esc_attr( $name . '[__present]' )
@@ -396,13 +396,13 @@ function gwcpp_render_present_marker( string $name ): void {
  * @param string $name  Form control name.
  * @param array  $ctx   Render context.
  */
-function gwcpp_render_input( array $field, $value, string $name, array $ctx = array() ): void {
-	$types = gwcpp_field_types();
+function gwc_pp_render_input( array $field, $value, string $name, array $ctx = array() ): void {
+	$types = gwc_pp_field_types();
 	$input = (string) ( $types[ $field['type'] ]['input'] ?? 'text' );
 
 	$attrs = array(
 		'type'  => $input,
-		'id'    => gwcpp_field_id( $name ),
+		'id'    => gwc_pp_field_id( $name ),
 		'name'  => $name,
 		'value' => is_scalar( $value ) ? (string) $value : '',
 		'class' => 'gwcpp-input',
@@ -420,20 +420,20 @@ function gwcpp_render_input( array $field, $value, string $name, array $ctx = ar
 		$attrs['spellcheck']     = 'false';
 	}
 
-	$placeholder = (string) gwcpp_field_setting( $field, 'placeholder' );
+	$placeholder = (string) gwc_pp_field_setting( $field, 'placeholder' );
 	if ( '' !== $placeholder ) {
 		$attrs['placeholder'] = $placeholder;
 	}
 
 	if ( 'number' === $field['type'] ) {
 		foreach ( array( 'min', 'max', 'step' ) as $key ) {
-			$set = gwcpp_field_setting( $field, $key, '' );
+			$set = gwc_pp_field_setting( $field, $key, '' );
 			if ( '' !== $set && is_numeric( $set ) ) {
 				$attrs[ $key ] = (string) $set;
 			}
 		}
 	} else {
-		$max = (int) gwcpp_field_setting( $field, 'maxlength', 0 );
+		$max = (int) gwc_pp_field_setting( $field, 'maxlength', 0 );
 		if ( $max > 0 ) {
 			$attrs['maxlength'] = (string) $max;
 		}
@@ -471,22 +471,22 @@ function gwcpp_render_input( array $field, $value, string $name, array $ctx = ar
  * @param string $name  Form control name.
  * @param array  $ctx   Render context.
  */
-function gwcpp_render_textarea( array $field, $value, string $name, array $ctx = array() ): void {
-	$rows = (int) gwcpp_field_setting( $field, 'rows', 4 );
+function gwc_pp_render_textarea( array $field, $value, string $name, array $ctx = array() ): void {
+	$rows = (int) gwc_pp_field_setting( $field, 'rows', 4 );
 	$rows = max( 2, min( 30, $rows ) );
 
 	$attrs = array(
-		'id'    => gwcpp_field_id( $name ),
+		'id'    => gwc_pp_field_id( $name ),
 		'name'  => $name,
 		'rows'  => (string) $rows,
 		'class' => 'gwcpp-input gwcpp-textarea',
 	);
 
-	$max = (int) gwcpp_field_setting( $field, 'maxlength', 0 );
+	$max = (int) gwc_pp_field_setting( $field, 'maxlength', 0 );
 	if ( $max > 0 ) {
 		$attrs['maxlength'] = (string) $max;
 	}
-	$placeholder = (string) gwcpp_field_setting( $field, 'placeholder' );
+	$placeholder = (string) gwc_pp_field_setting( $field, 'placeholder' );
 	if ( '' !== $placeholder ) {
 		$attrs['placeholder'] = $placeholder;
 	}
@@ -518,7 +518,7 @@ function gwcpp_render_textarea( array $field, $value, string $name, array $ctx =
  * @param array $field Field definition.
  * @return bool
  */
-function gwcpp_empty_scalar( $value, array $field = array() ): bool {
+function gwc_pp_empty_scalar( $value, array $field = array() ): bool {
 	unset( $field );
 	return ! is_scalar( $value ) || '' === trim( (string) $value );
 }
@@ -530,7 +530,7 @@ function gwcpp_empty_scalar( $value, array $field = array() ): bool {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_display_scalar( $value, array $field = array() ): string {
+function gwc_pp_display_scalar( $value, array $field = array() ): string {
 	unset( $field );
 	return is_scalar( $value ) ? (string) $value : '';
 }
@@ -538,7 +538,7 @@ function gwcpp_display_scalar( $value, array $field = array() ): string {
 /**
  * Collapse anything that is not a scalar to an empty string.
  *
- * Every scalar sanitizer starts here. `$_POST['gwcpp_f']['phone']` is an array
+ * Every scalar sanitizer starts here. `$_POST['gwc_pp_f']['phone']` is an array
  * the moment somebody renames a control to `phone[]` in devtools, and
  * sanitize_text_field() on an array emits a PHP warning and returns '' — the
  * right answer arrived at the wrong way, and on a site with display_errors the
@@ -547,7 +547,7 @@ function gwcpp_display_scalar( $value, array $field = array() ): string {
  * @param mixed $raw Raw value.
  * @return string
  */
-function gwcpp_scalar_string( $raw ): string {
+function gwc_pp_scalar_string( $raw ): string {
 	return is_scalar( $raw ) ? (string) $raw : '';
 }
 
@@ -558,9 +558,9 @@ function gwcpp_scalar_string( $raw ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_sanitize_text( $raw, array $field = array() ): string {
-	$value = sanitize_text_field( gwcpp_scalar_string( $raw ) );
-	$max   = (int) gwcpp_field_setting( $field, 'maxlength', 0 );
+function gwc_pp_sanitize_text( $raw, array $field = array() ): string {
+	$value = sanitize_text_field( gwc_pp_scalar_string( $raw ) );
+	$max   = (int) gwc_pp_field_setting( $field, 'maxlength', 0 );
 	if ( $max > 0 ) {
 		// mb_substr, because a maxlength counted in bytes cuts a multibyte
 		// character in half and stores a broken one.
@@ -576,9 +576,9 @@ function gwcpp_sanitize_text( $raw, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_sanitize_textarea( $raw, array $field = array() ): string {
-	$value = sanitize_textarea_field( gwcpp_scalar_string( $raw ) );
-	$max   = (int) gwcpp_field_setting( $field, 'maxlength', 0 );
+function gwc_pp_sanitize_textarea( $raw, array $field = array() ): string {
+	$value = sanitize_textarea_field( gwc_pp_scalar_string( $raw ) );
+	$max   = (int) gwc_pp_field_setting( $field, 'maxlength', 0 );
 	if ( $max > 0 ) {
 		$value = function_exists( 'mb_substr' ) ? mb_substr( $value, 0, $max ) : substr( $value, 0, $max );
 	}
@@ -592,9 +592,9 @@ function gwcpp_sanitize_textarea( $raw, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_sanitize_number( $raw, array $field = array() ): string {
+function gwc_pp_sanitize_number( $raw, array $field = array() ): string {
 	unset( $field );
-	$value = trim( gwcpp_scalar_string( $raw ) );
+	$value = trim( gwc_pp_scalar_string( $raw ) );
 	if ( '' === $value || ! is_numeric( $value ) ) {
 		return '';
 	}
@@ -614,9 +614,9 @@ function gwcpp_sanitize_number( $raw, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_sanitize_url( $raw, array $field = array() ): string {
+function gwc_pp_sanitize_url( $raw, array $field = array() ): string {
 	unset( $field );
-	$value = trim( gwcpp_scalar_string( $raw ) );
+	$value = trim( gwc_pp_scalar_string( $raw ) );
 	if ( '' === $value ) {
 		return '';
 	}
@@ -661,9 +661,9 @@ function gwcpp_sanitize_url( $raw, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_sanitize_email( $raw, array $field = array() ): string {
+function gwc_pp_sanitize_email( $raw, array $field = array() ): string {
 	unset( $field );
-	return sanitize_email( trim( gwcpp_scalar_string( $raw ) ) );
+	return sanitize_email( trim( gwc_pp_scalar_string( $raw ) ) );
 }
 
 /**
@@ -678,9 +678,9 @@ function gwcpp_sanitize_email( $raw, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_sanitize_phone( $raw, array $field = array() ): string {
+function gwc_pp_sanitize_phone( $raw, array $field = array() ): string {
 	unset( $field );
-	$value = sanitize_text_field( gwcpp_scalar_string( $raw ) );
+	$value = sanitize_text_field( gwc_pp_scalar_string( $raw ) );
 	// Keep digits, the punctuation phone numbers actually use, and letters, so
 	// "x204" and "ext 204" both survive.
 	$value = preg_replace( '/[^0-9A-Za-z()+.\-\s#,]/u', '', $value );
@@ -698,9 +698,9 @@ function gwcpp_sanitize_phone( $raw, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_sanitize_date( $raw, array $field = array() ): string {
+function gwc_pp_sanitize_date( $raw, array $field = array() ): string {
 	unset( $field );
-	$value = trim( gwcpp_scalar_string( $raw ) );
+	$value = trim( gwc_pp_scalar_string( $raw ) );
 	if ( '' === $value ) {
 		return '';
 	}
@@ -724,7 +724,7 @@ function gwcpp_sanitize_date( $raw, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_validate_text( $value, array $field = array() ): string {
+function gwc_pp_validate_text( $value, array $field = array() ): string {
 	unset( $value, $field );
 	return '';
 }
@@ -736,14 +736,14 @@ function gwcpp_validate_text( $value, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_validate_number( $value, array $field = array() ): string {
+function gwc_pp_validate_number( $value, array $field = array() ): string {
 	if ( '' === $value || ! is_numeric( $value ) ) {
 		return '';
 	}
 
 	$number = (float) $value;
-	$min    = gwcpp_field_setting( $field, 'min', '' );
-	$max    = gwcpp_field_setting( $field, 'max', '' );
+	$min    = gwc_pp_field_setting( $field, 'min', '' );
+	$max    = gwc_pp_field_setting( $field, 'max', '' );
 
 	if ( '' !== $min && is_numeric( $min ) && $number < (float) $min ) {
 		/* translators: %s: the smallest number allowed. */
@@ -768,7 +768,7 @@ function gwcpp_validate_number( $value, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_validate_url( $value, array $field = array() ): string {
+function gwc_pp_validate_url( $value, array $field = array() ): string {
 	unset( $field );
 	if ( '' === $value ) {
 		return '';
@@ -786,7 +786,7 @@ function gwcpp_validate_url( $value, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_validate_email( $value, array $field = array() ): string {
+function gwc_pp_validate_email( $value, array $field = array() ): string {
 	unset( $field );
 	if ( '' === $value ) {
 		return '';
@@ -807,7 +807,7 @@ function gwcpp_validate_email( $value, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_validate_phone( $value, array $field = array() ): string {
+function gwc_pp_validate_phone( $value, array $field = array() ): string {
 	unset( $field );
 	if ( '' === $value ) {
 		return '';
@@ -826,7 +826,7 @@ function gwcpp_validate_phone( $value, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_validate_date( $value, array $field = array() ): string {
+function gwc_pp_validate_date( $value, array $field = array() ): string {
 	unset( $field );
 	if ( '' === $value ) {
 		return '';
@@ -847,12 +847,12 @@ function gwcpp_validate_date( $value, array $field = array() ): string {
  * @param string $name  Form control name.
  * @param array  $ctx   Render context.
  */
-function gwcpp_render_boolean( array $field, $value, string $name, array $ctx = array() ): void {
-	gwcpp_render_present_marker( $name );
+function gwc_pp_render_boolean( array $field, $value, string $name, array $ctx = array() ): void {
+	gwc_pp_render_present_marker( $name );
 
-	$id      = gwcpp_field_id( $name );
+	$id      = gwc_pp_field_id( $name );
 	$checked = ! empty( $value ) && '0' !== (string) $value;
-	$text    = (string) gwcpp_field_setting( $field, 'checkbox_label', '' );
+	$text    = (string) gwc_pp_field_setting( $field, 'checkbox_label', '' );
 	if ( '' === $text ) {
 		$text = (string) ( $field['label'] ?? '' );
 	}
@@ -874,7 +874,7 @@ function gwcpp_render_boolean( array $field, $value, string $name, array $ctx = 
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_sanitize_boolean( $raw, array $field = array() ): string {
+function gwc_pp_sanitize_boolean( $raw, array $field = array() ): string {
 	unset( $field );
 	if ( is_array( $raw ) ) {
 		return empty( $raw['value'] ) ? '' : '1';
@@ -889,7 +889,7 @@ function gwcpp_sanitize_boolean( $raw, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_validate_boolean( $value, array $field = array() ): string {
+function gwc_pp_validate_boolean( $value, array $field = array() ): string {
 	unset( $value, $field );
 	return '';
 }
@@ -901,7 +901,7 @@ function gwcpp_validate_boolean( $value, array $field = array() ): string {
  * @param array $field Field definition.
  * @return bool
  */
-function gwcpp_empty_boolean( $value, array $field = array() ): bool {
+function gwc_pp_empty_boolean( $value, array $field = array() ): bool {
 	unset( $field );
 	return empty( $value ) || '0' === (string) $value;
 }
@@ -913,9 +913,9 @@ function gwcpp_empty_boolean( $value, array $field = array() ): bool {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_display_boolean( $value, array $field = array() ): string {
+function gwc_pp_display_boolean( $value, array $field = array() ): string {
 	unset( $field );
-	return gwcpp_empty_boolean( $value )
+	return gwc_pp_empty_boolean( $value )
 		? __( 'No', 'groundwork-common-post-portal' )
 		: __( 'Yes', 'groundwork-common-post-portal' );
 }
@@ -930,12 +930,12 @@ function gwcpp_display_boolean( $value, array $field = array() ): string {
  * @param string $name  Form control name.
  * @param array  $ctx   Render context.
  */
-function gwcpp_render_select( array $field, $value, string $name, array $ctx = array() ): void {
+function gwc_pp_render_select( array $field, $value, string $name, array $ctx = array() ): void {
 	$value = is_scalar( $value ) ? (string) $value : '';
 
 	printf(
 		'<select id="%1$s" name="%2$s" class="gwcpp-input gwcpp-select"%3$s%4$s%5$s>',
-		esc_attr( gwcpp_field_id( $name ) ),
+		esc_attr( gwc_pp_field_id( $name ) ),
 		esc_attr( $name ),
 		! empty( $field['required'] ) ? ' required' : '',
 		! empty( $ctx['describedby'] ) ? ' aria-describedby="' . esc_attr( (string) $ctx['describedby'] ) . '"' : '',
@@ -948,13 +948,13 @@ function gwcpp_render_select( array $field, $value, string $name, array $ctx = a
 	 * it never touches the control — so "required" is satisfied by a value
 	 * nobody chose, which is the opposite of what requiring it was for.
 	 */
-	$placeholder = (string) gwcpp_field_setting( $field, 'placeholder', '' );
+	$placeholder = (string) gwc_pp_field_setting( $field, 'placeholder', '' );
 	printf(
 		'<option value="">%s</option>',
 		esc_html( '' !== $placeholder ? $placeholder : __( 'Choose…', 'groundwork-common-post-portal' ) )
 	);
 
-	foreach ( gwcpp_field_options( $field ) as $option ) {
+	foreach ( gwc_pp_field_options( $field ) as $option ) {
 		printf(
 			'<option value="%1$s"%2$s>%3$s</option>',
 			esc_attr( $option['value'] ),
@@ -974,18 +974,18 @@ function gwcpp_render_select( array $field, $value, string $name, array $ctx = a
  * @param string $name  Form control name.
  * @param array  $ctx   Render context.
  */
-function gwcpp_render_radio( array $field, $value, string $name, array $ctx = array() ): void {
-	gwcpp_render_present_marker( $name );
+function gwc_pp_render_radio( array $field, $value, string $name, array $ctx = array() ): void {
+	gwc_pp_render_present_marker( $name );
 
 	$value = is_scalar( $value ) ? (string) $value : '';
-	$base  = gwcpp_field_id( $name );
+	$base  = gwc_pp_field_id( $name );
 
 	printf(
 		'<div class="gwcpp-choices" role="radiogroup"%s>',
 		! empty( $ctx['describedby'] ) ? ' aria-describedby="' . esc_attr( (string) $ctx['describedby'] ) . '"' : ''
 	);
 
-	foreach ( gwcpp_field_options( $field ) as $i => $option ) {
+	foreach ( gwc_pp_field_options( $field ) as $i => $option ) {
 		printf(
 			'<label class="gwcpp-choice"><input type="radio" id="%1$s-%2$d" name="%3$s" value="%4$s"%5$s /> <span>%6$s</span></label>',
 			esc_attr( $base ),
@@ -1008,18 +1008,18 @@ function gwcpp_render_radio( array $field, $value, string $name, array $ctx = ar
  * @param string $name  Form control name.
  * @param array  $ctx   Render context.
  */
-function gwcpp_render_multiselect( array $field, $value, string $name, array $ctx = array() ): void {
-	gwcpp_render_present_marker( $name );
+function gwc_pp_render_multiselect( array $field, $value, string $name, array $ctx = array() ): void {
+	gwc_pp_render_present_marker( $name );
 
 	$selected = is_array( $value ) ? array_map( 'strval', $value ) : array();
-	$base     = gwcpp_field_id( $name );
+	$base     = gwc_pp_field_id( $name );
 
 	printf(
 		'<div class="gwcpp-choices" role="group"%s>',
 		! empty( $ctx['describedby'] ) ? ' aria-describedby="' . esc_attr( (string) $ctx['describedby'] ) . '"' : ''
 	);
 
-	foreach ( gwcpp_field_options( $field ) as $i => $option ) {
+	foreach ( gwc_pp_field_options( $field ) as $i => $option ) {
 		printf(
 			'<label class="gwcpp-choice"><input type="checkbox" id="%1$s-%2$d" name="%3$s" value="%4$s"%5$s /> <span>%6$s</span></label>',
 			esc_attr( $base ),
@@ -1045,15 +1045,15 @@ function gwcpp_render_multiselect( array $field, $value, string $name, array $ct
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_sanitize_choice( $raw, array $field = array() ): string {
+function gwc_pp_sanitize_choice( $raw, array $field = array() ): string {
 	if ( is_array( $raw ) ) {
 		$raw = $raw['value'] ?? '';
 	}
-	$value = gwcpp_scalar_string( $raw );
+	$value = gwc_pp_scalar_string( $raw );
 	if ( '' === $value ) {
 		return '';
 	}
-	return in_array( $value, gwcpp_field_option_values( $field ), true ) ? $value : '';
+	return in_array( $value, gwc_pp_field_option_values( $field ), true ) ? $value : '';
 }
 
 /**
@@ -1063,7 +1063,7 @@ function gwcpp_sanitize_choice( $raw, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string[]
  */
-function gwcpp_sanitize_multiselect( $raw, array $field = array() ): array {
+function gwc_pp_sanitize_multiselect( $raw, array $field = array() ): array {
 	if ( is_array( $raw ) && isset( $raw['value'] ) ) {
 		$raw = $raw['value'];
 	}
@@ -1071,7 +1071,7 @@ function gwcpp_sanitize_multiselect( $raw, array $field = array() ): array {
 		return array();
 	}
 
-	$allowed = gwcpp_field_option_values( $field );
+	$allowed = gwc_pp_field_option_values( $field );
 	$out     = array();
 	foreach ( $raw as $value ) {
 		if ( ! is_scalar( $value ) ) {
@@ -1101,11 +1101,11 @@ function gwcpp_sanitize_multiselect( $raw, array $field = array() ): array {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_validate_choice( $value, array $field = array() ): string {
+function gwc_pp_validate_choice( $value, array $field = array() ): string {
 	if ( '' === $value ) {
 		return '';
 	}
-	if ( ! gwcpp_field_options( $field ) ) {
+	if ( ! gwc_pp_field_options( $field ) ) {
 		return __( 'This field has no choices set up yet. Please tell us and we will fix it.', 'groundwork-common-post-portal' );
 	}
 	return '';
@@ -1118,9 +1118,9 @@ function gwcpp_validate_choice( $value, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_validate_multiselect( $value, array $field = array() ): string {
+function gwc_pp_validate_multiselect( $value, array $field = array() ): string {
 	$count = is_array( $value ) ? count( $value ) : 0;
-	$max   = (int) gwcpp_field_setting( $field, 'max_choices', 0 );
+	$max   = (int) gwc_pp_field_setting( $field, 'max_choices', 0 );
 
 	if ( $max > 0 && $count > $max ) {
 		return sprintf(
@@ -1140,7 +1140,7 @@ function gwcpp_validate_multiselect( $value, array $field = array() ): string {
  * @param array $field Field definition.
  * @return bool
  */
-function gwcpp_empty_array( $value, array $field = array() ): bool {
+function gwc_pp_empty_array( $value, array $field = array() ): bool {
 	unset( $field );
 	return ! is_array( $value ) || ! $value;
 }
@@ -1152,9 +1152,9 @@ function gwcpp_empty_array( $value, array $field = array() ): bool {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_display_choice( $value, array $field = array() ): string {
+function gwc_pp_display_choice( $value, array $field = array() ): string {
 	$value = is_scalar( $value ) ? (string) $value : '';
-	return '' === $value ? '' : gwcpp_field_option_label( $field, $value );
+	return '' === $value ? '' : gwc_pp_field_option_label( $field, $value );
 }
 
 /**
@@ -1164,14 +1164,14 @@ function gwcpp_display_choice( $value, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_display_multiselect( $value, array $field = array() ): string {
+function gwc_pp_display_multiselect( $value, array $field = array() ): string {
 	if ( ! is_array( $value ) || ! $value ) {
 		return '';
 	}
 	$labels = array();
 	foreach ( $value as $one ) {
 		if ( is_scalar( $one ) ) {
-			$labels[] = gwcpp_field_option_label( $field, (string) $one );
+			$labels[] = gwc_pp_field_option_label( $field, (string) $one );
 		}
 	}
 	return implode( ', ', $labels );
@@ -1180,7 +1180,7 @@ function gwcpp_display_multiselect( $value, array $field = array() ): string {
 /*
  * ── Fields screen controls ──────────────────────────────────────────────────
  * These live here rather than in admin-fields.php, even though they are only
- * ever called from that screen, because gwcpp_field_type() drops any type
+ * ever called from that screen, because gwc_pp_field_type() drops any type
  * missing a contract callable. Putting them in an admin file would mean the
  * registry was empty on any request where that file had not loaded — cron,
  * WP-CLI, a REST call — and the symptom would be a save path that silently
@@ -1197,14 +1197,14 @@ function gwcpp_display_multiselect( $value, array $field = array() ): string {
  * @param string $type  HTML input type.
  * @param string $help  Optional hint.
  */
-function gwcpp_schema_setting_input( string $key, string $label, $value, string $type = 'text', string $help = '' ): void {
+function gwc_pp_schema_setting_input( string $key, string $label, $value, string $type = 'text', string $help = '' ): void {
 	$id = 'gwcpp-set-' . sanitize_key( $key );
 	printf(
 		'<p class="gwcpp-schema-setting"><label for="%1$s">%2$s</label> <input type="%3$s" id="%1$s" name="%4$s" value="%5$s" class="regular-text" /></p>',
 		esc_attr( $id ),
 		esc_html( $label ),
 		esc_attr( $type ),
-		esc_attr( 'gwcpp_field[settings][' . $key . ']' ),
+		esc_attr( 'gwc_pp_field[settings][' . $key . ']' ),
 		esc_attr( is_scalar( $value ) ? (string) $value : '' )
 	);
 	if ( '' !== $help ) {
@@ -1217,24 +1217,24 @@ function gwcpp_schema_setting_input( string $key, string $label, $value, string 
  *
  * @param array $field Field definition.
  */
-function gwcpp_schema_form_scalar( array $field ): void {
-	gwcpp_schema_setting_input(
+function gwc_pp_schema_form_scalar( array $field ): void {
+	gwc_pp_schema_setting_input(
 		'placeholder',
 		__( 'Placeholder', 'groundwork-common-post-portal' ),
-		gwcpp_field_setting( $field, 'placeholder' )
+		gwc_pp_field_setting( $field, 'placeholder' )
 	);
 
 	if ( 'number' === ( $field['type'] ?? '' ) ) {
-		gwcpp_schema_setting_input( 'min', __( 'Smallest allowed', 'groundwork-common-post-portal' ), gwcpp_field_setting( $field, 'min' ), 'number' );
-		gwcpp_schema_setting_input( 'max', __( 'Largest allowed', 'groundwork-common-post-portal' ), gwcpp_field_setting( $field, 'max' ), 'number' );
-		gwcpp_schema_setting_input( 'step', __( 'Step', 'groundwork-common-post-portal' ), gwcpp_field_setting( $field, 'step' ), 'number' );
+		gwc_pp_schema_setting_input( 'min', __( 'Smallest allowed', 'groundwork-common-post-portal' ), gwc_pp_field_setting( $field, 'min' ), 'number' );
+		gwc_pp_schema_setting_input( 'max', __( 'Largest allowed', 'groundwork-common-post-portal' ), gwc_pp_field_setting( $field, 'max' ), 'number' );
+		gwc_pp_schema_setting_input( 'step', __( 'Step', 'groundwork-common-post-portal' ), gwc_pp_field_setting( $field, 'step' ), 'number' );
 		return;
 	}
 
-	gwcpp_schema_setting_input(
+	gwc_pp_schema_setting_input(
 		'maxlength',
 		__( 'Character limit', 'groundwork-common-post-portal' ),
-		gwcpp_field_setting( $field, 'maxlength' ),
+		gwc_pp_field_setting( $field, 'maxlength' ),
 		'number',
 		__( 'Leave blank for no limit.', 'groundwork-common-post-portal' )
 	);
@@ -1245,9 +1245,9 @@ function gwcpp_schema_form_scalar( array $field ): void {
  *
  * @param array $field Field definition.
  */
-function gwcpp_schema_form_textarea( array $field ): void {
-	gwcpp_schema_setting_input( 'rows', __( 'Rows', 'groundwork-common-post-portal' ), gwcpp_field_setting( $field, 'rows', 4 ), 'number' );
-	gwcpp_schema_form_scalar( $field );
+function gwc_pp_schema_form_textarea( array $field ): void {
+	gwc_pp_schema_setting_input( 'rows', __( 'Rows', 'groundwork-common-post-portal' ), gwc_pp_field_setting( $field, 'rows', 4 ), 'number' );
+	gwc_pp_schema_form_scalar( $field );
 }
 
 /**
@@ -1255,11 +1255,11 @@ function gwcpp_schema_form_textarea( array $field ): void {
  *
  * @param array $field Field definition.
  */
-function gwcpp_schema_form_boolean( array $field ): void {
-	gwcpp_schema_setting_input(
+function gwc_pp_schema_form_boolean( array $field ): void {
+	gwc_pp_schema_setting_input(
 		'checkbox_label',
 		__( 'Wording beside the box', 'groundwork-common-post-portal' ),
-		gwcpp_field_setting( $field, 'checkbox_label' ),
+		gwc_pp_field_setting( $field, 'checkbox_label' ),
 		'text',
 		__( 'Leave blank to reuse the field label. A checkbox reads better as a statement: "We are wheelchair accessible".', 'groundwork-common-post-portal' )
 	);
@@ -1274,9 +1274,9 @@ function gwcpp_schema_form_boolean( array $field ): void {
  *
  * @param array $field Field definition.
  */
-function gwcpp_schema_form_choice( array $field ): void {
+function gwc_pp_schema_form_choice( array $field ): void {
 	$lines = array();
-	foreach ( gwcpp_field_options( $field ) as $option ) {
+	foreach ( gwc_pp_field_options( $field ) as $option ) {
 		$lines[] = $option['value'] === $option['label']
 			? $option['value']
 			: $option['value'] . '|' . $option['label'];
@@ -1285,7 +1285,7 @@ function gwcpp_schema_form_choice( array $field ): void {
 	printf(
 		'<p class="gwcpp-schema-setting"><label for="gwcpp-set-options">%s</label><textarea id="gwcpp-set-options" name="%s" rows="8" class="large-text code">%s</textarea></p>',
 		esc_html__( 'Choices', 'groundwork-common-post-portal' ),
-		esc_attr( 'gwcpp_field[settings][options_raw]' ),
+		esc_attr( 'gwc_pp_field[settings][options_raw]' ),
 		esc_textarea( implode( "\n", $lines ) )
 	);
 	printf(
@@ -1294,10 +1294,10 @@ function gwcpp_schema_form_choice( array $field ): void {
 	);
 
 	if ( 'multiselect' === ( $field['type'] ?? '' ) ) {
-		gwcpp_schema_setting_input(
+		gwc_pp_schema_setting_input(
 			'max_choices',
 			__( 'Most that can be chosen', 'groundwork-common-post-portal' ),
-			gwcpp_field_setting( $field, 'max_choices' ),
+			gwc_pp_field_setting( $field, 'max_choices' ),
 			'number',
 			__( 'Leave blank for no limit.', 'groundwork-common-post-portal' )
 		);
@@ -1313,7 +1313,7 @@ function gwcpp_schema_form_choice( array $field ): void {
  * @param string $raw Textarea contents.
  * @return array<int, array{value:string,label:string}>
  */
-function gwcpp_parse_options( string $raw ): array {
+function gwc_pp_parse_options( string $raw ): array {
 	$out  = array();
 	$seen = array();
 

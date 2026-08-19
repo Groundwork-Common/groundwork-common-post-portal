@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  * Enqueueing happens twice and neither is redundant. The gate here catches the
  * ordinary case — the portal page, known from the settings — and runs early
  * enough for the stylesheet to be in <head>. The second call, from inside
- * gwcpp_render_portal(), catches the cases this one cannot see: the shortcode
+ * gwc_pp_render_portal(), catches the cases this one cannot see: the shortcode
  * inside a widget, a template part, a reusable block, another block's inner
  * content. That one runs during the body and produces a late <link>, which is
  * a flash of unstyled form rather than a broken page.
@@ -25,7 +25,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * ── And why registration is on enqueue_block_assets ──────────────────────────
  * blocks/portal/block.json names `gwcpp-portal` as the block's `style`, which
- * means core calls wp_enqueue_style( 'gwcpp-portal' ) in the editor as well as
+ * means core calls wp_enqueue_style( 'gwc-pp-portal' ) in the editor as well as
  * on the front end. Registration used to be on wp_enqueue_scripts, which does
  * not fire in wp-admin — so in the editor core was enqueueing a handle nobody
  * had registered. That is a silent no-op, and the symptom was the block preview
@@ -37,10 +37,10 @@ defined( 'ABSPATH' ) || exit;
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-add_action( 'enqueue_block_assets', 'gwcpp_register_front_assets', 5 );
-add_action( 'wp_enqueue_scripts', 'gwcpp_register_front_assets', 5 );
-add_action( 'wp_enqueue_scripts', 'gwcpp_maybe_enqueue_portal', 10 );
-add_action( 'admin_enqueue_scripts', 'gwcpp_admin_assets' );
+add_action( 'enqueue_block_assets', 'gwc_pp_register_front_assets', 5 );
+add_action( 'wp_enqueue_scripts', 'gwc_pp_register_front_assets', 5 );
+add_action( 'wp_enqueue_scripts', 'gwc_pp_maybe_enqueue_portal', 10 );
+add_action( 'admin_enqueue_scripts', 'gwc_pp_admin_assets' );
 
 /**
  * Register the front-end stylesheet.
@@ -49,12 +49,12 @@ add_action( 'admin_enqueue_scripts', 'gwcpp_admin_assets' );
  * safe to call twice. wp_register_style() and wp_register_script() both return
  * false and change nothing when the handle already exists, so it is.
  */
-function gwcpp_register_front_assets(): void {
+function gwc_pp_register_front_assets(): void {
 	wp_register_style(
-		'gwcpp-portal',
-		GWCPP_URL . 'assets/css/portal.css',
+		'gwc-pp-portal',
+		GWC_PP_URL . 'assets/css/portal.css',
 		array(),
-		GWCPP_VERSION
+		GWC_PP_VERSION
 	);
 
 	/*
@@ -64,10 +64,10 @@ function gwcpp_register_front_assets(): void {
 	 * form before they can add a row to it.
 	 */
 	wp_register_script(
-		'gwcpp-repeater',
-		GWCPP_URL . 'assets/js/repeater.js',
+		'gwc-pp-repeater',
+		GWC_PP_URL . 'assets/js/repeater.js',
 		array(),
-		GWCPP_VERSION,
+		GWC_PP_VERSION,
 		array(
 			'strategy'  => 'defer',
 			'in_footer' => true,
@@ -78,9 +78,9 @@ function gwcpp_register_front_assets(): void {
 /**
  * Enqueue on the portal page.
  */
-function gwcpp_maybe_enqueue_portal(): void {
-	if ( gwcpp_is_portal() ) {
-		gwcpp_enqueue_portal_assets();
+function gwc_pp_maybe_enqueue_portal(): void {
+	if ( gwc_pp_is_portal() ) {
+		gwc_pp_enqueue_portal_assets();
 	}
 }
 
@@ -90,7 +90,7 @@ function gwcpp_maybe_enqueue_portal(): void {
  * Safe to call more than once, and called from the renderer as well as from the
  * hook above.
  */
-function gwcpp_enqueue_portal_assets(): void {
+function gwc_pp_enqueue_portal_assets(): void {
 	/**
 	 * Whether to load the portal's own stylesheet.
 	 *
@@ -99,16 +99,16 @@ function gwcpp_enqueue_portal_assets(): void {
 	 *
 	 * @param bool $load Whether to load it.
 	 */
-	if ( ! apply_filters( 'gwcpp_load_assets', true ) ) {
+	if ( ! apply_filters( 'gwc_pp_load_assets', true ) ) {
 		return;
 	}
 
-	wp_enqueue_style( 'gwcpp-portal' );
-	wp_enqueue_script( 'gwcpp-repeater' );
+	wp_enqueue_style( 'gwc-pp-portal' );
+	wp_enqueue_script( 'gwc-pp-repeater' );
 
-	$css = gwcpp_appearance_css();
+	$css = gwc_pp_appearance_css();
 	if ( '' !== $css ) {
-		wp_add_inline_style( 'gwcpp-portal', $css );
+		wp_add_inline_style( 'gwc-pp-portal', $css );
 	}
 }
 
@@ -121,7 +121,7 @@ function gwcpp_enqueue_portal_assets(): void {
  *
  * @return string
  */
-function gwcpp_appearance_css(): string {
+function gwc_pp_appearance_css(): string {
 	$map = array(
 		'accent_color'  => '--gwcpp-accent',
 		'portal_bg'     => '--gwcpp-bg',
@@ -134,7 +134,7 @@ function gwcpp_appearance_css(): string {
 
 	$rules = array();
 	foreach ( $map as $setting => $property ) {
-		$value = trim( (string) gwcpp_setting( $setting ) );
+		$value = trim( (string) gwc_pp_setting( $setting ) );
 		if ( '' === $value ) {
 			continue;
 		}
@@ -162,28 +162,28 @@ function gwcpp_appearance_css(): string {
  *
  * @param string $hook Current screen's hook suffix.
  */
-function gwcpp_admin_assets( $hook ): void {
+function gwc_pp_admin_assets( $hook ): void {
 	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 
 	/*
 	 * Matched on our slug PREFIX, not on the settings slug. WordPress builds a
 	 * submenu's hook as "{parent menu title}_page_{slug}", so the only screen
-	 * whose hook ever contained GWCPP_MENU_SLUG was the one whose slug that is —
+	 * whose hook ever contained GWC_PP_MENU_SLUG was the one whose slug that is —
 	 * Pending Changes came through as "portal_page_gwcpp-pending" and matched
 	 * nothing, which is why its diff tables rendered unstyled.
 	 */
-	$ours = ( is_string( $hook ) && false !== strpos( $hook, 'gwcpp-' ) )
-		|| ( $screen && GWCPP_ORG_TYPE === $screen->post_type )
-		|| ( $screen && 'post' === $screen->base && gwcpp_type_enabled( (string) $screen->post_type ) );
+	$ours = ( is_string( $hook ) && false !== strpos( $hook, 'gwc-pp-' ) )
+		|| ( $screen && GWC_PP_ORG_TYPE === $screen->post_type )
+		|| ( $screen && 'post' === $screen->base && gwc_pp_type_enabled( (string) $screen->post_type ) );
 
 	if ( ! $ours ) {
 		return;
 	}
 
 	wp_enqueue_style(
-		'gwcpp-admin',
-		GWCPP_URL . 'assets/css/admin.css',
+		'gwc-pp-admin',
+		GWC_PP_URL . 'assets/css/admin.css',
 		array(),
-		GWCPP_VERSION
+		GWC_PP_VERSION
 	);
 }

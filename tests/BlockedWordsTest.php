@@ -13,30 +13,30 @@ final class BlockedWordsTest extends TestCase {
 	private const USER = 5;
 
 	protected function setUp(): void {
-		gwcpp_test_reset();
-		$GLOBALS['gwcpp_test']['types'][] = 'clinic';
-		gwcpp_test_post( self::POST, 'clinic', 'publish', 0, 'A Clinic' );
+		gwc_pp_test_reset();
+		$GLOBALS['gwc_pp_test']['types'][] = 'clinic';
+		gwc_pp_test_post( self::POST, 'clinic', 'publish', 0, 'A Clinic' );
 
 		/* Signed in, and actually able to edit this post. The screening code
-		 * puts the submitted post ID through gwcpp_user_can_edit_post() before
+		 * puts the submitted post ID through gwc_pp_user_can_edit_post() before
 		 * comparing against stored values, so a test that skipped this would be
 		 * testing the "cannot see the post, screen everything" path while
 		 * claiming to test the grandfathering rule.
 		 */
-		gwcpp_test_user( self::USER );
-		$GLOBALS['gwcpp_test']['current_user'] = self::USER;
-		gwcpp_add_post_editor( self::USER, self::POST );
+		gwc_pp_test_user( self::USER );
+		$GLOBALS['gwc_pp_test']['current_user'] = self::USER;
+		gwc_pp_add_post_editor( self::USER, self::POST );
 
 		update_option(
-			'gwcpp_settings',
+			'gwc_pp_settings',
 			array(
 				'post_types'    => array( 'clinic' ),
 				'blocked_words' => "scam\nmiracle cure\nfree money",
 			)
 		);
-		gwcpp_settings_cache( null, true );
+		gwc_pp_settings_cache( null, true );
 
-		gwcpp_save_schema(
+		gwc_pp_save_schema(
 			array(
 				'types' => array(
 					'clinic' => array(
@@ -63,29 +63,29 @@ final class BlockedWordsTest extends TestCase {
 	/* ── The list ────────────────────────────────────────────────────────── */
 
 	public function test_the_list_is_empty_by_default(): void {
-		update_option( 'gwcpp_settings', array() );
-		gwcpp_settings_cache( null, true );
+		update_option( 'gwc_pp_settings', array() );
+		gwc_pp_settings_cache( null, true );
 
-		$this->assertSame( array(), gwcpp_blocked_words() );
+		$this->assertSame( array(), gwc_pp_blocked_words() );
 	}
 
 	public function test_the_list_parses_lines_and_commas(): void {
 		$this->assertSame(
 			array( 'scam', 'miracle cure', 'free money' ),
-			gwcpp_blocked_words()
+			gwc_pp_blocked_words()
 		);
 	}
 
 	public function test_short_entries_are_dropped(): void {
 		update_option(
-			'gwcpp_settings',
+			'gwc_pp_settings',
 			array( 'blocked_words' => "hi\nno\nscam" )
 		);
-		gwcpp_settings_cache( null, true );
+		gwc_pp_settings_cache( null, true );
 
 		$this->assertSame(
 			array( 'scam' ),
-			gwcpp_blocked_words(),
+			gwc_pp_blocked_words(),
 			'A two-letter entry matches inside far more than anybody intends.'
 		);
 	}
@@ -93,16 +93,16 @@ final class BlockedWordsTest extends TestCase {
 	/* ── Matching ────────────────────────────────────────────────────────── */
 
 	public function test_a_blocked_word_is_found(): void {
-		$this->assertSame( 'scam', gwcpp_blocked_word_in( 'this is a scam' ) );
+		$this->assertSame( 'scam', gwc_pp_blocked_word_in( 'this is a scam' ) );
 	}
 
 	public function test_matching_ignores_case(): void {
-		$this->assertSame( 'scam', gwcpp_blocked_word_in( 'This Is A SCAM' ) );
+		$this->assertSame( 'scam', gwc_pp_blocked_word_in( 'This Is A SCAM' ) );
 	}
 
 	public function test_obvious_inflections_are_caught(): void {
 		foreach ( array( 'scams', 'scammer', 'scammers', 'scamming', 'scammed' ) as $variant ) {
-			$this->assertNotSame( '', gwcpp_blocked_word_in( 'beware of ' . $variant ), $variant );
+			$this->assertNotSame( '', gwc_pp_blocked_word_in( 'beware of ' . $variant ), $variant );
 		}
 	}
 
@@ -110,36 +110,36 @@ final class BlockedWordsTest extends TestCase {
 		/* The failure people actually notice. An unanchored str_contains blocks
 		 * "scampi" on a restaurant listing, and nobody can work out why.
 		 */
-		$this->assertSame( '', gwcpp_blocked_word_in( 'we serve scampi on Fridays' ) );
-		$this->assertSame( '', gwcpp_blocked_word_in( 'Scandinavian food' ) );
-		$this->assertSame( '', gwcpp_blocked_word_in( 'a cheeky scamp' ) );
+		$this->assertSame( '', gwc_pp_blocked_word_in( 'we serve scampi on Fridays' ) );
+		$this->assertSame( '', gwc_pp_blocked_word_in( 'Scandinavian food' ) );
+		$this->assertSame( '', gwc_pp_blocked_word_in( 'a cheeky scamp' ) );
 	}
 
 	public function test_a_word_ending_in_a_vowel_does_not_double(): void {
-		update_option( 'gwcpp_settings', array( 'blocked_words' => 'casino' ) );
-		gwcpp_settings_cache( null, true );
+		update_option( 'gwc_pp_settings', array( 'blocked_words' => 'casino' ) );
+		gwc_pp_settings_cache( null, true );
 
-		$this->assertNotSame( '', gwcpp_blocked_word_in( 'casinos' ) );
-		$this->assertSame( '', gwcpp_blocked_word_in( 'casinoo' ) );
+		$this->assertNotSame( '', gwc_pp_blocked_word_in( 'casinos' ) );
+		$this->assertSame( '', gwc_pp_blocked_word_in( 'casinoo' ) );
 	}
 
 	public function test_multi_word_entries_match(): void {
-		$this->assertSame( 'miracle cure', gwcpp_blocked_word_in( 'a MIRACLE CURE for everything' ) );
-		$this->assertSame( '', gwcpp_blocked_word_in( 'a miracle happened, and a cure was found' ) );
+		$this->assertSame( 'miracle cure', gwc_pp_blocked_word_in( 'a MIRACLE CURE for everything' ) );
+		$this->assertSame( '', gwc_pp_blocked_word_in( 'a miracle happened, and a cure was found' ) );
 	}
 
 	public function test_empty_text_and_empty_lists_match_nothing(): void {
-		$this->assertSame( '', gwcpp_blocked_word_in( '' ) );
-		$this->assertSame( '', gwcpp_blocked_word_in( 'scam', array() ) );
-		$this->assertSame( '', gwcpp_blocked_word_in( '   ' ) );
+		$this->assertSame( '', gwc_pp_blocked_word_in( '' ) );
+		$this->assertSame( '', gwc_pp_blocked_word_in( 'scam', array() ) );
+		$this->assertSame( '', gwc_pp_blocked_word_in( '   ' ) );
 	}
 
 	/* ── The rule that makes it usable ───────────────────────────────────── */
 
 	public function test_a_changed_field_containing_a_blocked_word_is_refused(): void {
-		$_POST['gwcpp_post_id'] = self::POST;
+		$_POST['gwc_pp_post_id'] = self::POST;
 
-		$errors = gwcpp_validate_submission(
+		$errors = gwc_pp_validate_submission(
 			'clinic',
 			array( 'blurb' => 'this is a scam' )
 		);
@@ -147,7 +147,7 @@ final class BlockedWordsTest extends TestCase {
 		$this->assertArrayHasKey( 'blurb', $errors );
 		$this->assertStringContainsString( 'scam', $errors['blurb'] );
 
-		unset( $_POST['gwcpp_post_id'] );
+		unset( $_POST['gwc_pp_post_id'] );
 	}
 
 	public function test_an_unchanged_field_containing_a_blocked_word_is_left_alone(): void {
@@ -157,22 +157,22 @@ final class BlockedWordsTest extends TestCase {
 		 * them for a field they never touched.
 		 */
 		update_post_meta( self::POST, 'blurb', 'The Scam Prevention Trust' );
-		$_POST['gwcpp_post_id'] = self::POST;
+		$_POST['gwc_pp_post_id'] = self::POST;
 
-		$errors = gwcpp_validate_submission(
+		$errors = gwc_pp_validate_submission(
 			'clinic',
 			array( 'blurb' => 'The Scam Prevention Trust' )
 		);
 
 		$this->assertSame( array(), $errors );
 
-		unset( $_POST['gwcpp_post_id'] );
+		unset( $_POST['gwc_pp_post_id'] );
 	}
 
 	/**
 	 * A post the submitter cannot edit does not grandfather anything.
 	 *
-	 * gwcpp_post_id is a hidden field, so it names whatever the submitter says.
+	 * gwc_pp_post_id is a hidden field, so it names whatever the submitter says.
 	 * The skip above fires when the submitted value equals the stored one — so
 	 * naming somebody else's post whose stored value happens to be a blocked
 	 * phrase would have skipped screening for that field rather than widening
@@ -182,12 +182,12 @@ final class BlockedWordsTest extends TestCase {
 	 * user cannot reach reads as "no post", and everything is screened.
 	 */
 	public function test_a_post_the_submitter_cannot_edit_grandfathers_nothing(): void {
-		gwcpp_test_post( 81, 'clinic', 'publish', 0, 'Somebody Else' );
+		gwc_pp_test_post( 81, 'clinic', 'publish', 0, 'Somebody Else' );
 		update_post_meta( 81, 'blurb', 'The Scam Prevention Trust' );
 
-		$_POST['gwcpp_post_id'] = 81;
+		$_POST['gwc_pp_post_id'] = 81;
 
-		$errors = gwcpp_validate_submission(
+		$errors = gwc_pp_validate_submission(
 			'clinic',
 			array( 'blurb' => 'The Scam Prevention Trust' )
 		);
@@ -198,26 +198,26 @@ final class BlockedWordsTest extends TestCase {
 			'Naming a post you cannot edit must not buy you a pass on screening.'
 		);
 
-		unset( $_POST['gwcpp_post_id'] );
+		unset( $_POST['gwc_pp_post_id'] );
 	}
 
 	public function test_editing_a_grandfathered_field_does_screen_it(): void {
 		update_post_meta( self::POST, 'blurb', 'The Scam Prevention Trust' );
-		$_POST['gwcpp_post_id'] = self::POST;
+		$_POST['gwc_pp_post_id'] = self::POST;
 
-		$errors = gwcpp_validate_submission(
+		$errors = gwc_pp_validate_submission(
 			'clinic',
 			array( 'blurb' => 'The Scam Prevention Trust, now with free money' )
 		);
 
 		$this->assertArrayHasKey( 'blurb', $errors );
 
-		unset( $_POST['gwcpp_post_id'] );
+		unset( $_POST['gwc_pp_post_id'] );
 	}
 
 	public function test_a_new_entry_screens_everything(): void {
 		// No post ID, so there is nothing to compare against.
-		$errors = gwcpp_validate_submission(
+		$errors = gwc_pp_validate_submission(
 			'clinic',
 			array(
 				'__title' => 'Free Money Clinic',
@@ -230,7 +230,7 @@ final class BlockedWordsTest extends TestCase {
 	}
 
 	public function test_screening_does_not_overwrite_an_earlier_error(): void {
-		gwcpp_put_field(
+		gwc_pp_put_field(
 			'clinic',
 			array(
 				'key'      => 'blurb',
@@ -240,7 +240,7 @@ final class BlockedWordsTest extends TestCase {
 			)
 		);
 
-		$errors = gwcpp_validate_submission( 'clinic', array( 'blurb' => '' ) );
+		$errors = gwc_pp_validate_submission( 'clinic', array( 'blurb' => '' ) );
 
 		$this->assertArrayHasKey( 'blurb', $errors );
 		$this->assertStringContainsString(
@@ -252,14 +252,14 @@ final class BlockedWordsTest extends TestCase {
 
 	public function test_no_list_means_no_screening(): void {
 		update_option(
-			'gwcpp_settings',
+			'gwc_pp_settings',
 			array( 'post_types' => array( 'clinic' ) )
 		);
-		gwcpp_settings_cache( null, true );
+		gwc_pp_settings_cache( null, true );
 
 		$this->assertSame(
 			array(),
-			gwcpp_validate_submission( 'clinic', array( 'blurb' => 'this is a scam' ) )
+			gwc_pp_validate_submission( 'clinic', array( 'blurb' => 'this is a scam' ) )
 		);
 	}
 }

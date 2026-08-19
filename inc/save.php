@@ -8,7 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /** The form field that wraps every mapped value. */
-const GWCPP_FIELD_PARAM = 'gwcpp_f';
+const GWC_PP_FIELD_PARAM = 'gwc_pp_f';
 
 /*
  * ── Slashes ─────────────────────────────────────────────────────────────────
@@ -19,11 +19,11 @@ const GWCPP_FIELD_PARAM = 'gwcpp_f';
  *
  * The rule this file follows, stated once so no call site has to think:
  *
- *   1. wp_unslash() the raw POST, once, in gwcpp_collect_submission().
+ *   1. wp_unslash() the raw POST, once, in gwc_pp_collect_submission().
  *   2. Everything in between — sanitize, validate, diff, store in a changeset —
  *      works on clean, unslashed values. That is what makes them comparable and
  *      what makes a test able to write a plain string.
- *   3. wp_slash() at the moment of writing, in gwcpp_save_fields(), because the
+ *   3. wp_slash() at the moment of writing, in gwc_pp_save_fields(), because the
  *      WordPress function about to receive it will unslash it again.
  *
  * The alternative the original portal used was to skip step 1 and rely on
@@ -43,21 +43,21 @@ const GWCPP_FIELD_PARAM = 'gwcpp_f';
  * leaves it alone rather than writing an empty value over it.
  *
  * @param string $post_type Post type slug.
- * @param array  $raw       Raw $_POST[ GWCPP_FIELD_PARAM ], still slashed.
+ * @param array  $raw       Raw $_POST[ GWC_PP_FIELD_PARAM ], still slashed.
  * @return array<string, mixed> Sanitized values, keyed by field key.
  */
-function gwcpp_collect_submission( string $post_type, array $raw ): array {
+function gwc_pp_collect_submission( string $post_type, array $raw ): array {
 	$raw    = (array) wp_unslash( $raw );
 	$values = array();
 
-	foreach ( gwcpp_type_fields( $post_type ) as $field ) {
+	foreach ( gwc_pp_type_fields( $post_type ) as $field ) {
 		$key = (string) $field['key'];
 
 		if ( ! array_key_exists( $key, $raw ) ) {
 			continue;
 		}
 
-		$values[ $key ] = gwcpp_field_call( $field, 'sanitize', array( $raw[ $key ], $field ) );
+		$values[ $key ] = gwc_pp_field_call( $field, 'sanitize', array( $raw[ $key ], $field ) );
 	}
 
 	return $values;
@@ -75,7 +75,7 @@ function gwcpp_collect_submission( string $post_type, array $raw ): array {
  *
  * So types that take files declare an optional `upload` callable, run exactly
  * once per submission from here. `upload` is not part of the required contract
- * in GWCPP_TYPE_CONTRACT; a type without it is simply skipped.
+ * in GWC_PP_TYPE_CONTRACT; a type without it is simply skipped.
  *
  * Called once, and once only. An earlier draft of the save handler called the
  * collector in three branches, which would have uploaded the same file three
@@ -85,7 +85,7 @@ function gwcpp_collect_submission( string $post_type, array $raw ): array {
  * A type may also declare an optional `reconcile` callable, run from the same
  * loop. It exists for the same reason `upload` does: a sanitizer is handed a
  * value and a field definition and nothing else, so a check that depends on
- * which post is being edited cannot live there. gwcpp_reconcile_media() is the
+ * which post is being edited cannot live there. gwc_pp_reconcile_media() is the
  * one implementation — see the note on it for what a hidden "keep the current
  * file" input can otherwise be talked into naming.
  *
@@ -95,12 +95,12 @@ function gwcpp_collect_submission( string $post_type, array $raw ): array {
  * @param int    $post_id   Post being edited, or 0 when creating.
  * @return array{values:array, uploaded:int[], errors:array<string,string>}
  */
-function gwcpp_apply_uploads( string $post_type, array $values, int $user_id, int $post_id = 0 ): array {
+function gwc_pp_apply_uploads( string $post_type, array $values, int $user_id, int $post_id = 0 ): array {
 	$uploaded = array();
 	$errors   = array();
 
-	foreach ( gwcpp_type_fields( $post_type ) as $field ) {
-		$def = gwcpp_field_type( (string) $field['type'] );
+	foreach ( gwc_pp_type_fields( $post_type ) as $field ) {
+		$def = gwc_pp_field_type( (string) $field['type'] );
 		$key = (string) $field['key'];
 
 		if ( null === $def ) {
@@ -158,15 +158,15 @@ function gwcpp_apply_uploads( string $post_type, array $values, int $user_id, in
  * file keeping a second set of "that is not a web address" strings in step.
  *
  * @param string $post_type Post type slug.
- * @param array  $raw       Raw $_POST[ GWCPP_FIELD_PARAM ], still slashed.
- * @param array  $values    The sanitized values from gwcpp_collect_submission().
+ * @param array  $raw       Raw $_POST[ GWC_PP_FIELD_PARAM ], still slashed.
+ * @param array  $values    The sanitized values from gwc_pp_collect_submission().
  * @return array<string, string> Field key => what the person actually typed.
  */
-function gwcpp_dropped_fields( string $post_type, array $raw, array $values ): array {
+function gwc_pp_dropped_fields( string $post_type, array $raw, array $values ): array {
 	$raw     = (array) wp_unslash( $raw );
 	$dropped = array();
 
-	foreach ( gwcpp_type_fields( $post_type ) as $field ) {
+	foreach ( gwc_pp_type_fields( $post_type ) as $field ) {
 		$key = (string) $field['key'];
 
 		if ( ! array_key_exists( $key, $raw ) || ! array_key_exists( $key, $values ) ) {
@@ -174,11 +174,11 @@ function gwcpp_dropped_fields( string $post_type, array $raw, array $values ): a
 		}
 
 		// Still holds a value, so nothing was lost.
-		if ( ! gwcpp_field_call( $field, 'is_empty', array( $values[ $key ], $field ) ) ) {
+		if ( ! gwc_pp_field_call( $field, 'is_empty', array( $values[ $key ], $field ) ) ) {
 			continue;
 		}
 
-		$typed = gwcpp_raw_string( $raw[ $key ] );
+		$typed = gwc_pp_raw_string( $raw[ $key ] );
 		if ( '' !== $typed ) {
 			$dropped[ $key ] = $typed;
 		}
@@ -190,7 +190,7 @@ function gwcpp_dropped_fields( string $post_type, array $raw, array $values ): a
 /**
  * What the person typed, as one string, whatever shape the control submitted.
  *
- * The wrapper shapes are the ones gwcpp_render_present_marker() produces: an
+ * The wrapper shapes are the ones gwc_pp_render_present_marker() produces: an
  * array with a __present key, and a value that is itself a scalar or a list.
  * A checkbox group that submits only its marker really is empty, and must not
  * be reported as something that got lost.
@@ -198,7 +198,7 @@ function gwcpp_dropped_fields( string $post_type, array $raw, array $values ): a
  * @param mixed $raw Raw submitted value.
  * @return string
  */
-function gwcpp_raw_string( $raw ): string {
+function gwc_pp_raw_string( $raw ): string {
 	if ( is_array( $raw ) ) {
 		$raw = $raw['value'] ?? '';
 	}
@@ -216,15 +216,15 @@ function gwcpp_raw_string( $raw ): string {
  * @param string $post_type Post type slug.
  * @return array<string, mixed>
  */
-function gwcpp_current_values( int $post_id, string $post_type ): array {
+function gwc_pp_current_values( int $post_id, string $post_type ): array {
 	$post   = get_post( $post_id );
 	$values = array();
 
-	foreach ( gwcpp_type_fields( $post_type ) as $field ) {
+	foreach ( gwc_pp_type_fields( $post_type ) as $field ) {
 		$key  = (string) $field['key'];
 		$type = (string) $field['type'];
 
-		if ( gwcpp_is_synthetic( $key ) ) {
+		if ( gwc_pp_is_synthetic( $key ) ) {
 			$column         = (string) $field['column'];
 			$values[ $key ] = $post instanceof WP_Post ? (string) $post->$column : '';
 			continue;
@@ -235,7 +235,7 @@ function gwcpp_current_values( int $post_id, string $post_type ): array {
 		 * cached copy, so a term renamed or deleted elsewhere on the site is
 		 * reflected here without this plugin having to hear about it.
 		 */
-		if ( gwcpp_type_is_taxonomy( $type ) ) {
+		if ( gwc_pp_type_is_taxonomy( $type ) ) {
 			$terms          = wp_get_object_terms( $post_id, $key, array( 'fields' => 'ids' ) );
 			$values[ $key ] = is_array( $terms ) ? array_map( 'intval', $terms ) : array();
 			sort( $values[ $key ] );
@@ -248,7 +248,7 @@ function gwcpp_current_values( int $post_id, string $post_type ): array {
 		 * slugs, so a type registered through the filter gets the right
 		 * treatment without this function knowing it exists.
 		 */
-		if ( gwcpp_type_is_multi( $type ) ) {
+		if ( gwc_pp_type_is_multi( $type ) ) {
 			$stored         = get_post_meta( $post_id, $key, true );
 			$values[ $key ] = is_array( $stored ) ? $stored : array();
 			continue;
@@ -264,17 +264,17 @@ function gwcpp_current_values( int $post_id, string $post_type ): array {
  * True for a type whose value is a list.
  *
  * Asked of the type's own is_empty callable rather than hardcoded, because
- * gwcpp_empty_array() is what a list type uses and gwcpp_empty_scalar() is what
+ * gwc_pp_empty_array() is what a list type uses and gwc_pp_empty_scalar() is what
  * a scalar type uses. It is an indirect test and it is the only one that stays
  * correct when somebody registers a list type through the filter.
  *
  * @param string $type Type slug.
  * @return bool
  */
-function gwcpp_type_is_multi( string $type ): bool {
-	$def = gwcpp_field_type( $type );
+function gwc_pp_type_is_multi( string $type ): bool {
+	$def = gwc_pp_field_type( $type );
 
-	return null !== $def && 'gwcpp_empty_array' === ( $def['is_empty'] ?? '' );
+	return null !== $def && 'gwc_pp_empty_array' === ( $def['is_empty'] ?? '' );
 }
 
 /**
@@ -291,7 +291,7 @@ function gwcpp_type_is_multi( string $type ): bool {
  * @param array $values  Sanitized, unslashed values keyed by field key.
  * @return bool True when something changed.
  */
-function gwcpp_save_fields( int $post_id, array $values ): bool {
+function gwc_pp_save_fields( int $post_id, array $values ): bool {
 	$post = get_post( $post_id );
 	if ( ! $post instanceof WP_Post ) {
 		return false;
@@ -300,7 +300,7 @@ function gwcpp_save_fields( int $post_id, array $values ): bool {
 	$post_update = array();
 	$changed     = false;
 
-	foreach ( gwcpp_type_fields( $post->post_type ) as $field ) {
+	foreach ( gwc_pp_type_fields( $post->post_type ) as $field ) {
 		$key = (string) $field['key'];
 
 		if ( ! array_key_exists( $key, $values ) ) {
@@ -309,7 +309,7 @@ function gwcpp_save_fields( int $post_id, array $values ): bool {
 
 		$value = $values[ $key ];
 
-		if ( gwcpp_is_synthetic( $key ) ) {
+		if ( gwc_pp_is_synthetic( $key ) ) {
 			$column = (string) $field['column'];
 			$new    = is_scalar( $value ) ? (string) $value : '';
 
@@ -332,7 +332,7 @@ function gwcpp_save_fields( int $post_id, array $values ): bool {
 			continue;
 		}
 
-		if ( gwcpp_type_is_taxonomy( (string) $field['type'] ) ) {
+		if ( gwc_pp_type_is_taxonomy( (string) $field['type'] ) ) {
 			$term_ids = is_array( $value ) ? array_map( 'intval', $value ) : array();
 			$existing = wp_get_object_terms( $post_id, $key, array( 'fields' => 'ids' ) );
 			$existing = is_array( $existing ) ? array_map( 'intval', $existing ) : array();
@@ -354,7 +354,7 @@ function gwcpp_save_fields( int $post_id, array $values ): bool {
 			continue;
 		}
 
-		if ( gwcpp_field_call( $field, 'is_empty', array( $value, $field ) ) ) {
+		if ( gwc_pp_field_call( $field, 'is_empty', array( $value, $field ) ) ) {
 			$stored = get_post_meta( $post_id, $key, true );
 
 			/*
@@ -401,7 +401,7 @@ function gwcpp_save_fields( int $post_id, array $values ): bool {
 		 * @param int   $post_id Post ID.
 		 * @param array $values  The values written.
 		 */
-		do_action( 'gwcpp_fields_saved', $post_id, $values );
+		do_action( 'gwc_pp_fields_saved', $post_id, $values );
 	}
 
 	return $changed;
@@ -416,12 +416,12 @@ function gwcpp_save_fields( int $post_id, array $values ): bool {
  * @param int    $org_id    Organisation to assign it to, or 0.
  * @return int|WP_Error New post ID.
  */
-function gwcpp_create_post( string $post_type, array $values, int $user_id, int $org_id = 0 ) {
-	if ( ! gwcpp_type_enabled( $post_type ) || ! gwcpp_type_setting( $post_type, 'allow_create' ) ) {
-		return new WP_Error( 'gwcpp_no_create', __( 'You cannot add new entries of this kind.', 'groundwork-common-post-portal' ) );
+function gwc_pp_create_post( string $post_type, array $values, int $user_id, int $org_id = 0 ) {
+	if ( ! gwc_pp_type_enabled( $post_type ) || ! gwc_pp_type_setting( $post_type, 'allow_create' ) ) {
+		return new WP_Error( 'gwc_pp_no_create', __( 'You cannot add new entries of this kind.', 'groundwork-common-post-portal' ) );
 	}
 
-	$status = (string) gwcpp_type_setting( $post_type, 'create_status' );
+	$status = (string) gwc_pp_type_setting( $post_type, 'create_status' );
 	if ( ! in_array( $status, array( 'draft', 'pending' ), true ) ) {
 		$status = 'draft';
 	}
@@ -457,12 +457,12 @@ function gwcpp_create_post( string $post_type, array $values, int $user_id, int 
 	 * access to a setting that is off by default.
 	 */
 	if ( $org_id > 0 ) {
-		gwcpp_set_post_org( $post_id, $org_id );
+		gwc_pp_set_post_org( $post_id, $org_id );
 	}
-	gwcpp_add_post_editor( $user_id, $post_id );
+	gwc_pp_add_post_editor( $user_id, $post_id );
 
 	// __title is written above; the rest go through the ordinary path.
-	gwcpp_save_fields( $post_id, $values );
+	gwc_pp_save_fields( $post_id, $values );
 
 	return $post_id;
 }
@@ -478,13 +478,13 @@ function gwcpp_create_post( string $post_type, array $values, int $user_id, int 
  * @param int $user_id Who did it.
  * @return bool
  */
-function gwcpp_unpublish_post( int $post_id, int $user_id ): bool {
+function gwc_pp_unpublish_post( int $post_id, int $user_id ): bool {
 	$post = get_post( $post_id );
 	if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status ) {
 		return false;
 	}
 
-	if ( ! gwcpp_type_setting( $post->post_type, 'allow_unpublish' ) ) {
+	if ( ! gwc_pp_type_setting( $post->post_type, 'allow_unpublish' ) ) {
 		return false;
 	}
 
@@ -501,8 +501,8 @@ function gwcpp_unpublish_post( int $post_id, int $user_id ): bool {
 	 * answer. The alternative is reading the revision history, which does not
 	 * record status changes.
 	 */
-	update_post_meta( $post_id, '_gwcpp_unpublished_by', $user_id );
-	update_post_meta( $post_id, '_gwcpp_unpublished_at', time() );
+	update_post_meta( $post_id, '_gwc_pp_unpublished_by', $user_id );
+	update_post_meta( $post_id, '_gwc_pp_unpublished_at', time() );
 
 	return true;
 }
@@ -524,18 +524,18 @@ function gwcpp_unpublish_post( int $post_id, int $user_id ): bool {
  * @param int $post_id Post ID.
  * @return bool
  */
-function gwcpp_republish_post( int $post_id ): bool {
+function gwc_pp_republish_post( int $post_id ): bool {
 	$post = get_post( $post_id );
 	if ( ! $post instanceof WP_Post || 'draft' !== $post->post_status ) {
 		return false;
 	}
 
-	if ( ! gwcpp_type_setting( $post->post_type, 'allow_unpublish' ) ) {
+	if ( ! gwc_pp_type_setting( $post->post_type, 'allow_unpublish' ) ) {
 		return false;
 	}
 
 	// Only a post a portal user took down may be put back by one.
-	if ( ! get_post_meta( $post_id, '_gwcpp_unpublished_by', true ) ) {
+	if ( ! get_post_meta( $post_id, '_gwc_pp_unpublished_by', true ) ) {
 		return false;
 	}
 
@@ -546,8 +546,8 @@ function gwcpp_republish_post( int $post_id ): bool {
 		)
 	);
 
-	delete_post_meta( $post_id, '_gwcpp_unpublished_by' );
-	delete_post_meta( $post_id, '_gwcpp_unpublished_at' );
+	delete_post_meta( $post_id, '_gwc_pp_unpublished_by' );
+	delete_post_meta( $post_id, '_gwc_pp_unpublished_at' );
 
 	return true;
 }
@@ -566,7 +566,7 @@ function gwcpp_republish_post( int $post_id ): bool {
  */
 
 /** The longest a single repopulated value may be. */
-const GWCPP_PENDING_MAX = 4000;
+const GWC_PP_PENDING_MAX = 4000;
 
 /**
  * Stash a rejected submission.
@@ -578,7 +578,7 @@ const GWCPP_PENDING_MAX = 4000;
  * @param array $dropped Field key => what the person typed, for values that
  *                       sanitized away.
  */
-function gwcpp_stash_submission( int $user_id, int $post_id, array $values, array $errors, array $dropped = array() ): void {
+function gwc_pp_stash_submission( int $user_id, int $post_id, array $values, array $errors, array $dropped = array() ): void {
 	$kept = array();
 
 	/*
@@ -595,7 +595,7 @@ function gwcpp_stash_submission( int $user_id, int $post_id, array $values, arra
 
 	foreach ( $values as $key => $value ) {
 		if ( is_scalar( $value ) ) {
-			$kept[ $key ] = substr( (string) $value, 0, GWCPP_PENDING_MAX );
+			$kept[ $key ] = substr( (string) $value, 0, GWC_PP_PENDING_MAX );
 			continue;
 		}
 		if ( is_array( $value ) ) {
@@ -606,7 +606,7 @@ function gwcpp_stash_submission( int $user_id, int $post_id, array $values, arra
 	}
 
 	set_transient(
-		'gwcpp_stash_' . $user_id . '_' . $post_id,
+		'gwc_pp_stash_' . $user_id . '_' . $post_id,
 		array(
 			'values' => $kept,
 			'errors' => $errors,
@@ -622,8 +622,8 @@ function gwcpp_stash_submission( int $user_id, int $post_id, array $values, arra
  * @param int $post_id Post ID, or 0.
  * @return array{values:array,errors:array}|null
  */
-function gwcpp_take_stash( int $user_id, int $post_id ): ?array {
-	$key    = 'gwcpp_stash_' . $user_id . '_' . $post_id;
+function gwc_pp_take_stash( int $user_id, int $post_id ): ?array {
+	$key    = 'gwc_pp_stash_' . $user_id . '_' . $post_id;
 	$stored = get_transient( $key );
 	delete_transient( $key );
 

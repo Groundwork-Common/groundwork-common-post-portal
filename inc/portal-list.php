@@ -8,17 +8,17 @@
 defined( 'ABSPATH' ) || exit;
 
 /** How many entries appear before the list pages. */
-const GWCPP_PER_PAGE = 20;
+const GWC_PP_PER_PAGE = 20;
 
 /**
  * The list of everything this user may edit.
  *
  * @param int $user_id User ID.
  */
-function gwcpp_render_post_list( int $user_id ): void {
-	$ids = gwcpp_editable_post_ids( $user_id );
+function gwc_pp_render_post_list( int $user_id ): void {
+	$ids = gwc_pp_editable_post_ids( $user_id );
 
-	gwcpp_render_create_buttons( $user_id );
+	gwc_pp_render_create_buttons( $user_id );
 
 	if ( ! $ids ) {
 		printf(
@@ -29,8 +29,8 @@ function gwcpp_render_post_list( int $user_id ): void {
 		return;
 	}
 
-	$page  = gwcpp_current_page();
-	$pages = (int) ceil( count( $ids ) / GWCPP_PER_PAGE );
+	$page  = gwc_pp_current_page();
+	$pages = (int) ceil( count( $ids ) / GWC_PP_PER_PAGE );
 	$page  = max( 1, min( $pages, $page ) );
 
 	/*
@@ -47,15 +47,15 @@ function gwcpp_render_post_list( int $user_id ): void {
 		}
 	);
 
-	$posts = array_slice( $posts, ( $page - 1 ) * GWCPP_PER_PAGE, GWCPP_PER_PAGE );
+	$posts = array_slice( $posts, ( $page - 1 ) * GWC_PP_PER_PAGE, GWC_PP_PER_PAGE );
 
 	echo '<ul class="gwcpp-list">';
 	foreach ( $posts as $post ) {
-		gwcpp_render_list_row( $post );
+		gwc_pp_render_list_row( $post );
 	}
 	echo '</ul>';
 
-	gwcpp_render_pagination( $page, $pages );
+	gwc_pp_render_pagination( $page, $pages );
 }
 
 /**
@@ -63,7 +63,7 @@ function gwcpp_render_post_list( int $user_id ): void {
  *
  * @param WP_Post $post The post.
  */
-function gwcpp_render_list_row( WP_Post $post ): void {
+function gwc_pp_render_list_row( WP_Post $post ): void {
 	$object = get_post_type_object( $post->post_type );
 	$title  = (string) $post->post_title;
 
@@ -71,10 +71,10 @@ function gwcpp_render_list_row( WP_Post $post ): void {
 		$title = __( '(no title yet)', 'groundwork-common-post-portal' );
 	}
 
-	$edit = gwcpp_portal_url(
+	$edit = gwc_pp_portal_url(
 		array(
-			'gwcpp_view' => 'edit',
-			'gwcpp_post' => $post->ID,
+			'gwc_pp_view' => 'edit',
+			'gwc_pp_post' => $post->ID,
 		)
 	);
 
@@ -87,7 +87,7 @@ function gwcpp_render_list_row( WP_Post $post ): void {
 
 	echo '<span class="gwcpp-list__meta">';
 
-	if ( $object && count( gwcpp_post_types() ) > 1 ) {
+	if ( $object && count( gwc_pp_post_types() ) > 1 ) {
 		// Only worth showing when the list can hold more than one kind of
 		// thing. On a single-type portal it is the same word on every row.
 		printf(
@@ -99,7 +99,7 @@ function gwcpp_render_list_row( WP_Post $post ): void {
 	printf(
 		'<span class="gwcpp-badge gwcpp-badge--%s">%s</span>',
 		esc_attr( $post->post_status ),
-		esc_html( gwcpp_status_label( $post->post_status ) )
+		esc_html( gwc_pp_status_label( $post->post_status ) )
 	);
 
 	echo '</span></li>';
@@ -110,11 +110,11 @@ function gwcpp_render_list_row( WP_Post $post ): void {
  *
  * @param int $user_id User ID.
  */
-function gwcpp_render_create_buttons( int $user_id ): void {
+function gwc_pp_render_create_buttons( int $user_id ): void {
 	$creatable = array();
 
-	foreach ( gwcpp_post_types() as $post_type ) {
-		if ( gwcpp_type_setting( $post_type, 'allow_create' ) ) {
+	foreach ( gwc_pp_post_types() as $post_type ) {
+		if ( gwc_pp_type_setting( $post_type, 'allow_create' ) ) {
 			$creatable[] = $post_type;
 		}
 	}
@@ -124,7 +124,7 @@ function gwcpp_render_create_buttons( int $user_id ): void {
 	 * way to be granted one would create posts only they can see, which looks
 	 * like the feature working right up until somebody asks where it went.
 	 */
-	if ( ! $creatable || ! gwcpp_user_orgs( $user_id ) ) {
+	if ( ! $creatable || ! gwc_pp_user_orgs( $user_id ) ) {
 		return;
 	}
 
@@ -137,10 +137,10 @@ function gwcpp_render_create_buttons( int $user_id ): void {
 		printf(
 			'<a class="gwcpp-button" href="%s">%s</a>',
 			esc_url(
-				gwcpp_portal_url(
+				gwc_pp_portal_url(
 					array(
-						'gwcpp_view' => 'new',
-						'gwcpp_type' => $post_type,
+						'gwc_pp_view' => 'new',
+						'gwc_pp_type' => $post_type,
 					)
 				)
 			),
@@ -161,9 +161,9 @@ function gwcpp_render_create_buttons( int $user_id ): void {
  *
  * @return int
  */
-function gwcpp_current_page(): int {
+function gwc_pp_current_page(): int {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination on a GET request.
-	$page = isset( $_GET['gwcpp_page'] ) ? (int) $_GET['gwcpp_page'] : 1;
+	$page = isset( $_GET['gwc_pp_page'] ) ? (int) $_GET['gwc_pp_page'] : 1;
 
 	return max( 1, $page );
 }
@@ -174,7 +174,7 @@ function gwcpp_current_page(): int {
  * @param int $page  Current page.
  * @param int $pages Total pages.
  */
-function gwcpp_render_pagination( int $page, int $pages ): void {
+function gwc_pp_render_pagination( int $page, int $pages ): void {
 	if ( $pages < 2 ) {
 		return;
 	}
@@ -184,7 +184,7 @@ function gwcpp_render_pagination( int $page, int $pages ): void {
 	if ( $page > 1 ) {
 		printf(
 			'<a class="gwcpp-button gwcpp-button--quiet" href="%s">%s</a>',
-			esc_url( gwcpp_portal_url( array( 'gwcpp_page' => $page - 1 ) ) ),
+			esc_url( gwc_pp_portal_url( array( 'gwc_pp_page' => $page - 1 ) ) ),
 			esc_html__( 'Previous', 'groundwork-common-post-portal' )
 		);
 	}
@@ -204,7 +204,7 @@ function gwcpp_render_pagination( int $page, int $pages ): void {
 	if ( $page < $pages ) {
 		printf(
 			'<a class="gwcpp-button gwcpp-button--quiet" href="%s">%s</a>',
-			esc_url( gwcpp_portal_url( array( 'gwcpp_page' => $page + 1 ) ) ),
+			esc_url( gwc_pp_portal_url( array( 'gwc_pp_page' => $page + 1 ) ) ),
 			esc_html__( 'Next', 'groundwork-common-post-portal' )
 		);
 	}

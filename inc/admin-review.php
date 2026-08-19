@@ -7,11 +7,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'admin_init', 'gwcpp_add_review_columns' );
-add_action( 'restrict_manage_posts', 'gwcpp_review_filter_dropdown' );
-add_action( 'pre_get_posts', 'gwcpp_review_filter_query' );
-add_action( 'add_meta_boxes', 'gwcpp_add_review_meta_box', 30 );
-add_action( 'save_post', 'gwcpp_save_review_meta', 10, 2 );
+add_action( 'admin_init', 'gwc_pp_add_review_columns' );
+add_action( 'restrict_manage_posts', 'gwc_pp_review_filter_dropdown' );
+add_action( 'pre_get_posts', 'gwc_pp_review_filter_query' );
+add_action( 'add_meta_boxes', 'gwc_pp_add_review_meta_box', 30 );
+add_action( 'save_post', 'gwc_pp_save_review_meta', 10, 2 );
 
 /**
  * Display strings for each state.
@@ -21,7 +21,7 @@ add_action( 'save_post', 'gwcpp_save_review_meta', 10, 2 );
  *
  * @return array<string, string>
  */
-function gwcpp_review_labels(): array {
+function gwc_pp_review_labels(): array {
 	static $labels = null;
 	if ( null !== $labels ) {
 		return $labels;
@@ -43,14 +43,14 @@ function gwcpp_review_labels(): array {
 /**
  * Add the column to every post type on the cycle.
  */
-function gwcpp_add_review_columns(): void {
-	foreach ( gwcpp_post_types() as $post_type ) {
-		if ( ! gwcpp_review_enabled( $post_type ) ) {
+function gwc_pp_add_review_columns(): void {
+	foreach ( gwc_pp_post_types() as $post_type ) {
+		if ( ! gwc_pp_review_enabled( $post_type ) ) {
 			continue;
 		}
 
-		add_filter( 'manage_' . $post_type . '_posts_columns', 'gwcpp_review_column' );
-		add_action( 'manage_' . $post_type . '_posts_custom_column', 'gwcpp_review_column_value', 10, 2 );
+		add_filter( 'manage_' . $post_type . '_posts_columns', 'gwc_pp_review_column' );
+		add_action( 'manage_' . $post_type . '_posts_custom_column', 'gwc_pp_review_column_value', 10, 2 );
 	}
 }
 
@@ -60,7 +60,7 @@ function gwcpp_add_review_columns(): void {
  * @param array $columns Existing columns.
  * @return array
  */
-function gwcpp_review_column( $columns ) {
+function gwc_pp_review_column( $columns ) {
 	if ( ! is_array( $columns ) ) {
 		return $columns;
 	}
@@ -72,13 +72,13 @@ function gwcpp_review_column( $columns ) {
 	$out = array();
 	foreach ( $columns as $key => $label ) {
 		if ( 'date' === $key ) {
-			$out['gwcpp_review'] = __( 'Reviewed', 'groundwork-common-post-portal' );
+			$out['gwc_pp_review'] = __( 'Reviewed', 'groundwork-common-post-portal' );
 		}
 		$out[ $key ] = $label;
 	}
 
-	if ( ! isset( $out['gwcpp_review'] ) ) {
-		$out['gwcpp_review'] = __( 'Reviewed', 'groundwork-common-post-portal' );
+	if ( ! isset( $out['gwc_pp_review'] ) ) {
+		$out['gwc_pp_review'] = __( 'Reviewed', 'groundwork-common-post-portal' );
 	}
 
 	return $out;
@@ -90,13 +90,13 @@ function gwcpp_review_column( $columns ) {
  * @param string $column  Column key.
  * @param int    $post_id Post ID.
  */
-function gwcpp_review_column_value( $column, $post_id ): void {
-	if ( 'gwcpp_review' !== $column ) {
+function gwc_pp_review_column_value( $column, $post_id ): void {
+	if ( 'gwc_pp_review' !== $column ) {
 		return;
 	}
 
-	$state  = gwcpp_review_state( (int) $post_id );
-	$labels = gwcpp_review_labels();
+	$state  = gwc_pp_review_state( (int) $post_id );
+	$labels = gwc_pp_review_labels();
 
 	printf(
 		'<span class="gwcpp-state gwcpp-state--%s">%s</span>',
@@ -125,15 +125,15 @@ function gwcpp_review_column_value( $column, $post_id ): void {
 /**
  * The filter dropdown above the list.
  */
-function gwcpp_review_filter_dropdown(): void {
+function gwc_pp_review_filter_dropdown(): void {
 	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 
-	if ( ! $screen || 'edit' !== $screen->base || ! gwcpp_review_enabled( (string) $screen->post_type ) ) {
+	if ( ! $screen || 'edit' !== $screen->base || ! gwc_pp_review_enabled( (string) $screen->post_type ) ) {
 		return;
 	}
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filtering on a GET request.
-	$current = isset( $_GET['gwcpp_review_filter'] ) ? sanitize_key( wp_unslash( $_GET['gwcpp_review_filter'] ) ) : '';
+	$current = isset( $_GET['gwc_pp_review_filter'] ) ? sanitize_key( wp_unslash( $_GET['gwc_pp_review_filter'] ) ) : '';
 
 	$options = array(
 		'needs'     => __( 'Needs confirming', 'groundwork-common-post-portal' ),
@@ -142,7 +142,7 @@ function gwcpp_review_filter_dropdown(): void {
 		'exempt'    => __( 'Never asked', 'groundwork-common-post-portal' ),
 	);
 
-	echo '<select name="gwcpp_review_filter">';
+	echo '<select name="gwc_pp_review_filter">';
 	printf( '<option value="">%s</option>', esc_html__( 'Any review state', 'groundwork-common-post-portal' ) );
 	foreach ( $options as $value => $label ) {
 		printf(
@@ -177,7 +177,7 @@ function gwcpp_review_filter_dropdown(): void {
  *
  * @param WP_Query $query The query.
  */
-function gwcpp_review_filter_query( $query ): void {
+function gwc_pp_review_filter_query( $query ): void {
 	if ( ! is_admin() || ! $query instanceof WP_Query || ! $query->is_main_query() ) {
 		return;
 	}
@@ -190,24 +190,24 @@ function gwcpp_review_filter_query( $query ): void {
 	 * type named "Array".
 	 */
 	$post_type = $query->get( 'post_type' );
-	if ( ! is_string( $post_type ) || '' === $post_type || ! gwcpp_review_enabled( $post_type ) ) {
+	if ( ! is_string( $post_type ) || '' === $post_type || ! gwc_pp_review_enabled( $post_type ) ) {
 		return;
 	}
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filtering.
-	$filter = isset( $_GET['gwcpp_review_filter'] ) ? sanitize_key( wp_unslash( $_GET['gwcpp_review_filter'] ) ) : '';
+	$filter = isset( $_GET['gwc_pp_review_filter'] ) ? sanitize_key( wp_unslash( $_GET['gwc_pp_review_filter'] ) ) : '';
 	if ( '' === $filter ) {
 		return;
 	}
 
-	$cadence = gwcpp_review_cadence( $post_type );
-	$today   = gwcpp_review_today();
+	$cadence = gwc_pp_review_cadence( $post_type );
+	$today   = gwc_pp_review_today();
 
 	$meta = array( 'relation' => 'AND' );
 
 	if ( 'exempt' === $filter ) {
 		$meta[] = array(
-			'key'     => GWCPP_REVIEW_EXEMPT_META,
+			'key'     => GWC_PP_REVIEW_EXEMPT_META,
 			'compare' => 'EXISTS',
 		);
 		$query->set( 'meta_query', $meta );
@@ -215,13 +215,13 @@ function gwcpp_review_filter_query( $query ): void {
 	}
 
 	$meta[] = array(
-		'key'     => GWCPP_REVIEW_EXEMPT_META,
+		'key'     => GWC_PP_REVIEW_EXEMPT_META,
 		'compare' => 'NOT EXISTS',
 	);
 
 	if ( 'expired' === $filter ) {
 		$meta[] = array(
-			'key'     => GWCPP_AUTO_EXPIRED_META,
+			'key'     => GWC_PP_AUTO_EXPIRED_META,
 			'compare' => 'EXISTS',
 		);
 		$query->set( 'meta_query', $meta );
@@ -240,11 +240,11 @@ function gwcpp_review_filter_query( $query ): void {
 	$meta[] = array(
 		'relation' => 'OR',
 		array(
-			'key'     => GWCPP_REVIEWED_META,
+			'key'     => GWC_PP_REVIEWED_META,
 			'compare' => 'NOT EXISTS',
 		),
 		array(
-			'key'     => GWCPP_REVIEWED_META,
+			'key'     => GWC_PP_REVIEWED_META,
 			'value'   => $cutoff,
 			'compare' => '<=',
 			'type'    => 'DATE',
@@ -259,16 +259,16 @@ function gwcpp_review_filter_query( $query ): void {
 /**
  * Register the review box.
  */
-function gwcpp_add_review_meta_box(): void {
-	foreach ( gwcpp_post_types() as $post_type ) {
-		if ( ! gwcpp_review_enabled( $post_type ) ) {
+function gwc_pp_add_review_meta_box(): void {
+	foreach ( gwc_pp_post_types() as $post_type ) {
+		if ( ! gwc_pp_review_enabled( $post_type ) ) {
 			continue;
 		}
 
 		add_meta_box(
-			'gwcpp-review',
+			'gwc-pp-review',
 			__( 'Review', 'groundwork-common-post-portal' ),
-			'gwcpp_render_review_meta_box',
+			'gwc_pp_render_review_meta_box',
 			$post_type,
 			'side',
 			'default'
@@ -281,11 +281,11 @@ function gwcpp_add_review_meta_box(): void {
  *
  * @param WP_Post $post The post.
  */
-function gwcpp_render_review_meta_box( WP_Post $post ): void {
-	$state  = gwcpp_review_state( $post->ID );
-	$labels = gwcpp_review_labels();
+function gwc_pp_render_review_meta_box( WP_Post $post ): void {
+	$state  = gwc_pp_review_state( $post->ID );
+	$labels = gwc_pp_review_labels();
 
-	wp_nonce_field( 'gwcpp_review_' . $post->ID, 'gwcpp_review_nonce' );
+	wp_nonce_field( 'gwc_pp_review_' . $post->ID, 'gwc_pp_review_nonce' );
 
 	printf(
 		'<p><strong>%s</strong></p>',
@@ -322,7 +322,7 @@ function gwcpp_render_review_meta_box( WP_Post $post ): void {
 	}
 
 	printf(
-		'<p><label><input type="checkbox" name="gwcpp_review_exempt" value="1"%s /> %s</label></p>',
+		'<p><label><input type="checkbox" name="gwc_pp_review_exempt" value="1"%s /> %s</label></p>',
 		checked( ! empty( $state['exempt'] ), true, false ),
 		esc_html__( 'Never ask about this one', 'groundwork-common-post-portal' )
 	);
@@ -335,7 +335,7 @@ function gwcpp_render_review_meta_box( WP_Post $post ): void {
 	}
 
 	printf(
-		'<p><label><input type="checkbox" name="gwcpp_review_now" value="1" /> %s</label></p>',
+		'<p><label><input type="checkbox" name="gwc_pp_review_now" value="1" /> %s</label></p>',
 		esc_html__( 'Mark as confirmed today', 'groundwork-common-post-portal' )
 	);
 }
@@ -346,34 +346,34 @@ function gwcpp_render_review_meta_box( WP_Post $post ): void {
  * @param int     $post_id Post ID.
  * @param WP_Post $post    The post.
  */
-function gwcpp_save_review_meta( $post_id, $post ): void {
+function gwc_pp_save_review_meta( $post_id, $post ): void {
 	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 		return;
 	}
 	if ( wp_is_post_revision( $post_id ) ) {
 		return;
 	}
-	if ( ! $post instanceof WP_Post || ! gwcpp_review_enabled( $post->post_type ) ) {
+	if ( ! $post instanceof WP_Post || ! gwc_pp_review_enabled( $post->post_type ) ) {
 		return;
 	}
 	if ( ! current_user_can( 'edit_post', $post_id ) ) {
 		return;
 	}
 	if (
-		! isset( $_POST['gwcpp_review_nonce'] )
-		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gwcpp_review_nonce'] ) ), 'gwcpp_review_' . $post_id )
+		! isset( $_POST['gwc_pp_review_nonce'] )
+		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gwc_pp_review_nonce'] ) ), 'gwc_pp_review_' . $post_id )
 	) {
 		return;
 	}
 
-	if ( empty( $_POST['gwcpp_review_exempt'] ) ) {
-		delete_post_meta( (int) $post_id, GWCPP_REVIEW_EXEMPT_META );
+	if ( empty( $_POST['gwc_pp_review_exempt'] ) ) {
+		delete_post_meta( (int) $post_id, GWC_PP_REVIEW_EXEMPT_META );
 	} else {
-		update_post_meta( (int) $post_id, GWCPP_REVIEW_EXEMPT_META, 1 );
+		update_post_meta( (int) $post_id, GWC_PP_REVIEW_EXEMPT_META, 1 );
 	}
 
-	if ( ! empty( $_POST['gwcpp_review_now'] ) ) {
-		gwcpp_record_review( (int) $post_id, get_current_user_id() );
+	if ( ! empty( $_POST['gwc_pp_review_now'] ) ) {
+		gwc_pp_record_review( (int) $post_id, get_current_user_id() );
 	}
 
 	/*
@@ -381,7 +381,7 @@ function gwcpp_save_review_meta( $post_id, $post ): void {
 	 * does not later "restore" something staff had already restored — and so the
 	 * digest stops listing it as hidden the moment it stops being hidden.
 	 */
-	if ( 'publish' === $post->post_status && get_post_meta( $post_id, GWCPP_AUTO_EXPIRED_META, true ) ) {
-		delete_post_meta( (int) $post_id, GWCPP_AUTO_EXPIRED_META );
+	if ( 'publish' === $post->post_status && get_post_meta( $post_id, GWC_PP_AUTO_EXPIRED_META, true ) ) {
+		delete_post_meta( (int) $post_id, GWC_PP_AUTO_EXPIRED_META );
 	}
 }

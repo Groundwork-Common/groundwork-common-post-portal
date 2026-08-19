@@ -47,7 +47,7 @@ failed on my machine and not yours".
 
 ## Authorization
 
-`gwcpp_user_can_edit_post( int $user_id, int $post_id ): bool` in
+`gwc_pp_user_can_edit_post( int $user_id, int $post_id ): bool` in
 [`inc/access.php`](inc/access.php) is the only function in the plugin that
 answers whether somebody may edit something. Every handler, every view and
 every list query routes through it or through a helper that calls it.
@@ -56,8 +56,8 @@ It returns true when the post's type is portal-enabled **and** any of:
 
 | Path | Stored as | Notes |
 | --- | --- | --- |
-| Organisation | `_gwcpp_orgs` user meta ∩ `_gwcpp_org` post meta | The primary path. Many users, many posts. |
-| Direct grant | `_gwcpp_editors` post meta, array of user IDs | One-off access without an organisation. |
+| Organisation | `_gwc_pp_orgs` user meta ∩ `_gwc_pp_org` post meta | The primary path. Many users, many posts. |
+| Direct grant | `_gwc_pp_editors` post meta, array of user IDs | One-off access without an organisation. |
 | Author | `post_author` | Off by default, enabled per post type. |
 
 A registry of pluggable access strategies would be more elegant and would mean
@@ -108,10 +108,10 @@ then rarely again, and the queue is the only screen here that is ever urgent.
 
 Two consequences worth knowing:
 
-- **The menu's parent slug is `GWCPP_QUEUE_SLUG`, not `GWCPP_MENU_SLUG`.** The
+- **The menu's parent slug is `GWC_PP_QUEUE_SLUG`, not `GWC_PP_MENU_SLUG`.** The
   latter is still the settings page's own slug and every link to it still
   works; only the parent changed.
-- **The order is sorted after the fact**, in `gwcpp_order_submenu()` on
+- **The order is sorted after the fact**, in `gwc_pp_order_submenu()` on
   `admin_menu` priority 100. Organisations is not ours to place — WordPress adds
   it from the post type's `show_in_menu` while it builds the menu, before this
   plugin's `admin_menu` callback runs — so arranging by registration order would
@@ -125,7 +125,7 @@ nonce and confirmation, and nesting those in a form whose button says "Save
 settings" makes an Enter keypress submit the wrong one.
 
 Admin CSS is matched on the `gwcpp-` slug prefix rather than on
-`GWCPP_MENU_SLUG`. WordPress builds a submenu's hook as
+`GWC_PP_MENU_SLUG`. WordPress builds a submenu's hook as
 `{parent menu title}_page_{slug}`, so matching the settings slug matched only
 the settings screen, and the queue's diff tables rendered unstyled.
 
@@ -145,39 +145,39 @@ Types are a registry of callables in
 | `to_display` | `(mixed $value, array $field): string` | Human-readable, for the approval diff and emails. |
 | `schema_form` | `(array $field): void` | Extra controls on the Fields screen for this type. |
 
-Register your own with the `gwcpp_field_types` filter.
+Register your own with the `gwc_pp_field_types` filter.
 
 ## Hooks
 
 | Hook | Type | Purpose |
 | --- | --- | --- |
-| `gwcpp_field_types` | filter | Add or alter field types. |
-| `gwcpp_org_type_args` | filter | Arguments for the organisation post type. |
-| `gwcpp_portal_post_types` | filter | The enabled post types, after settings. |
-| `gwcpp_editable_posts` | filter | The list of posts shown to a user. |
-| `gwcpp_field_label` | filter | A field's label at render time. |
-| `gwcpp_validation_errors` | filter | Problems found in a submission. |
-| `gwcpp_token_ttl` | filter | Sign-in token lifetime, in seconds. |
-| `gwcpp_rate_limits` | filter | The three rate-limit windows. |
-| `gwcpp_load_assets` | filter | Force portal CSS/JS on or off. |
-| `gwcpp_allowed_upload_types` | filter | What a portal user may upload. |
-| `gwcpp_richtext_allowed_html` | filter | The HTML a portal user may write. |
-| `gwcpp_schema_migrations` | filter | Schema migration steps, keyed by version. |
-| `gwcpp_schema_saved` | action | After the field schema is written. |
-| `gwcpp_fields_saved` | action | After values are written to a post. |
-| `gwcpp_changeset_stored` | action | A submission was queued for review. |
-| `gwcpp_changeset_applied` | action | A submission was approved. |
-| `gwcpp_changeset_rejected` | action | A submission was rejected. |
-| `gwcpp_blocked_words` | filter | Words that stop a submission. |
-| `gwcpp_reviewed` | action | An entry was confirmed as current. |
-| `gwcpp_review_expired` | action | The cycle hid an entry. |
-| `gwcpp_handoff_accepted` | action | Somebody accepted a handover. |
+| `gwc_pp_field_types` | filter | Add or alter field types. |
+| `gwc_pp_org_type_args` | filter | Arguments for the organisation post type. |
+| `gwc_pp_portal_post_types` | filter | The enabled post types, after settings. |
+| `gwc_pp_editable_posts` | filter | The list of posts shown to a user. |
+| `gwc_pp_field_label` | filter | A field's label at render time. |
+| `gwc_pp_validation_errors` | filter | Problems found in a submission. |
+| `gwc_pp_token_ttl` | filter | Sign-in token lifetime, in seconds. |
+| `gwc_pp_rate_limits` | filter | The three rate-limit windows. |
+| `gwc_pp_load_assets` | filter | Force portal CSS/JS on or off. |
+| `gwc_pp_allowed_upload_types` | filter | What a portal user may upload. |
+| `gwc_pp_richtext_allowed_html` | filter | The HTML a portal user may write. |
+| `gwc_pp_schema_migrations` | filter | Schema migration steps, keyed by version. |
+| `gwc_pp_schema_saved` | action | After the field schema is written. |
+| `gwc_pp_fields_saved` | action | After values are written to a post. |
+| `gwc_pp_changeset_stored` | action | A submission was queued for review. |
+| `gwc_pp_changeset_applied` | action | A submission was approved. |
+| `gwc_pp_changeset_rejected` | action | A submission was rejected. |
+| `gwc_pp_blocked_words` | filter | Words that stop a submission. |
+| `gwc_pp_reviewed` | action | An entry was confirmed as current. |
+| `gwc_pp_review_expired` | action | The cycle hid an entry. |
+| `gwc_pp_handoff_accepted` | action | Somebody accepted a handover. |
 
 Every hook in the plugin is in this table. If you add one, add its row.
 
 Two of these are security surfaces rather than conveniences.
-`gwcpp_allowed_upload_types` decides what can be written into the webroot and
-served back over HTTP; `gwcpp_richtext_allowed_html` decides what markup a
+`gwc_pp_allowed_upload_types` decides what can be written into the webroot and
+served back over HTTP; `gwc_pp_richtext_allowed_html` decides what markup a
 person with no wp-admin access can put on a page the site owns. Widen either
 only on purpose.
 
@@ -194,15 +194,15 @@ Changes** and approve or reject.
 - **The diff is computed, never stored.** If staff edit the post while a
   changeset waits, the *old* side updates to match, so what they approve is what
   they were shown.
-- **Approving replays through `gwcpp_save_fields()`** — the same path an
+- **Approving replays through `gwc_pp_save_fields()`** — the same path an
   immediate save uses. A field retired from the schema between submission and
   approval is therefore never written.
 - The portal form prefills from the pending changeset, not the live post, so
   somebody returning an hour later sees their own submitted values rather than
   concluding the edit was lost and sending it again.
 - **The queue screen is paged; nothing that decides anything is.** The screen
-  draws `GWCPP_QUEUE_PAGE_SIZE` items and says so when there are more. The menu
-  bubble and `gwcpp_claimed_attachment_ids()` use `gwcpp_every_pending_post_id()`
+  draws `GWC_PP_QUEUE_PAGE_SIZE` items and says so when there are more. The menu
+  bubble and `gwc_pp_claimed_attachment_ids()` use `gwc_pp_every_pending_post_id()`
   instead, which walks the lot. That split exists because the reaper asks the
   queue whether an upload is still wanted immediately before force-deleting it:
   asked against a capped, newest-first list, the answer was "no" for the
@@ -225,9 +225,9 @@ our list, `is_uploaded_file()` on the temp path, and EXIF stripping by
 re-encoding through `WP_Image_Editor`.
 
 Under approval an upload is created immediately — there is nowhere else to put a
-file — flagged `_gwcpp_pending_for`, and only attached on approve. Rejecting
+file — flagged `_gwc_pp_pending_for`, and only attached on approve. Rejecting
 deletes it, and a daily cron reaps anything whose changeset vanished by some
-other route. `gwcpp_discard_attachments()` refuses to touch an attachment
+other route. `gwc_pp_discard_attachments()` refuses to touch an attachment
 without that flag, so neither a reject nor the cron can delete media somebody
 else put there.
 
@@ -241,7 +241,7 @@ fetched rather than committed:
 curl -sLO https://phar.phpunit.de/phpunit-11.phar && php phpunit-11.phar
 ```
 
-`VersionTest` enforces that the plugin header, `GWCPP_VERSION`, the
+`VersionTest` enforces that the plugin header, `GWC_PP_VERSION`, the
 `Stable tag` in `readme.txt`, and the changelog and upgrade-notice entries all
 agree. It fails the moment any one of them is bumped alone.
 
@@ -253,38 +253,32 @@ npx @wordpress/env start && npx @wordpress/env run cli wp eval-file wp-content/p
 
 ### Seeing the emails
 
-Sign-in links are the product here, so being able to read one matters. Out of
-the box you cannot: wp-env's default From is `wordpress@localhost`, which
-PHPMailer rejects for having no TLD, so `wp_mail()` returns `false` before
-anything reaches SMTP. `/usr/sbin/sendmail` in the container is a busybox
-symlink that cannot deliver without a smarthost, and outbound port 25 is
-blocked on most connections anyway.
+**The integration suite needs nothing for this.** `tests/integration/phase3.php`
+captures mail in process on `pre_wp_mail`, which short-circuits `wp_mail()`
+before delivery and hands over the arguments, so the rendered body — including
+the sign-in link its assertions read — is available with no sink, no container
+and no configuration. It behaves identically on a laptop and in CI.
 
-So route mail to a local sink. Start one:
+That was not always true. Mail used to be routed over SMTP to a Mailpit
+container, via a committed mu-plugin and a CI step that attached the container
+to the wp-env network. It worked in CI and nowhere else: anybody running the
+suite locally got six failures, all about mail, none about the plugin, worded so
+they read exactly like a bug in the product. Intercepting mail is not this
+plugin's business, and it turned out not to be the test suite's either.
 
-```bash
-docker run -d --name gwcpp-mailpit -p 8027:8025 -p 1027:1025 axllent/mailpit
-```
+**Reading mail while clicking around by hand is a separate need**, and one
+nothing in this repository serves any more. Out of the box you cannot: wp-env's
+default From is `wordpress@localhost`, which PHPMailer rejects for having no
+TLD, so `wp_mail()` returns `false` before anything reaches SMTP.
+`/usr/sbin/sendmail` in the container is a busybox symlink that cannot deliver
+without a smarthost, and outbound port 25 is blocked on most connections anyway.
+If you want an inbox, run your own sink and point an mu-plugin at it from
+somewhere gitignored — or copy the approach the beta site uses, which stores
+messages on `pre_wp_mail` and shows them on an admin screen rather than
+delivering them anywhere.
 
-`tests/mu-plugins/mailpit.php` already does this — it fixes `wp_mail_from` and
-points `phpmailer_init` at `host.docker.internal:1027` with `SMTPAuth` and
-`SMTPAutoTLS` both off. Mount it by creating `.wp-env.override.json`:
-
-```json
-{ "mappings": { "wp-content/mu-plugins": "./tests/mu-plugins" } }
-```
-
-Read the inbox at http://localhost:8027.
-
-It lives in `tests/` rather than somewhere gitignored on purpose. An earlier
-version sat in `.dev/`, and was lost the first time the working tree was
-cleaned — taking the seed script with it. `tests` is already excluded from the
-release zip by `.distignore`, so everything in there is committed *and* absent
-from what anybody downloads. `.wp-env.override.json` is still ignored, because
-it holds ports that are specific to one machine.
-
-Do **not** point this at a public disposable-inbox service. Those inboxes are
-readable by anyone, and a sign-in link is a credential — the whole design of
+Do **not** point any of this at a public disposable-inbox service. Those inboxes
+are readable by anyone, and a sign-in link is a credential — the whole design of
 this plugin is that possession of the link *is* the authentication.
 
 ## The review cycle
@@ -306,7 +300,7 @@ Two things can never be hidden:
   would punish a partner for a gap on the site's own side. Those escalate to the
   weekly staff digest instead, until somebody invites an owner.
 
-Hiding sets `post_status` to `draft` and marks `_gwcpp_auto_expired`. That
+Hiding sets `post_status` to `draft` and marks `_gwc_pp_auto_expired`. That
 marker is what makes it reversible and attributable — confirming puts the entry
 straight back, and a post staff drafted by hand has no marker and is never
 touched.
@@ -334,10 +328,10 @@ staff 30-day rung falls a month and a half *before* the entry is even due — an
 the runner takes the last rung in the array that has passed. A staff-only rung
 sitting later in the list therefore won, was recorded as delivered, and never
 came round again, so the owner's first and only warning was the one sent a
-fortnight before their entry came off the site. `gwcpp_review_ladder()` now
+fortnight before their entry came off the site. `gwc_pp_review_ladder()` now
 sorts by date, and a tie goes to the owner's rung rather than the staff one.
 
-`gwcpp_reviewable_post_ids()` pages through every tracked entry, oldest ID
+`gwc_pp_reviewable_post_ids()` pages through every tracked entry, oldest ID
 first. It used to read the first 500 in WordPress's default newest-first order,
 which meant that on a larger directory the entries it never returned were the
 oldest ones — precisely the ones the cycle exists for.
@@ -417,7 +411,7 @@ Three things about that host are worth knowing before working on it:
 
 - **Production shares the login.** `groundworkcommon.com` — a live nonprofit site — is in the same home directory on the same SSH user. A wrong destination path does not fail, it succeeds against production. The script refuses to run unless it finds a beta-only mu-plugin at the target, so a typo stops the run rather than redecorating a live site.
 - **`WP_ENVIRONMENT_TYPE` is `development`, not `staging`.** The sibling plugins' seed scripts refuse to run outside `local` and `development`. Everything else keying off `wp_get_environment_type()` relaxes there too, which is exactly why no real record may live on it.
-- **Mail is trapped, not routed.** Mailpit is the *local* answer described above and there is no sink on that host. Instead an mu-plugin intercepts `wp_mail()` at `pre_wp_mail` and stores the message; read it under **Tools → Trapped mail**. That screen is behind `manage_options`, which matters here more than for the sibling plugins: a sign-in link is a credential, and the whole design of this plugin is that possession of the link *is* the authentication. Anyone who can read the trap can sign in as any seeded owner — which is acceptable on a box whose every record is invented, and would not be anywhere else.
+- **Mail is trapped, not routed.** There is no sink on that host, and since the integration suite stopped needing one there is no sink anywhere in this project. Instead an mu-plugin intercepts `wp_mail()` at `pre_wp_mail` and stores the message; read it under **Tools → Trapped mail**. That screen is behind `manage_options`, which matters here more than for the sibling plugins: a sign-in link is a credential, and the whole design of this plugin is that possession of the link *is* the authentication. Anyone who can read the trap can sign in as any seeded owner — which is acceptable on a box whose every record is invented, and would not be anywhere else.
 
 WP-CLI on that shared host takes roughly thirty seconds per invocation, because it bootstraps WordPress each time. Batch work into one `wp eval-file` rather than chaining several `wp` calls.
 

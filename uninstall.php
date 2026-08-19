@@ -25,13 +25,13 @@
  * shape rather than a tidiness shape.
  *
  * Only when armed: the two options holding the field schema and the settings.
- * Arming is a separate option rather than a setting inside gwcpp_settings,
+ * Arming is a separate option rather than a setting inside gwc_pp_settings,
  * precisely so a future migration of that array can never resurrect it — a
  * merge with defaults is exactly the kind of thing that would flip a buried
  * boolean back on, and the blast radius here is somebody's entire field
  * configuration.
  *
- *     update_option( 'gwcpp_allow_destructive_uninstall', true );
+ *     update_option( 'gwc_pp_allow_destructive_uninstall', true );
  *
  * Even armed, every field VALUE survives, because the values live in post meta
  * and post meta is never touched. Only the description of them goes. That
@@ -49,7 +49,7 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
  * The arming flag is read per site, because on a network one site's decision to
  * keep its field schema is not another's to overrule.
  */
-function gwcpp_uninstall_site() {
+function gwc_pp_uninstall_site() {
 	global $wpdb;
 
 	/*
@@ -72,8 +72,8 @@ function gwcpp_uninstall_site() {
 	$wpdb->query(
 		$wpdb->prepare(
 			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
-			$wpdb->esc_like( '_transient_gwcpp_tok_' ) . '%',
-			$wpdb->esc_like( '_transient_timeout_gwcpp_tok_' ) . '%'
+			$wpdb->esc_like( '_transient_gwc_pp_tok_' ) . '%',
+			$wpdb->esc_like( '_transient_timeout_gwc_pp_tok_' ) . '%'
 		)
 	);
 
@@ -82,27 +82,27 @@ function gwcpp_uninstall_site() {
 	 * miss, and every one of them is meaningless the moment the code that reads
 	 * it is gone.
 	 *
-	 * gwcpp_needs_rewrite_flush is no longer written by anything — the flush it
+	 * gwc_pp_needs_rewrite_flush is no longer written by anything — the flush it
 	 * scheduled turned out to be a no-op, see the note in the main plugin file —
 	 * but installs upgraded from an earlier version still have the row, so it
 	 * stays on this list.
 	 */
 	foreach ( array(
-		'gwcpp_rate_limits',
-		'gwcpp_review_last_run',
-		'gwcpp_review_running',
-		'gwcpp_needs_rewrite_flush',
-	) as $gwcpp_option ) {
-		delete_option( $gwcpp_option );
+		'gwc_pp_rate_limits',
+		'gwc_pp_review_last_run',
+		'gwc_pp_review_running',
+		'gwc_pp_needs_rewrite_flush',
+	) as $gwc_pp_option ) {
+		delete_option( $gwc_pp_option );
 	}
 
-	delete_transient( 'gwcpp_pending_count' );
+	delete_transient( 'gwc_pp_pending_count' );
 
 	/*
 	 * Per-user rows. Two are interface state — when somebody last signed in, and
 	 * whether they have collapsed the colophon — and the third is not:
 	 *
-	 * _gwcpp_tokens holds the durable review tokens. Those are the longest-lived
+	 * _gwc_pp_tokens holds the durable review tokens. Those are the longest-lived
 	 * credential this plugin mints: seven days, and each one signs its holder
 	 * straight in when clicked. They live in user meta rather than in a transient
 	 * precisely so that nothing sweeps them by accident (see the note in
@@ -122,18 +122,18 @@ function gwcpp_uninstall_site() {
 	 */
 	// Named as literals because uninstall.php runs standalone: the plugin's own
 	// files are never loaded here, so its constants do not exist. Keep in step
-	// with GWCPP_LAST_LOGIN_META, GWCPP_COLOPHON_META and GWCPP_TOKENS_META.
-	foreach ( array( 'gwcpp_last_login', 'gwcpp_colophon_collapsed_at', '_gwcpp_tokens' ) as $gwcpp_user_meta ) {
-		delete_metadata( 'user', 0, $gwcpp_user_meta, '', true );
+	// with GWC_PP_LAST_LOGIN_META, GWC_PP_COLOPHON_META and GWC_PP_TOKENS_META.
+	foreach ( array( 'gwc_pp_last_login', 'gwc_pp_colophon_collapsed_at', '_gwc_pp_tokens' ) as $gwc_pp_user_meta ) {
+		delete_metadata( 'user', 0, $gwc_pp_user_meta, '', true );
 	}
 
-	if ( ! get_option( 'gwcpp_allow_destructive_uninstall' ) ) {
+	if ( ! get_option( 'gwc_pp_allow_destructive_uninstall' ) ) {
 		return;
 	}
 
-	delete_option( 'gwcpp_schema' );
-	delete_option( 'gwcpp_settings' );
-	delete_option( 'gwcpp_allow_destructive_uninstall' );
+	delete_option( 'gwc_pp_schema' );
+	delete_option( 'gwc_pp_settings' );
+	delete_option( 'gwc_pp_allow_destructive_uninstall' );
 }
 
 /*
@@ -145,18 +145,18 @@ function gwcpp_uninstall_site() {
  * reaches it, and the failure mode if one does is leftover rows, not damage.
  */
 if ( is_multisite() ) {
-	$gwcpp_sites = get_sites(
+	$gwc_pp_sites = get_sites(
 		array(
 			'fields' => 'ids',
 			'number' => 1000,
 		)
 	);
 
-	foreach ( $gwcpp_sites as $gwcpp_site_id ) {
-		switch_to_blog( $gwcpp_site_id );
-		gwcpp_uninstall_site();
+	foreach ( $gwc_pp_sites as $gwc_pp_site_id ) {
+		switch_to_blog( $gwc_pp_site_id );
+		gwc_pp_uninstall_site();
 		restore_current_blog();
 	}
 } else {
-	gwcpp_uninstall_site();
+	gwc_pp_uninstall_site();
 }

@@ -16,8 +16,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * So outbound mail has three modes, set by a constant in wp-config.php:
  *
- *   define( 'GWCPP_MAIL_MODE', 'live' );          // live | restricted | off
- *   define( 'GWCPP_MAIL_ALLOW', 'example.com' );  // domain or address, comma separated
+ *   define( 'GWC_PP_MAIL_MODE', 'live' );          // live | restricted | off
+ *   define( 'GWC_PP_MAIL_ALLOW', 'example.com' );  // domain or address, comma separated
  *
  * ── The default is `live`, and that is a decision, not an oversight ──────────
  * A site that defines neither constant sends normally. There is no host
@@ -27,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
  * into thinking it is protected. Both are worse than doing nothing.
  *
  * So protecting a staging copy is one line in its wp-config.php, and it is a
- * line somebody has to write. Setting `GWCPP_MAIL_MODE` to `restricted` or
+ * line somebody has to write. Setting `GWC_PP_MAIL_MODE` to `restricted` or
  * `off` is the first thing to do when cloning a site that has real partner
  * addresses in it.
  *
@@ -45,7 +45,7 @@ defined( 'ABSPATH' ) || exit;
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-add_filter( 'wp_mail', 'gwcpp_guard_outbound_mail', 1 );
+add_filter( 'wp_mail', 'gwc_pp_guard_outbound_mail', 1 );
 
 /**
  * Drop or narrow outbound mail according to the configured mode.
@@ -53,13 +53,13 @@ add_filter( 'wp_mail', 'gwcpp_guard_outbound_mail', 1 );
  * @param array $args wp_mail() arguments.
  * @return array
  */
-function gwcpp_guard_outbound_mail( $args ) {
+function gwc_pp_guard_outbound_mail( $args ) {
 	if ( ! is_array( $args ) ) {
 		return $args;
 	}
 
 	// Defaults to live. See the note above for why there is no host sniffing.
-	$mode = defined( 'GWCPP_MAIL_MODE' ) ? (string) GWCPP_MAIL_MODE : 'live';
+	$mode = defined( 'GWC_PP_MAIL_MODE' ) ? (string) GWC_PP_MAIL_MODE : 'live';
 
 	if ( 'live' === $mode ) {
 		return $args;
@@ -72,7 +72,7 @@ function gwcpp_guard_outbound_mail( $args ) {
 		return $args;
 	}
 
-	$allow = defined( 'GWCPP_MAIL_ALLOW' ) ? (string) GWCPP_MAIL_ALLOW : '';
+	$allow = defined( 'GWC_PP_MAIL_ALLOW' ) ? (string) GWC_PP_MAIL_ALLOW : '';
 	$allow = array_filter( array_map( 'trim', explode( ',', strtolower( $allow ) ) ) );
 
 	$to   = is_array( $args['to'] ) ? $args['to'] : array_map( 'trim', explode( ',', (string) $args['to'] ) );
@@ -118,14 +118,14 @@ function gwcpp_guard_outbound_mail( $args ) {
  *
  * @param string $to      Recipient.
  * @param string $subject Subject line.
- * @param string $body    HTML body, already assembled by gwcpp_email_shell().
+ * @param string $body    HTML body, already assembled by gwc_pp_email_shell().
  * @return bool
  */
-function gwcpp_send_email( string $to, string $subject, string $body ): bool {
+function gwc_pp_send_email( string $to, string $subject, string $body ): bool {
 	$headers = array( 'Content-Type: text/html; charset=UTF-8' );
 
-	$from_name  = (string) gwcpp_setting( 'from_name' );
-	$from_email = (string) gwcpp_setting( 'from_email' );
+	$from_name  = (string) gwc_pp_setting( 'from_name' );
+	$from_email = (string) gwc_pp_setting( 'from_email' );
 
 	if ( '' !== $from_email && is_email( $from_email ) ) {
 		$name = '' !== $from_name ? $from_name : get_bloginfo( 'name' );
@@ -154,8 +154,8 @@ function gwcpp_send_email( string $to, string $subject, string $body ): bool {
  * @param string $content Body HTML, produced by the helpers below.
  * @return string
  */
-function gwcpp_email_shell( string $heading, string $content ): string {
-	$accent = (string) gwcpp_setting( 'accent_color' );
+function gwc_pp_email_shell( string $heading, string $content ): string {
+	$accent = (string) gwc_pp_setting( 'accent_color' );
 	$accent = '' !== $accent ? $accent : '#2b6cb0';
 
 	return sprintf(
@@ -185,7 +185,7 @@ function gwcpp_email_shell( string $heading, string $content ): string {
  * @param string $text Plain text.
  * @return string
  */
-function gwcpp_email_p( string $text ): string {
+function gwc_pp_email_p( string $text ): string {
 	return sprintf(
 		'<p style="margin:0 0 16px;font-size:15px;line-height:1.6;">%s</p>',
 		esc_html( $text )
@@ -199,8 +199,8 @@ function gwcpp_email_p( string $text ): string {
  * @param string $label Button text.
  * @return string
  */
-function gwcpp_email_button( string $url, string $label ): string {
-	$accent = (string) gwcpp_setting( 'accent_color' );
+function gwc_pp_email_button( string $url, string $label ): string {
+	$accent = (string) gwc_pp_setting( 'accent_color' );
 	$accent = '' !== $accent ? $accent : '#2b6cb0';
 
 	return sprintf(
@@ -219,12 +219,12 @@ function gwcpp_email_button( string $url, string $label ): string {
  * "Phone: — → 205 555 0142" tells them it was not there before, which is the
  * difference between a correction and a gap being filled.
  *
- * @param array $diff From gwcpp_changeset_diff().
+ * @param array $diff From gwc_pp_changeset_diff().
  * @return string
  */
-function gwcpp_email_diff( array $diff ): string {
+function gwc_pp_email_diff( array $diff ): string {
 	if ( ! $diff ) {
-		return gwcpp_email_p( __( 'Nothing actually changed.', 'groundwork-common-post-portal' ) );
+		return gwc_pp_email_p( __( 'Nothing actually changed.', 'groundwork-common-post-portal' ) );
 	}
 
 	$rows = '';
@@ -263,7 +263,7 @@ function gwcpp_email_diff( array $diff ): string {
  * @param string $url Destination.
  * @return string
  */
-function gwcpp_email_raw_link( string $url ): string {
+function gwc_pp_email_raw_link( string $url ): string {
 	return sprintf(
 		'<p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:#52606d;">%s<br /><span style="word-break:break-all;">%s</span></p>',
 		esc_html__( 'If the button does not work, copy this into your browser:', 'groundwork-common-post-portal' ),
@@ -290,23 +290,23 @@ function gwcpp_email_raw_link( string $url ): string {
  * report of it is a partner asking why their change is still not live weeks
  * later.
  *
- * So a failure is recorded rather than dropped. gwcpp_note_staff_notification()
+ * So a failure is recorded rather than dropped. gwc_pp_note_staff_notification()
  * is what the handlers call; it keeps a flag the plugin's own screens can show,
  * and fires an action for sites that would rather send this somewhere real.
  * ───────────────────────────────────────────────────────────────────────────
  */
 
 /** Transient: set when the last attempt to notify staff failed. */
-const GWCPP_MAIL_TROUBLE_TRANSIENT = 'gwcpp_staff_mail_failed';
+const GWC_PP_MAIL_TROUBLE_TRANSIENT = 'gwc_pp_staff_mail_failed';
 
 /**
  * Record whether staff were successfully told about a change.
  *
- * @param bool $sent What gwcpp_notify_staff_change() returned.
+ * @param bool $sent What gwc_pp_notify_staff_change() returned.
  */
-function gwcpp_note_staff_notification( bool $sent ): void {
+function gwc_pp_note_staff_notification( bool $sent ): void {
 	if ( $sent ) {
-		delete_transient( GWCPP_MAIL_TROUBLE_TRANSIENT );
+		delete_transient( GWC_PP_MAIL_TROUBLE_TRANSIENT );
 		return;
 	}
 
@@ -315,7 +315,7 @@ function gwcpp_note_staff_notification( bool $sent ): void {
 	 * next successful send, and if nothing is ever submitted again there is
 	 * nothing left to warn about anyway.
 	 */
-	set_transient( GWCPP_MAIL_TROUBLE_TRANSIENT, time(), WEEK_IN_SECONDS );
+	set_transient( GWC_PP_MAIL_TROUBLE_TRANSIENT, time(), WEEK_IN_SECONDS );
 
 	/**
 	 * Fires when this site could not tell staff about a submitted change.
@@ -323,7 +323,7 @@ function gwcpp_note_staff_notification( bool $sent ): void {
 	 * Worth hooking on any site where the review queue matters — wp_mail()
 	 * returning false means nobody has been asked to look at it.
 	 */
-	do_action( 'gwcpp_staff_notification_failed' );
+	do_action( 'gwc_pp_staff_notification_failed' );
 }
 
 /**
@@ -331,23 +331,23 @@ function gwcpp_note_staff_notification( bool $sent ): void {
  *
  * @return bool
  */
-function gwcpp_staff_mail_in_trouble(): bool {
-	return false !== get_transient( GWCPP_MAIL_TROUBLE_TRANSIENT );
+function gwc_pp_staff_mail_in_trouble(): bool {
+	return false !== get_transient( GWC_PP_MAIL_TROUBLE_TRANSIENT );
 }
 
 /**
  * Tell staff about a submission.
  *
- * Callers pass the result to gwcpp_note_staff_notification() rather than
+ * Callers pass the result to gwc_pp_note_staff_notification() rather than
  * dropping it — see the note above.
  *
  * @param int   $post_id Post ID.
  * @param int   $user_id Who submitted it.
- * @param array $diff    From gwcpp_changeset_diff().
+ * @param array $diff    From gwc_pp_changeset_diff().
  * @param bool  $pending Whether it is waiting for approval or already live.
  * @return bool
  */
-function gwcpp_notify_staff_change( int $post_id, int $user_id, array $diff, bool $pending ): bool {
+function gwc_pp_notify_staff_change( int $post_id, int $user_id, array $diff, bool $pending ): bool {
 	if ( ! $diff ) {
 		return false;
 	}
@@ -371,20 +371,20 @@ function gwcpp_notify_staff_change( int $post_id, int $user_id, array $diff, boo
 		/* translators: 1: an email address, 2: a post title. */
 		: __( '%1$s changed %2$s. It is live now.', 'groundwork-common-post-portal' );
 
-	$body = gwcpp_email_p( sprintf( $intro, $name, $title ) )
-		. gwcpp_email_diff( $diff );
+	$body = gwc_pp_email_p( sprintf( $intro, $name, $title ) )
+		. gwc_pp_email_diff( $diff );
 
 	if ( $pending ) {
-		$url   = admin_url( 'admin.php?page=' . GWCPP_QUEUE_SLUG );
-		$body .= gwcpp_email_button( $url, __( 'Review it', 'groundwork-common-post-portal' ) )
-			. gwcpp_email_raw_link( $url );
+		$url   = admin_url( 'admin.php?page=' . GWC_PP_QUEUE_SLUG );
+		$body .= gwc_pp_email_button( $url, __( 'Review it', 'groundwork-common-post-portal' ) )
+			. gwc_pp_email_raw_link( $url );
 	} else {
 		$edit  = (string) get_edit_post_link( $post_id, 'raw' );
-		$body .= gwcpp_email_button( $edit, __( 'Open it', 'groundwork-common-post-portal' ) );
+		$body .= gwc_pp_email_button( $edit, __( 'Open it', 'groundwork-common-post-portal' ) );
 	}
 
-	return gwcpp_send_email(
-		gwcpp_staff_email(),
+	return gwc_pp_send_email(
+		gwc_pp_staff_email(),
 		sprintf(
 			$pending
 				/* translators: %s: a post title. */
@@ -393,7 +393,7 @@ function gwcpp_notify_staff_change( int $post_id, int $user_id, array $diff, boo
 				: __( 'Changed: %s', 'groundwork-common-post-portal' ),
 			$title
 		),
-		gwcpp_email_shell( $heading, $body )
+		gwc_pp_email_shell( $heading, $body )
 	);
 }
 
@@ -404,7 +404,7 @@ function gwcpp_notify_staff_change( int $post_id, int $user_id, array $diff, boo
  * @param int $user_id Who submitted it.
  * @return bool
  */
-function gwcpp_notify_submitter_approved( int $post_id, int $user_id ): bool {
+function gwc_pp_notify_submitter_approved( int $post_id, int $user_id ): bool {
 	$who  = get_userdata( $user_id );
 	$post = get_post( $post_id );
 	if ( ! $who || ! $post instanceof WP_Post ) {
@@ -413,20 +413,20 @@ function gwcpp_notify_submitter_approved( int $post_id, int $user_id ): bool {
 
 	$title = '' !== trim( (string) $post->post_title ) ? $post->post_title : __( 'your entry', 'groundwork-common-post-portal' );
 
-	return gwcpp_send_email(
+	return gwc_pp_send_email(
 		$who->user_email,
 		/* translators: %s: a post title. */
 		sprintf( __( 'Your changes to %s are live', 'groundwork-common-post-portal' ), $title ),
-		gwcpp_email_shell(
+		gwc_pp_email_shell(
 			__( 'Your changes are live', 'groundwork-common-post-portal' ),
-			gwcpp_email_p(
+			gwc_pp_email_p(
 				sprintf(
 					/* translators: %s: a post title. */
 					__( 'The changes you submitted to %s have been approved and are on the site now. Thank you.', 'groundwork-common-post-portal' ),
 					$title
 				)
 			)
-			. gwcpp_email_button( gwcpp_portal_url(), __( 'Open the portal', 'groundwork-common-post-portal' ) )
+			. gwc_pp_email_button( gwc_pp_portal_url(), __( 'Open the portal', 'groundwork-common-post-portal' ) )
 		)
 	);
 }
@@ -443,7 +443,7 @@ function gwcpp_notify_submitter_approved( int $post_id, int $user_id ): bool {
  * @param string $note    Message from staff.
  * @return bool
  */
-function gwcpp_notify_submitter_rejected( int $post_id, int $user_id, string $note = '' ): bool {
+function gwc_pp_notify_submitter_rejected( int $post_id, int $user_id, string $note = '' ): bool {
 	$who  = get_userdata( $user_id );
 	$post = get_post( $post_id );
 	if ( ! $who || ! $post instanceof WP_Post ) {
@@ -452,7 +452,7 @@ function gwcpp_notify_submitter_rejected( int $post_id, int $user_id, string $no
 
 	$title = '' !== trim( (string) $post->post_title ) ? $post->post_title : __( 'your entry', 'groundwork-common-post-portal' );
 
-	$body = gwcpp_email_p(
+	$body = gwc_pp_email_p(
 		sprintf(
 			/* translators: %s: a post title. */
 			__( 'The changes you submitted to %s have not been applied, and the entry is unchanged.', 'groundwork-common-post-portal' ),
@@ -461,20 +461,20 @@ function gwcpp_notify_submitter_rejected( int $post_id, int $user_id, string $no
 	);
 
 	if ( '' !== trim( $note ) ) {
-		$body .= gwcpp_email_p( __( 'What we were told:', 'groundwork-common-post-portal' ) )
+		$body .= gwc_pp_email_p( __( 'What we were told:', 'groundwork-common-post-portal' ) )
 			. sprintf(
 				'<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:3px solid #cbd2d9;background:#f5f7fa;font-size:15px;line-height:1.6;">%s</blockquote>',
 				esc_html( $note )
 			);
 	}
 
-	$body .= gwcpp_email_p( __( 'You can edit it again in the portal whenever you like.', 'groundwork-common-post-portal' ) )
-		. gwcpp_email_button( gwcpp_portal_url(), __( 'Open the portal', 'groundwork-common-post-portal' ) );
+	$body .= gwc_pp_email_p( __( 'You can edit it again in the portal whenever you like.', 'groundwork-common-post-portal' ) )
+		. gwc_pp_email_button( gwc_pp_portal_url(), __( 'Open the portal', 'groundwork-common-post-portal' ) );
 
-	return gwcpp_send_email(
+	return gwc_pp_send_email(
 		$who->user_email,
 		/* translators: %s: a post title. */
 		sprintf( __( 'About your changes to %s', 'groundwork-common-post-portal' ), $title ),
-		gwcpp_email_shell( __( 'Your changes were not applied', 'groundwork-common-post-portal' ), $body )
+		gwc_pp_email_shell( __( 'Your changes were not applied', 'groundwork-common-post-portal' ), $body )
 	);
 }

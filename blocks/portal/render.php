@@ -14,5 +14,5 @@ defined( 'ABSPATH' ) || exit;
 printf(
 	'<div %s>%s</div>',
 	get_block_wrapper_attributes(), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by core.
-	gwcpp_render_portal() // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Every value inside is escaped at the point it is printed.
+	gwc_pp_render_portal() // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Every value inside is escaped at the point it is printed.
 );

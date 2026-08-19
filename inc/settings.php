@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const GWCPP_SETTINGS_OPTION = 'gwcpp_settings';
+const GWC_PP_SETTINGS_OPTION = 'gwc_pp_settings';
 
 /**
  * Every setting, with the value a fresh install behaves as.
@@ -19,7 +19,7 @@ const GWCPP_SETTINGS_OPTION = 'gwcpp_settings';
  *
  * @return array
  */
-function gwcpp_setting_defaults(): array {
+function gwc_pp_setting_defaults(): array {
 	return array(
 		// Which post types the portal covers. Empty is the honest default: a
 		// plugin that switched itself on for `post` at activation would expose
@@ -43,7 +43,7 @@ function gwcpp_setting_defaults(): array {
 
 		/*
 		 * Per-post-type flags, keyed by post type slug. Read through
-		 * gwcpp_type_setting() rather than directly — a type that has never
+		 * gwc_pp_type_setting() rather than directly — a type that has never
 		 * been configured has no row here at all, and every caller wanting the
 		 * defaults for that case is a caller that can get them wrong.
 		 */
@@ -86,7 +86,7 @@ function gwcpp_setting_defaults(): array {
  *
  * @return array
  */
-function gwcpp_type_setting_defaults(): array {
+function gwc_pp_type_setting_defaults(): array {
 	return array(
 		// Off. `post_author` on an imported or staff-authored post is whoever
 		// ran the import, and on a site that has ever used a "submit a listing"
@@ -143,10 +143,10 @@ function gwcpp_type_setting_defaults(): array {
 /**
  * The per-request settings memo.
  *
- * Its own function rather than a static inside gwcpp_setting(), because a
+ * Its own function rather than a static inside gwc_pp_setting(), because a
  * writer needs a way to invalidate a reader's cache and PHP has no way to reach
  * another function's static variable. Without this, a script that calls
- * update_option() and then reads gwcpp_setting() in the same request — a
+ * update_option() and then reads gwc_pp_setting() in the same request — a
  * migration, WP-CLI, another plugin — would silently see the value from before
  * the write.
  *
@@ -154,7 +154,7 @@ function gwcpp_type_setting_defaults(): array {
  * @param bool       $clear Forget the cached value.
  * @return array|null
  */
-function gwcpp_settings_cache( ?array $set = null, bool $clear = false ): ?array {
+function gwc_pp_settings_cache( ?array $set = null, bool $clear = false ): ?array {
 	static $cache = null;
 	if ( $clear ) {
 		$cache = null;
@@ -166,8 +166,8 @@ function gwcpp_settings_cache( ?array $set = null, bool $clear = false ): ?array
 	return $cache;
 }
 
-add_action( 'update_option_' . GWCPP_SETTINGS_OPTION, 'gwcpp_reset_settings_cache' );
-add_action( 'add_option_' . GWCPP_SETTINGS_OPTION, 'gwcpp_reset_settings_cache' );
+add_action( 'update_option_' . GWC_PP_SETTINGS_OPTION, 'gwc_pp_reset_settings_cache' );
+add_action( 'add_option_' . GWC_PP_SETTINGS_OPTION, 'gwc_pp_reset_settings_cache' );
 
 /**
  * Clear the settings memo. Hooked to both add_option_* and update_option_* —
@@ -175,8 +175,8 @@ add_action( 'add_option_' . GWCPP_SETTINGS_OPTION, 'gwcpp_reset_settings_cache' 
  * every write after, so a site's very first Settings save needs the same
  * invalidation as every one after it.
  */
-function gwcpp_reset_settings_cache(): void {
-	gwcpp_settings_cache( null, true );
+function gwc_pp_reset_settings_cache(): void {
+	gwc_pp_settings_cache( null, true );
 }
 
 /**
@@ -185,12 +185,12 @@ function gwcpp_reset_settings_cache(): void {
  * @param string $key Setting key.
  * @return mixed
  */
-function gwcpp_setting( string $key ) {
-	$settings = gwcpp_settings_cache();
+function gwc_pp_setting( string $key ) {
+	$settings = gwc_pp_settings_cache();
 	if ( null === $settings ) {
-		$stored   = get_option( GWCPP_SETTINGS_OPTION );
-		$settings = gwcpp_settings_cache(
-			array_merge( gwcpp_setting_defaults(), is_array( $stored ) ? $stored : array() )
+		$stored   = get_option( GWC_PP_SETTINGS_OPTION );
+		$settings = gwc_pp_settings_cache(
+			array_merge( gwc_pp_setting_defaults(), is_array( $stored ) ? $stored : array() )
 		);
 	}
 	return $settings[ $key ] ?? null;
@@ -208,13 +208,13 @@ function gwcpp_setting( string $key ) {
  * @param string $key       Flag key.
  * @return mixed
  */
-function gwcpp_type_setting( string $post_type, string $key ) {
-	$types  = (array) gwcpp_setting( 'types' );
+function gwc_pp_type_setting( string $post_type, string $key ) {
+	$types  = (array) gwc_pp_setting( 'types' );
 	$stored = isset( $types[ $post_type ] ) && is_array( $types[ $post_type ] )
 		? $types[ $post_type ]
 		: array();
 
-	$merged = array_merge( gwcpp_type_setting_defaults(), $stored );
+	$merged = array_merge( gwc_pp_type_setting_defaults(), $stored );
 
 	return $merged[ $key ] ?? null;
 }
@@ -232,8 +232,8 @@ function gwcpp_type_setting( string $post_type, string $key ) {
  *
  * @return string[]
  */
-function gwcpp_post_types(): array {
-	$types = (array) gwcpp_setting( 'post_types' );
+function gwc_pp_post_types(): array {
+	$types = (array) gwc_pp_setting( 'post_types' );
 	$types = array_values( array_filter( array_map( 'strval', $types ), 'post_type_exists' ) );
 
 	/**
@@ -241,7 +241,7 @@ function gwcpp_post_types(): array {
 	 *
 	 * @param string[] $types Post type slugs.
 	 */
-	$types = (array) apply_filters( 'gwcpp_portal_post_types', $types );
+	$types = (array) apply_filters( 'gwc_pp_portal_post_types', $types );
 
 	return array_values( array_unique( array_filter( array_map( 'strval', $types ), 'post_type_exists' ) ) );
 }
@@ -252,8 +252,8 @@ function gwcpp_post_types(): array {
  * @param string $post_type Post type slug.
  * @return bool
  */
-function gwcpp_type_enabled( string $post_type ): bool {
-	return '' !== $post_type && in_array( $post_type, gwcpp_post_types(), true );
+function gwc_pp_type_enabled( string $post_type ): bool {
+	return '' !== $post_type && in_array( $post_type, gwc_pp_post_types(), true );
 }
 
 /**
@@ -264,8 +264,8 @@ function gwcpp_type_enabled( string $post_type ): bool {
  *
  * @return string
  */
-function gwcpp_staff_email(): string {
-	$configured = (string) gwcpp_setting( 'staff_email' );
+function gwc_pp_staff_email(): string {
+	$configured = (string) gwc_pp_setting( 'staff_email' );
 	if ( '' !== $configured && is_email( $configured ) ) {
 		return $configured;
 	}
@@ -283,8 +283,8 @@ function gwcpp_staff_email(): string {
  *
  * @return int
  */
-function gwcpp_session_seconds(): int {
-	$hours = (int) gwcpp_setting( 'session_hours' );
+function gwc_pp_session_seconds(): int {
+	$hours = (int) gwc_pp_setting( 'session_hours' );
 	$hours = max( 1, min( 720, $hours ) );
 	return $hours * HOUR_IN_SECONDS;
 }
