@@ -75,6 +75,22 @@
 	<exclude-pattern>/tests/</exclude-pattern>
 
 	<!--
+		.dev/ holds the seed and the local mu-plugins, and it is excluded for the
+		same reason /tests/ above it is: the standard objects, correctly, to
+		things that are wrong in a plugin and right in a fixture. The findings it
+		reported were 25 unprefixed script variables, ten echoes to a terminal
+		and eight deliberate global overrides — a seed script described exactly.
+
+		The sibling volunteer tracker keeps the same artifact at tests/seed.php,
+		where /tests/ already covered it. This one lives in .dev/ and so had been
+		linted as though it were the plugin.
+
+		Gitignored and in .distignore, so it reaches neither a release nor CI;
+		this only affects a local run.
+	-->
+	<exclude-pattern>/.dev/</exclude-pattern>
+
+	<!--
 		Claude Code keeps its worktrees under .claude/, and each one is a whole
 		second copy of this plugin. Without this, `composer lint` from the repo
 		root reports every stale copy alongside the real source — Post Portal
