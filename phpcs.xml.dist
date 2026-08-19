@@ -75,6 +75,16 @@
 	<exclude-pattern>/tests/</exclude-pattern>
 
 	<!--
+		Claude Code keeps its worktrees under .claude/, and each one is a whole
+		second copy of this plugin. Without this, `composer lint` from the repo
+		root reports every stale copy alongside the real source — Post Portal
+		once showed 1,854 findings this way, all of them phantom. CI never sees
+		it, because a fresh checkout has no worktrees, so the local run looks
+		catastrophic while main is green.
+	-->
+	<exclude-pattern>/.claude/</exclude-pattern>
+
+	<!--
 		`edit.asset.php` is the filename @wordpress/scripts generates and the one
 		register_block_type() looks for. Not ours to rename.
 	-->
