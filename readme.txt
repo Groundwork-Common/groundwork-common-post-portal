@@ -128,11 +128,11 @@ A staging copy of a site is a full copy: the same partners, the same addresses,
 the same scheduled tasks. Put one line in that copy's `wp-config.php` and
 outgoing mail stops:
 
-`define( 'GWCPP_MAIL_MODE', 'off' );`
+`define( 'GWC_PP_MAIL_MODE', 'off' );`
 
 Or `'restricted'` to send only to your own team, with:
 
-`define( 'GWCPP_MAIL_ALLOW', 'example.com' );`
+`define( 'GWC_PP_MAIL_ALLOW', 'example.com' );`
 
 Two things worth knowing. The default is to send normally — this plugin cannot
 tell that a given site is somebody's staging copy, and guessing would either

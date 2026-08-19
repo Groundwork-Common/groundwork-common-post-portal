@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Groundwork Common Post Portal
- * Plugin URI:        https://groundworkcommon.com
+ * Plugin URI:        https://www.groundworkcommon.com/
  * Description:       Let the people who own your content edit it from the front end, without ever handing them a wp-admin login. You choose the post types, you map the fields, they sign in with a link in their email.
  * Version:           0.3.1
  * Requires at least: 6.3
@@ -34,22 +34,22 @@ defined( 'ABSPATH' ) || exit;
  *
  * The one place that judgement was not worth generalising is authorization.
  * There is exactly one function that answers "may this user edit this post" —
- * gwcpp_user_can_edit_post() in inc/access.php — and every handler routes
+ * gwc_pp_user_can_edit_post() in inc/access.php — and every handler routes
  * through it. A registry of pluggable access strategies would be more elegant
  * and would mean the answer to that question lives in more than one place,
  * which is the one property an authorization check must never have.
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-const GWCPP_VERSION        = '0.3.1';
-const GWCPP_SCHEMA_VERSION = 1;
+const GWC_PP_VERSION        = '0.3.1';
+const GWC_PP_SCHEMA_VERSION = 1;
 
 /*
  * Where "Support this work" points. Every reference is guarded, so setting this
  * to '' removes the link and the paragraph asking for one together — a support
  * ask with nowhere to go is worse than none.
  */
-const GWCPP_SPONSOR_URL = 'https://www.groundworkcommon.com/support/';
+const GWC_PP_SPONSOR_URL = 'https://www.groundworkcommon.com/support/';
 
 /*
  * The company site. Named once because the colophon links it from three
@@ -62,11 +62,11 @@ const GWCPP_SPONSOR_URL = 'https://www.groundworkcommon.com/support/';
  * not. Exactly the failure this comment describes, in the one place the comment
  * could not reach.
  */
-const GWCPP_GWC_URL = 'https://www.groundworkcommon.com/';
+const GWC_PP_GWC_URL = 'https://www.groundworkcommon.com/';
 
-define( 'GWCPP_FILE', __FILE__ );
-define( 'GWCPP_DIR', plugin_dir_path( __FILE__ ) );
-define( 'GWCPP_URL', plugin_dir_url( __FILE__ ) );
+define( 'GWC_PP_FILE', __FILE__ );
+define( 'GWC_PP_DIR', plugin_dir_path( __FILE__ ) );
+define( 'GWC_PP_URL', plugin_dir_url( __FILE__ ) );
 
 /*
  * ── Guarded requires ────────────────────────────────────────────────────────
@@ -91,14 +91,14 @@ define( 'GWCPP_URL', plugin_dir_url( __FILE__ ) );
  * under `wp eval`. That trade is not close.
  * ───────────────────────────────────────────────────────────────────────────
  */
-if ( ! function_exists( 'gwcpp_status_labels' ) ) {
-	require GWCPP_DIR . 'inc/i18n.php';
+if ( ! function_exists( 'gwc_pp_status_labels' ) ) {
+	require GWC_PP_DIR . 'inc/i18n.php';
 }
-if ( ! function_exists( 'gwcpp_setting' ) ) {
-	require GWCPP_DIR . 'inc/settings.php';
+if ( ! function_exists( 'gwc_pp_setting' ) ) {
+	require GWC_PP_DIR . 'inc/settings.php';
 }
-if ( ! function_exists( 'gwcpp_field_types' ) ) {
-	require GWCPP_DIR . 'inc/field-types.php';
+if ( ! function_exists( 'gwc_pp_field_types' ) ) {
+	require GWC_PP_DIR . 'inc/field-types.php';
 }
 
 /*
@@ -107,89 +107,89 @@ if ( ! function_exists( 'gwcpp_field_types' ) ) {
  * which is every render and every save — but the registration itself is lazy,
  * so their order among themselves does not matter.
  */
-if ( ! function_exists( 'gwcpp_register_taxonomy_type' ) ) {
-	require GWCPP_DIR . 'inc/field-taxonomy.php';
+if ( ! function_exists( 'gwc_pp_register_taxonomy_type' ) ) {
+	require GWC_PP_DIR . 'inc/field-taxonomy.php';
 }
-if ( ! function_exists( 'gwcpp_register_richtext_type' ) ) {
-	require GWCPP_DIR . 'inc/field-richtext.php';
+if ( ! function_exists( 'gwc_pp_register_richtext_type' ) ) {
+	require GWC_PP_DIR . 'inc/field-richtext.php';
 }
-if ( ! function_exists( 'gwcpp_register_repeater_type' ) ) {
-	require GWCPP_DIR . 'inc/field-repeater.php';
+if ( ! function_exists( 'gwc_pp_register_repeater_type' ) ) {
+	require GWC_PP_DIR . 'inc/field-repeater.php';
 }
-if ( ! function_exists( 'gwcpp_register_media_type' ) ) {
-	require GWCPP_DIR . 'inc/field-media.php';
+if ( ! function_exists( 'gwc_pp_register_media_type' ) ) {
+	require GWC_PP_DIR . 'inc/field-media.php';
 }
-if ( ! function_exists( 'gwcpp_get_schema' ) ) {
-	require GWCPP_DIR . 'inc/schema.php';
+if ( ! function_exists( 'gwc_pp_get_schema' ) ) {
+	require GWC_PP_DIR . 'inc/schema.php';
 }
-if ( ! function_exists( 'gwcpp_register_org_type' ) ) {
-	require GWCPP_DIR . 'inc/org-cpt.php';
+if ( ! function_exists( 'gwc_pp_register_org_type' ) ) {
+	require GWC_PP_DIR . 'inc/org-cpt.php';
 }
-if ( ! function_exists( 'gwcpp_user_can_edit_post' ) ) {
-	require GWCPP_DIR . 'inc/access.php';
+if ( ! function_exists( 'gwc_pp_user_can_edit_post' ) ) {
+	require GWC_PP_DIR . 'inc/access.php';
 }
-if ( ! function_exists( 'gwcpp_grant_access' ) ) {
-	require GWCPP_DIR . 'inc/users.php';
+if ( ! function_exists( 'gwc_pp_grant_access' ) ) {
+	require GWC_PP_DIR . 'inc/users.php';
 }
-if ( ! function_exists( 'gwcpp_send_email' ) ) {
-	require GWCPP_DIR . 'inc/emails.php';
+if ( ! function_exists( 'gwc_pp_send_email' ) ) {
+	require GWC_PP_DIR . 'inc/emails.php';
 }
-if ( ! function_exists( 'gwcpp_portal_page_id' ) ) {
-	require GWCPP_DIR . 'inc/auth.php';
+if ( ! function_exists( 'gwc_pp_portal_page_id' ) ) {
+	require GWC_PP_DIR . 'inc/auth.php';
 }
-if ( ! function_exists( 'gwcpp_validate_submission' ) ) {
-	require GWCPP_DIR . 'inc/validate.php';
+if ( ! function_exists( 'gwc_pp_validate_submission' ) ) {
+	require GWC_PP_DIR . 'inc/validate.php';
 }
-if ( ! function_exists( 'gwcpp_save_fields' ) ) {
-	require GWCPP_DIR . 'inc/save.php';
+if ( ! function_exists( 'gwc_pp_save_fields' ) ) {
+	require GWC_PP_DIR . 'inc/save.php';
 }
-if ( ! function_exists( 'gwcpp_get_changeset' ) ) {
-	require GWCPP_DIR . 'inc/changeset.php';
+if ( ! function_exists( 'gwc_pp_get_changeset' ) ) {
+	require GWC_PP_DIR . 'inc/changeset.php';
 }
-if ( ! function_exists( 'gwcpp_review_state' ) ) {
-	require GWCPP_DIR . 'inc/review.php';
+if ( ! function_exists( 'gwc_pp_review_state' ) ) {
+	require GWC_PP_DIR . 'inc/review.php';
 }
-if ( ! function_exists( 'gwcpp_get_handoff' ) ) {
-	require GWCPP_DIR . 'inc/handoff.php';
+if ( ! function_exists( 'gwc_pp_get_handoff' ) ) {
+	require GWC_PP_DIR . 'inc/handoff.php';
 }
-if ( ! function_exists( 'gwcpp_blocked_words' ) ) {
-	require GWCPP_DIR . 'inc/blocked-words.php';
+if ( ! function_exists( 'gwc_pp_blocked_words' ) ) {
+	require GWC_PP_DIR . 'inc/blocked-words.php';
 }
-if ( ! function_exists( 'gwcpp_render_edit_form' ) ) {
-	require GWCPP_DIR . 'inc/portal-form.php';
+if ( ! function_exists( 'gwc_pp_render_edit_form' ) ) {
+	require GWC_PP_DIR . 'inc/portal-form.php';
 }
-if ( ! function_exists( 'gwcpp_render_post_list' ) ) {
-	require GWCPP_DIR . 'inc/portal-list.php';
+if ( ! function_exists( 'gwc_pp_render_post_list' ) ) {
+	require GWC_PP_DIR . 'inc/portal-list.php';
 }
-if ( ! function_exists( 'gwcpp_render_portal' ) ) {
-	require GWCPP_DIR . 'inc/portal.php';
+if ( ! function_exists( 'gwc_pp_render_portal' ) ) {
+	require GWC_PP_DIR . 'inc/portal.php';
 }
-if ( ! function_exists( 'gwcpp_register_front_assets' ) ) {
-	require GWCPP_DIR . 'inc/enqueue.php';
+if ( ! function_exists( 'gwc_pp_register_front_assets' ) ) {
+	require GWC_PP_DIR . 'inc/enqueue.php';
 }
-if ( ! function_exists( 'gwcpp_register_block' ) ) {
-	require GWCPP_DIR . 'inc/block.php';
+if ( ! function_exists( 'gwc_pp_register_block' ) ) {
+	require GWC_PP_DIR . 'inc/block.php';
 }
-if ( ! function_exists( 'gwcpp_render_access_meta_box' ) ) {
-	require GWCPP_DIR . 'inc/meta-box.php';
+if ( ! function_exists( 'gwc_pp_render_access_meta_box' ) ) {
+	require GWC_PP_DIR . 'inc/meta-box.php';
 }
-if ( ! function_exists( 'gwcpp_fields_screen' ) ) {
-	require GWCPP_DIR . 'inc/admin-fields.php';
+if ( ! function_exists( 'gwc_pp_fields_screen' ) ) {
+	require GWC_PP_DIR . 'inc/admin-fields.php';
 
 	// The tab shell, and the settings that are not reachable without it.
-	require GWCPP_DIR . 'inc/admin-screen.php';
+	require GWC_PP_DIR . 'inc/admin-screen.php';
 
 	// The approval queue, which hangs off that shell's menu.
-	require GWCPP_DIR . 'inc/admin-queue.php';
+	require GWC_PP_DIR . 'inc/admin-queue.php';
 
 	// Review state where staff look for it: the post list and the post itself.
-	require GWCPP_DIR . 'inc/admin-review.php';
+	require GWC_PP_DIR . 'inc/admin-review.php';
 
 	/*
 	 * Contextual help for the settings screens. Loaded after both because it
 	 * describes what they do.
 	 */
-	require GWCPP_DIR . 'inc/admin-help.php';
+	require GWC_PP_DIR . 'inc/admin-help.php';
 }
 
 /*
@@ -222,14 +222,14 @@ if ( ! function_exists( 'gwcpp_fields_screen' ) ) {
  * toggle.
  * ───────────────────────────────────────────────────────────────────────────
  */
-register_deactivation_hook( __FILE__, 'gwcpp_deactivate' );
+register_deactivation_hook( __FILE__, 'gwc_pp_deactivate' );
 
 /**
  * Unschedule this plugin's cron events.
  *
  * ── Two things this gets right that the obvious version does not ─────────────
  * wp_clear_scheduled_hook(), not wp_next_scheduled() plus wp_unschedule_event().
- * The latter clears the soonest occurrence only, and gwcpp_review_catch_up() can
+ * The latter clears the soonest occurrence only, and gwc_pp_review_catch_up() can
  * add a single event alongside the recurring one — so a leftover survived
  * deactivation and became exactly the permanent entry in every cron listing this
  * is here to prevent.
@@ -240,12 +240,12 @@ register_deactivation_hook( __FILE__, 'gwcpp_deactivate' );
  * no longer active there. Bounded the same way uninstall.php is, and for the
  * same reason — the failure mode at the cap is leftover cron rows, not damage.
  *
- * gwcpp_schedule_upload_reaper() and its siblings put these back on the next
+ * gwc_pp_schedule_upload_reaper() and its siblings put these back on the next
  * init if the plugin is reactivated.
  *
  * @param bool $network_wide Whether this is a network deactivation.
  */
-function gwcpp_deactivate( $network_wide = false ): void {
+function gwc_pp_deactivate( $network_wide = false ): void {
 	if ( $network_wide && is_multisite() ) {
 		foreach ( get_sites(
 			array(
@@ -254,21 +254,21 @@ function gwcpp_deactivate( $network_wide = false ): void {
 			)
 		) as $site_id ) {
 			switch_to_blog( (int) $site_id );
-			gwcpp_clear_scheduled_events();
+			gwc_pp_clear_scheduled_events();
 			restore_current_blog();
 		}
 
 		return;
 	}
 
-	gwcpp_clear_scheduled_events();
+	gwc_pp_clear_scheduled_events();
 }
 
 /**
  * Clear this plugin's cron events on the current site.
  */
-function gwcpp_clear_scheduled_events(): void {
-	foreach ( array( 'gwcpp_reap_orphan_uploads', 'gwcpp_daily_review', 'gwcpp_weekly_review_digest' ) as $event ) {
+function gwc_pp_clear_scheduled_events(): void {
+	foreach ( array( 'gwc_pp_reap_orphan_uploads', 'gwc_pp_daily_review', 'gwc_pp_weekly_review_digest' ) as $event ) {
 		wp_clear_scheduled_hook( $event );
 	}
 }

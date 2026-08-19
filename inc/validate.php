@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 /*
  * ── Every error, every time ─────────────────────────────────────────────────
- * gwcpp_validate_submission() returns a map of field key to message, and it
+ * gwc_pp_validate_submission() returns a map of field key to message, and it
  * always contains every problem in the submission. There is no early return in
  * it, and there must never be one.
  *
@@ -42,13 +42,13 @@ defined( 'ABSPATH' ) || exit;
  *                          form actually submitted are present.
  * @param array  $dropped   Field key => what the person typed, for values that
  *                          sanitized away to nothing. From
- *                          gwcpp_dropped_fields().
+ *                          gwc_pp_dropped_fields().
  * @return array<string, string> Field key => message. Empty when acceptable.
  */
-function gwcpp_validate_submission( string $post_type, array $values, array $dropped = array() ): array {
+function gwc_pp_validate_submission( string $post_type, array $values, array $dropped = array() ): array {
 	$errors = array();
 
-	foreach ( gwcpp_type_fields( $post_type ) as $field ) {
+	foreach ( gwc_pp_type_fields( $post_type ) as $field ) {
 		$key = (string) $field['key'];
 
 		/*
@@ -63,7 +63,7 @@ function gwcpp_validate_submission( string $post_type, array $values, array $dro
 		}
 
 		$value = $values[ $key ];
-		$empty = (bool) gwcpp_field_call( $field, 'is_empty', array( $value, $field ) );
+		$empty = (bool) gwc_pp_field_call( $field, 'is_empty', array( $value, $field ) );
 
 		/*
 		 * Empty because it sanitized away, not because it was left blank. This
@@ -73,12 +73,12 @@ function gwcpp_validate_submission( string $post_type, array $values, array $dro
 		 * at all and their input would simply have vanished.
 		 */
 		if ( $empty && isset( $dropped[ $key ] ) ) {
-			$errors[ $key ] = gwcpp_dropped_message( $field, (string) $dropped[ $key ] );
+			$errors[ $key ] = gwc_pp_dropped_message( $field, (string) $dropped[ $key ] );
 			continue;
 		}
 
 		if ( ! empty( $field['required'] ) && $empty ) {
-			$errors[ $key ] = gwcpp_required_message( $field );
+			$errors[ $key ] = gwc_pp_required_message( $field );
 			continue;
 		}
 
@@ -89,7 +89,7 @@ function gwcpp_validate_submission( string $post_type, array $values, array $dro
 			continue;
 		}
 
-		$message = (string) gwcpp_field_call( $field, 'validate', array( $value, $field ) );
+		$message = (string) gwc_pp_field_call( $field, 'validate', array( $value, $field ) );
 		if ( '' !== $message ) {
 			$errors[ $key ] = $message;
 		}
@@ -102,7 +102,7 @@ function gwcpp_validate_submission( string $post_type, array $values, array $dro
 	 * @param array                $values    Sanitized values.
 	 * @param string               $post_type Post type slug.
 	 */
-	$errors = (array) apply_filters( 'gwcpp_validation_errors', $errors, $values, $post_type );
+	$errors = (array) apply_filters( 'gwc_pp_validation_errors', $errors, $values, $post_type );
 
 	return $errors;
 }
@@ -125,8 +125,8 @@ function gwcpp_validate_submission( string $post_type, array $values, array $dro
  * @param string $typed What the person entered.
  * @return string
  */
-function gwcpp_dropped_message( array $field, string $typed ): string {
-	$message = (string) gwcpp_field_call( $field, 'validate', array( $typed, $field ) );
+function gwc_pp_dropped_message( array $field, string $typed ): string {
+	$message = (string) gwc_pp_field_call( $field, 'validate', array( $typed, $field ) );
 
 	if ( '' !== $message ) {
 		return $message;
@@ -135,7 +135,7 @@ function gwcpp_dropped_message( array $field, string $typed ): string {
 	return sprintf(
 		/* translators: %s: a field label, e.g. "Opening date". */
 		__( 'That is not something we can store in %s. Please check it and try again.', 'groundwork-common-post-portal' ),
-		gwcpp_field_label( $field )
+		gwc_pp_field_label( $field )
 	);
 }
 
@@ -150,8 +150,8 @@ function gwcpp_dropped_message( array $field, string $typed ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_required_message( array $field ): string {
-	$label = gwcpp_field_label( $field );
+function gwc_pp_required_message( array $field ): string {
+	$label = gwc_pp_field_label( $field );
 	$type  = (string) ( $field['type'] ?? 'text' );
 
 	if ( in_array( $type, array( 'select', 'radio', 'multiselect', 'boolean' ), true ) ) {
@@ -180,7 +180,7 @@ function gwcpp_required_message( array $field ): string {
  * @param array<string, string> $errors Field key => message.
  * @return string
  */
-function gwcpp_error_summary( array $errors ): string {
+function gwc_pp_error_summary( array $errors ): string {
 	$count = count( $errors );
 
 	if ( $count < 1 ) {

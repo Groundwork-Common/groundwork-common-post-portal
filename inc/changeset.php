@@ -27,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
  * thing they sent is what they mean" is both simpler and truer.
  *
  * ── The diff is computed, never stored ──────────────────────────────────────
- * gwcpp_changeset_diff() reads the current values at the moment it is called.
+ * gwc_pp_changeset_diff() reads the current values at the moment it is called.
  * If staff edit the post in wp-admin while a changeset is pending, the old side
  * of the comparison updates to match, so what they approve is what they were
  * shown. A diff frozen at submission time would quietly describe a post that no
@@ -36,22 +36,22 @@ defined( 'ABSPATH' ) || exit;
  */
 
 /** Post meta, single: the pending changeset. */
-const GWCPP_PENDING_META = '_gwcpp_pending';
+const GWC_PP_PENDING_META = '_gwc_pp_pending';
 
 /** The approval queue's admin page. Declared here rather than in
  *  admin-queue.php because the notification emails link to it, and email is
  *  built on requests where no admin screen has loaded.
  */
-const GWCPP_QUEUE_SLUG = 'gwcpp-pending';
+const GWC_PP_QUEUE_SLUG = 'gwc-pp-pending';
 
 /** Post meta, single: the last few applied changes, for staff. */
-const GWCPP_LOG_META = '_gwcpp_change_log';
+const GWC_PP_LOG_META = '_gwc_pp_change_log';
 
-/** Transient: the queue count for the menu bubble. See gwcpp_pending_count(). */
-const GWCPP_PENDING_COUNT_TRANSIENT = 'gwcpp_pending_count';
+/** Transient: the queue count for the menu bubble. See gwc_pp_pending_count(). */
+const GWC_PP_PENDING_COUNT_TRANSIENT = 'gwc_pp_pending_count';
 
 /** How many entries the log keeps. */
-const GWCPP_LOG_LENGTH = 10;
+const GWC_PP_LOG_LENGTH = 10;
 
 /**
  * Store a submission for review, replacing any earlier one.
@@ -62,7 +62,7 @@ const GWCPP_LOG_LENGTH = 10;
  * @param array $attachments Attachment IDs uploaded with this submission.
  * @return bool
  */
-function gwcpp_store_changeset( int $post_id, int $user_id, array $values, array $attachments = array() ): bool {
+function gwc_pp_store_changeset( int $post_id, int $user_id, array $values, array $attachments = array() ): bool {
 	$post = get_post( $post_id );
 	if ( ! $post instanceof WP_Post ) {
 		return false;
@@ -74,14 +74,14 @@ function gwcpp_store_changeset( int $post_id, int $user_id, array $values, array
 	 * so that somebody who uploads the wrong photo three times does not leave
 	 * three orphans in the media library for a month.
 	 */
-	$previous = gwcpp_get_changeset( $post_id );
+	$previous = gwc_pp_get_changeset( $post_id );
 	if ( null !== $previous ) {
-		gwcpp_discard_attachments( array_diff( $previous['attachments'], $attachments ) );
+		gwc_pp_discard_attachments( array_diff( $previous['attachments'], $attachments ) );
 	}
 
 	$stored = update_post_meta(
 		$post_id,
-		GWCPP_PENDING_META,
+		GWC_PP_PENDING_META,
 		wp_slash(
 			array(
 				'user'        => $user_id,
@@ -99,7 +99,7 @@ function gwcpp_store_changeset( int $post_id, int $user_id, array $values, array
 	 * @param int   $user_id Who submitted it.
 	 * @param array $values  The submitted values.
 	 */
-	do_action( 'gwcpp_changeset_stored', $post_id, $user_id, $values );
+	do_action( 'gwc_pp_changeset_stored', $post_id, $user_id, $values );
 
 	return (bool) $stored;
 }
@@ -110,8 +110,8 @@ function gwcpp_store_changeset( int $post_id, int $user_id, array $values, array
  * @param int $post_id Post ID.
  * @return array{user:int,time:int,values:array,attachments:array}|null
  */
-function gwcpp_get_changeset( int $post_id ): ?array {
-	$stored = get_post_meta( $post_id, GWCPP_PENDING_META, true );
+function gwc_pp_get_changeset( int $post_id ): ?array {
+	$stored = get_post_meta( $post_id, GWC_PP_PENDING_META, true );
 
 	if ( ! is_array( $stored ) || ! isset( $stored['values'] ) || ! is_array( $stored['values'] ) ) {
 		return null;
@@ -131,8 +131,8 @@ function gwcpp_get_changeset( int $post_id ): ?array {
  * @param int $post_id Post ID.
  * @return bool
  */
-function gwcpp_has_changeset( int $post_id ): bool {
-	return null !== gwcpp_get_changeset( $post_id );
+function gwc_pp_has_changeset( int $post_id ): bool {
+	return null !== gwc_pp_get_changeset( $post_id );
 }
 
 /**
@@ -146,20 +146,20 @@ function gwcpp_has_changeset( int $post_id ): bool {
  * @param int $post_id Post ID.
  * @return array<int, array{key:string,label:string,old:string,new:string}>
  */
-function gwcpp_changeset_diff( int $post_id ): array {
-	$changeset = gwcpp_get_changeset( $post_id );
+function gwc_pp_changeset_diff( int $post_id ): array {
+	$changeset = gwc_pp_get_changeset( $post_id );
 
 	if ( null === $changeset ) {
 		return array();
 	}
 
-	return gwcpp_diff_values( $post_id, $changeset['values'] );
+	return gwc_pp_diff_values( $post_id, $changeset['values'] );
 }
 
 /**
  * What a set of submitted values would change on a post.
  *
- * Split out from gwcpp_changeset_diff() because the immediate-save path needs
+ * Split out from gwc_pp_changeset_diff() because the immediate-save path needs
  * exactly the same comparison and has no changeset to read it from — and
  * because it has to run BEFORE the values are written, when a diff computed
  * afterwards would correctly report that nothing had changed.
@@ -168,16 +168,16 @@ function gwcpp_changeset_diff( int $post_id ): array {
  * @param array $values  Sanitized values, keyed by field key.
  * @return array<int, array{key:string,label:string,old:string,new:string}>
  */
-function gwcpp_diff_values( int $post_id, array $values ): array {
+function gwc_pp_diff_values( int $post_id, array $values ): array {
 	$post = get_post( $post_id );
 	if ( ! $post instanceof WP_Post ) {
 		return array();
 	}
 
-	$current = gwcpp_current_values( $post_id, $post->post_type );
+	$current = gwc_pp_current_values( $post_id, $post->post_type );
 	$diff    = array();
 
-	foreach ( gwcpp_type_fields( $post->post_type ) as $field ) {
+	foreach ( gwc_pp_type_fields( $post->post_type ) as $field ) {
 		$key = (string) $field['key'];
 
 		if ( ! array_key_exists( $key, $values ) ) {
@@ -193,8 +193,8 @@ function gwcpp_diff_values( int $post_id, array $values ): array {
 		 * — and comparing raw would report '1' against 1, or a reordered array
 		 * against itself, as edits nobody made.
 		 */
-		$old_text = (string) gwcpp_field_call( $field, 'to_display', array( $old, $field ) );
-		$new_text = (string) gwcpp_field_call( $field, 'to_display', array( $new, $field ) );
+		$old_text = (string) gwc_pp_field_call( $field, 'to_display', array( $old, $field ) );
+		$new_text = (string) gwc_pp_field_call( $field, 'to_display', array( $new, $field ) );
 
 		if ( $old_text === $new_text ) {
 			continue;
@@ -202,7 +202,7 @@ function gwcpp_diff_values( int $post_id, array $values ): array {
 
 		$diff[] = array(
 			'key'   => $key,
-			'label' => gwcpp_field_label( $field ),
+			'label' => gwc_pp_field_label( $field ),
 			'old'   => $old_text,
 			'new'   => $new_text,
 		);
@@ -214,7 +214,7 @@ function gwcpp_diff_values( int $post_id, array $values ): array {
 /**
  * Apply a pending changeset to its post.
  *
- * Replays through gwcpp_save_fields(), the same path an immediate save uses, so
+ * Replays through gwc_pp_save_fields(), the same path an immediate save uses, so
  * approving cannot write anything a direct save could not. In particular a
  * field retired from the schema between submission and approval is simply not
  * written, because that function iterates the schema rather than the values.
@@ -223,8 +223,8 @@ function gwcpp_diff_values( int $post_id, array $values ): array {
  * @param int $approved_by Who approved it.
  * @return bool True when something was applied.
  */
-function gwcpp_apply_changeset( int $post_id, int $approved_by = 0 ): bool {
-	$changeset = gwcpp_get_changeset( $post_id );
+function gwc_pp_apply_changeset( int $post_id, int $approved_by = 0 ): bool {
+	$changeset = gwc_pp_get_changeset( $post_id );
 	if ( null === $changeset ) {
 		return false;
 	}
@@ -233,15 +233,15 @@ function gwcpp_apply_changeset( int $post_id, int $approved_by = 0 ): bool {
 	 * Computed before anything is written. Afterwards the stored values ARE the
 	 * current values, and the diff would correctly say nothing changed.
 	 */
-	$diff = gwcpp_changeset_diff( $post_id );
+	$diff = gwc_pp_changeset_diff( $post_id );
 
-	gwcpp_attach_uploads( $changeset['attachments'], $post_id );
+	gwc_pp_attach_uploads( $changeset['attachments'], $post_id );
 
-	$changed = gwcpp_save_fields( $post_id, $changeset['values'] );
+	$changed = gwc_pp_save_fields( $post_id, $changeset['values'] );
 
-	delete_post_meta( $post_id, GWCPP_PENDING_META );
+	delete_post_meta( $post_id, GWC_PP_PENDING_META );
 
-	gwcpp_log_change( $post_id, $changeset['user'], $approved_by, $diff );
+	gwc_pp_log_change( $post_id, $changeset['user'], $approved_by, $diff );
 
 	/**
 	 * Fires after a changeset is applied.
@@ -250,7 +250,7 @@ function gwcpp_apply_changeset( int $post_id, int $approved_by = 0 ): bool {
 	 * @param array $changeset   What was applied.
 	 * @param int   $approved_by Who approved it.
 	 */
-	do_action( 'gwcpp_changeset_applied', $post_id, $changeset, $approved_by );
+	do_action( 'gwc_pp_changeset_applied', $post_id, $changeset, $approved_by );
 
 	return $changed;
 }
@@ -263,8 +263,8 @@ function gwcpp_apply_changeset( int $post_id, int $approved_by = 0 ): bool {
  * @param string $note        Optional message for the submitter.
  * @return bool
  */
-function gwcpp_reject_changeset( int $post_id, int $rejected_by = 0, string $note = '' ): bool {
-	$changeset = gwcpp_get_changeset( $post_id );
+function gwc_pp_reject_changeset( int $post_id, int $rejected_by = 0, string $note = '' ): bool {
+	$changeset = gwc_pp_get_changeset( $post_id );
 	if ( null === $changeset ) {
 		return false;
 	}
@@ -274,9 +274,9 @@ function gwcpp_reject_changeset( int $post_id, int $rejected_by = 0, string $not
 	 * already attached to the post is left alone — an attachment can be
 	 * referenced from somewhere this function cannot see.
 	 */
-	gwcpp_discard_attachments( $changeset['attachments'] );
+	gwc_pp_discard_attachments( $changeset['attachments'] );
 
-	delete_post_meta( $post_id, GWCPP_PENDING_META );
+	delete_post_meta( $post_id, GWC_PP_PENDING_META );
 
 	/**
 	 * Fires after a changeset is rejected.
@@ -286,38 +286,38 @@ function gwcpp_reject_changeset( int $post_id, int $rejected_by = 0, string $not
 	 * @param int    $rejected_by Who rejected it.
 	 * @param string $note        The message sent to the submitter.
 	 */
-	do_action( 'gwcpp_changeset_rejected', $post_id, $changeset, $rejected_by, $note );
+	do_action( 'gwc_pp_changeset_rejected', $post_id, $changeset, $rejected_by, $note );
 
 	return true;
 }
 
 /** How many waiting changes the queue screen draws before it stops. */
-const GWCPP_QUEUE_PAGE_SIZE = 200;
+const GWC_PP_QUEUE_PAGE_SIZE = 200;
 
 /**
  * The posts waiting for review, most recently touched first.
  *
  * Bounded, because the caller is a screen that renders a diff table per item.
  * Anything that has to be *right* rather than merely readable — the count, the
- * reaper — wants gwcpp_every_pending_post_id() instead.
+ * reaper — wants gwc_pp_every_pending_post_id() instead.
  *
  * @param int $limit Most to return.
  * @return int[]
  */
-function gwcpp_pending_post_ids( int $limit = GWCPP_QUEUE_PAGE_SIZE ): array {
-	$types = gwcpp_post_types();
+function gwc_pp_pending_post_ids( int $limit = GWC_PP_QUEUE_PAGE_SIZE ): array {
+	$types = gwc_pp_post_types();
 	if ( ! $types || $limit < 1 ) {
 		return array();
 	}
 
-	return array_map( 'intval', gwcpp_pending_query( $limit, 1, 'modified' ) );
+	return array_map( 'intval', gwc_pp_pending_query( $limit, 1, 'modified' ) );
 }
 
 /**
  * Every post waiting for review, without exception.
  *
  * ── Why this is not just the function above with a bigger number ─────────────
- * gwcpp_attachment_is_claimed() asks "is any pending changeset still using this
+ * gwc_pp_attachment_is_claimed() asks "is any pending changeset still using this
  * file?" immediately before the reaper force-deletes it. Asked against a capped
  * list, that question silently becomes "is any of the FIRST 200 still using
  * it?", and the ordering made it worse: the queue is newest-touched first, so
@@ -332,8 +332,8 @@ function gwcpp_pending_post_ids( int $limit = GWCPP_QUEUE_PAGE_SIZE ): array {
  *
  * @return int[]
  */
-function gwcpp_every_pending_post_id(): array {
-	$types = gwcpp_post_types();
+function gwc_pp_every_pending_post_id(): array {
+	$types = gwc_pp_post_types();
 	if ( ! $types ) {
 		return array();
 	}
@@ -342,12 +342,12 @@ function gwcpp_every_pending_post_id(): array {
 	$page = 1;
 
 	do {
-		$found = gwcpp_pending_query( GWCPP_QUEUE_PAGE_SIZE, $page, 'ID' );
+		$found = gwc_pp_pending_query( GWC_PP_QUEUE_PAGE_SIZE, $page, 'ID' );
 		$count = count( $found );
 		$ids   = array_merge( $ids, array_map( 'intval', $found ) );
 		++$page;
 		// A short page means that was the last one.
-	} while ( GWCPP_QUEUE_PAGE_SIZE === $count );
+	} while ( GWC_PP_QUEUE_PAGE_SIZE === $count );
 
 	return $ids;
 }
@@ -360,10 +360,10 @@ function gwcpp_every_pending_post_id(): array {
  * @param string $orderby  'modified' or 'ID'.
  * @return int[]
  */
-function gwcpp_pending_query( int $per_page, int $page, string $orderby ): array {
+function gwc_pp_pending_query( int $per_page, int $page, string $orderby ): array {
 	$posts = get_posts(
 		array(
-			'post_type'              => gwcpp_post_types(),
+			'post_type'              => gwc_pp_post_types(),
 			'post_status'            => array( 'publish', 'draft', 'pending', 'private', 'future' ),
 			'posts_per_page'         => $per_page,
 			'paged'                  => $page,
@@ -372,7 +372,7 @@ function gwcpp_pending_query( int $per_page, int $page, string $orderby ): array
 			'update_post_term_cache' => false,
 			'orderby'                => $orderby,
 			'order'                  => 'ID' === $orderby ? 'ASC' : 'DESC',
-			'meta_key'               => GWCPP_PENDING_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- EXISTS on an indexed meta key; the queue is unavoidably a meta lookup.
+			'meta_key'               => GWC_PP_PENDING_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- EXISTS on an indexed meta key; the queue is unavoidably a meta lookup.
 			'meta_compare'           => 'EXISTS',
 		)
 	);
@@ -387,7 +387,7 @@ function gwcpp_pending_query( int $per_page, int $page, string $orderby ): array
  * a backlog that they have exactly as much waiting as they had yesterday.
  *
  * ── And why the answer is cached ─────────────────────────────────────────────
- * Because of where it is called from. gwcpp_admin_menu() runs on `admin_menu`,
+ * Because of where it is called from. gwc_pp_admin_menu() runs on `admin_menu`,
  * which fires on every single wp-admin request — the Dashboard, Media, Users,
  * somebody else's plugin's settings screen — and all it wants is a number for
  * the bubble. Uncached, that put a filesort over a meta join on every admin
@@ -406,16 +406,16 @@ function gwcpp_pending_query( int $per_page, int $page, string $orderby ): array
  *
  * @return int
  */
-function gwcpp_pending_count(): int {
-	$cached = get_transient( GWCPP_PENDING_COUNT_TRANSIENT );
+function gwc_pp_pending_count(): int {
+	$cached = get_transient( GWC_PP_PENDING_COUNT_TRANSIENT );
 
 	if ( false !== $cached ) {
 		return (int) $cached;
 	}
 
-	$count = count( gwcpp_every_pending_post_id() );
+	$count = count( gwc_pp_every_pending_post_id() );
 
-	set_transient( GWCPP_PENDING_COUNT_TRANSIENT, $count, MINUTE_IN_SECONDS );
+	set_transient( GWC_PP_PENDING_COUNT_TRANSIENT, $count, MINUTE_IN_SECONDS );
 
 	return $count;
 }
@@ -427,13 +427,13 @@ function gwcpp_pending_count(): int {
  * bubble is right the instant staff approve something rather than up to a
  * minute later.
  */
-function gwcpp_flush_pending_count(): void {
-	delete_transient( GWCPP_PENDING_COUNT_TRANSIENT );
+function gwc_pp_flush_pending_count(): void {
+	delete_transient( GWC_PP_PENDING_COUNT_TRANSIENT );
 }
 
-add_action( 'gwcpp_changeset_stored', 'gwcpp_flush_pending_count' );
-add_action( 'gwcpp_changeset_applied', 'gwcpp_flush_pending_count' );
-add_action( 'gwcpp_changeset_rejected', 'gwcpp_flush_pending_count' );
+add_action( 'gwc_pp_changeset_stored', 'gwc_pp_flush_pending_count' );
+add_action( 'gwc_pp_changeset_applied', 'gwc_pp_flush_pending_count' );
+add_action( 'gwc_pp_changeset_rejected', 'gwc_pp_flush_pending_count' );
 
 /*
  * ── The change log ──────────────────────────────────────────────────────────
@@ -454,14 +454,14 @@ add_action( 'gwcpp_changeset_rejected', 'gwcpp_flush_pending_count' );
  * @param int   $post_id     Post ID.
  * @param int   $user_id     Who submitted it.
  * @param int   $approved_by Who approved it, or 0 when it went straight through.
- * @param array $diff        The change, from gwcpp_changeset_diff().
+ * @param array $diff        The change, from gwc_pp_changeset_diff().
  */
-function gwcpp_log_change( int $post_id, int $user_id, int $approved_by, array $diff ): void {
+function gwc_pp_log_change( int $post_id, int $user_id, int $approved_by, array $diff ): void {
 	if ( ! $diff ) {
 		return;
 	}
 
-	$log = get_post_meta( $post_id, GWCPP_LOG_META, true );
+	$log = get_post_meta( $post_id, GWC_PP_LOG_META, true );
 	$log = is_array( $log ) ? $log : array();
 
 	array_unshift(
@@ -474,7 +474,7 @@ function gwcpp_log_change( int $post_id, int $user_id, int $approved_by, array $
 		)
 	);
 
-	update_post_meta( $post_id, GWCPP_LOG_META, wp_slash( array_slice( $log, 0, GWCPP_LOG_LENGTH ) ) );
+	update_post_meta( $post_id, GWC_PP_LOG_META, wp_slash( array_slice( $log, 0, GWC_PP_LOG_LENGTH ) ) );
 }
 
 /**
@@ -483,8 +483,8 @@ function gwcpp_log_change( int $post_id, int $user_id, int $approved_by, array $
  * @param int $post_id Post ID.
  * @return array
  */
-function gwcpp_change_log( int $post_id ): array {
-	$log = get_post_meta( $post_id, GWCPP_LOG_META, true );
+function gwc_pp_change_log( int $post_id ): array {
+	$log = get_post_meta( $post_id, GWC_PP_LOG_META, true );
 
 	return is_array( $log ) ? $log : array();
 }
@@ -504,7 +504,7 @@ function gwcpp_change_log( int $post_id ): array {
  *  the value is what the reaper ages against. Deliberately not the post ID —
  *  which the name suggests and which nothing has ever stored here.
  */
-const GWCPP_PENDING_ATTACHMENT_META = '_gwcpp_pending_for';
+const GWC_PP_PENDING_ATTACHMENT_META = '_gwc_pp_pending_for';
 
 /**
  * Attach approved uploads to their post.
@@ -512,7 +512,7 @@ const GWCPP_PENDING_ATTACHMENT_META = '_gwcpp_pending_for';
  * @param int[] $attachment_ids Attachment IDs.
  * @param int   $post_id        Post to attach them to.
  */
-function gwcpp_attach_uploads( array $attachment_ids, int $post_id ): void {
+function gwc_pp_attach_uploads( array $attachment_ids, int $post_id ): void {
 	foreach ( $attachment_ids as $attachment_id ) {
 		$attachment_id = (int) $attachment_id;
 		if ( $attachment_id <= 0 || 'attachment' !== get_post_type( $attachment_id ) ) {
@@ -525,7 +525,7 @@ function gwcpp_attach_uploads( array $attachment_ids, int $post_id ): void {
 				'post_parent' => $post_id,
 			)
 		);
-		delete_post_meta( $attachment_id, GWCPP_PENDING_ATTACHMENT_META );
+		delete_post_meta( $attachment_id, GWC_PP_PENDING_ATTACHMENT_META );
 	}
 }
 
@@ -540,7 +540,7 @@ function gwcpp_attach_uploads( array $attachment_ids, int $post_id ): void {
  * @param int[] $attachment_ids Attachment IDs.
  * @return int How many were deleted.
  */
-function gwcpp_discard_attachments( array $attachment_ids ): int {
+function gwc_pp_discard_attachments( array $attachment_ids ): int {
 	$deleted = 0;
 
 	foreach ( $attachment_ids as $attachment_id ) {
@@ -549,7 +549,7 @@ function gwcpp_discard_attachments( array $attachment_ids ): int {
 			continue;
 		}
 
-		if ( ! get_post_meta( $attachment_id, GWCPP_PENDING_ATTACHMENT_META, true ) ) {
+		if ( ! get_post_meta( $attachment_id, GWC_PP_PENDING_ATTACHMENT_META, true ) ) {
 			continue;
 		}
 

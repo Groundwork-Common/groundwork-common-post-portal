@@ -24,12 +24,12 @@ defined( 'ABSPATH' ) || exit;
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-const GWCPP_ORG_TYPE = 'gwcpp_org';
+const GWC_PP_ORG_TYPE = 'gwc_pp_org';
 
 /** The plugin's top-level admin menu. Named here because the org post type is
  *  the first thing that has to sit under it.
  */
-const GWCPP_MENU_SLUG = 'gwcpp-portal';
+const GWC_PP_MENU_SLUG = 'gwc-pp-portal';
 
 /*
  * ── The three meta keys the access model runs on ─────────────────────────────
@@ -49,20 +49,20 @@ const GWCPP_MENU_SLUG = 'gwcpp-portal';
  */
 
 /** Post meta, single: the organisation that owns this post. */
-const GWCPP_POST_ORG_META = '_gwcpp_org';
+const GWC_PP_POST_ORG_META = '_gwc_pp_org';
 
 /** Post meta, repeating: a user granted access to this one post directly. */
-const GWCPP_POST_EDITOR_META = '_gwcpp_editor';
+const GWC_PP_POST_EDITOR_META = '_gwc_pp_editor';
 
 /** User meta, repeating: an organisation this user belongs to. */
-const GWCPP_USER_ORG_META = '_gwcpp_org';
+const GWC_PP_USER_ORG_META = '_gwc_pp_org';
 
-add_action( 'init', 'gwcpp_register_org_type', 10 );
+add_action( 'init', 'gwc_pp_register_org_type', 10 );
 
 /**
  * Register the organisation post type.
  */
-function gwcpp_register_org_type(): void {
+function gwc_pp_register_org_type(): void {
 	$labels = array(
 		'name'               => __( 'Organisations', 'groundwork-common-post-portal' ),
 		'singular_name'      => __( 'Organisation', 'groundwork-common-post-portal' ),
@@ -89,8 +89,8 @@ function gwcpp_register_org_type(): void {
 		'exclude_from_search' => true,
 		'show_ui'             => true,
 		// The Portal menu's slug is the queue's, not the settings screen's — see
-		// gwcpp_admin_menu(). gwcpp_order_submenu() then places this between them.
-		'show_in_menu'        => GWCPP_QUEUE_SLUG,
+		// gwc_pp_admin_menu(). gwc_pp_order_submenu() then places this between them.
+		'show_in_menu'        => GWC_PP_QUEUE_SLUG,
 		'show_in_rest'        => false,
 		'has_archive'         => false,
 		'rewrite'             => false,
@@ -107,9 +107,9 @@ function gwcpp_register_org_type(): void {
 	 *
 	 * @param array $args register_post_type() arguments.
 	 */
-	$args = (array) apply_filters( 'gwcpp_org_type_args', $args );
+	$args = (array) apply_filters( 'gwc_pp_org_type_args', $args );
 
-	register_post_type( GWCPP_ORG_TYPE, $args );
+	register_post_type( GWC_PP_ORG_TYPE, $args );
 }
 
 /**
@@ -118,8 +118,8 @@ function gwcpp_register_org_type(): void {
  * @param int $post_id Post ID.
  * @return int
  */
-function gwcpp_post_org( int $post_id ): int {
-	$org = (int) get_post_meta( $post_id, GWCPP_POST_ORG_META, true );
+function gwc_pp_post_org( int $post_id ): int {
+	$org = (int) get_post_meta( $post_id, GWC_PP_POST_ORG_META, true );
 
 	/*
 	 * An organisation that was deleted leaves its ID behind on every post that
@@ -127,7 +127,7 @@ function gwcpp_post_org( int $post_id ): int {
 	 * dead organisation's ID edit those posts, which is access granted by a
 	 * dangling reference. Checked here, once, rather than at each call site.
 	 */
-	if ( $org > 0 && GWCPP_ORG_TYPE !== get_post_type( $org ) ) {
+	if ( $org > 0 && GWC_PP_ORG_TYPE !== get_post_type( $org ) ) {
 		return 0;
 	}
 
@@ -140,8 +140,8 @@ function gwcpp_post_org( int $post_id ): int {
  * @param int $post_id Post ID.
  * @return int[]
  */
-function gwcpp_post_editors( int $post_id ): array {
-	$ids = get_post_meta( $post_id, GWCPP_POST_EDITOR_META, false );
+function gwc_pp_post_editors( int $post_id ): array {
+	$ids = get_post_meta( $post_id, GWC_PP_POST_EDITOR_META, false );
 	if ( ! is_array( $ids ) ) {
 		return array();
 	}
@@ -155,24 +155,24 @@ function gwcpp_post_editors( int $post_id ): array {
  * @param int $user_id User ID.
  * @return int[]
  */
-function gwcpp_user_orgs( int $user_id ): array {
+function gwc_pp_user_orgs( int $user_id ): array {
 	if ( $user_id <= 0 ) {
 		return array();
 	}
 
-	$ids = get_user_meta( $user_id, GWCPP_USER_ORG_META, false );
+	$ids = get_user_meta( $user_id, GWC_PP_USER_ORG_META, false );
 	if ( ! is_array( $ids ) ) {
 		return array();
 	}
 
 	$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ) ) ) );
 
-	// Same dangling-reference problem as gwcpp_post_org(), from the other side.
+	// Same dangling-reference problem as gwc_pp_post_org(), from the other side.
 	return array_values(
 		array_filter(
 			$ids,
 			static function ( $org_id ) {
-				return GWCPP_ORG_TYPE === get_post_type( $org_id );
+				return GWC_PP_ORG_TYPE === get_post_type( $org_id );
 			}
 		)
 	);
@@ -184,14 +184,14 @@ function gwcpp_user_orgs( int $user_id ): array {
  * @param int $org_id Organisation post ID.
  * @return WP_User[]
  */
-function gwcpp_org_members( int $org_id ): array {
+function gwc_pp_org_members( int $org_id ): array {
 	if ( $org_id <= 0 ) {
 		return array();
 	}
 
 	return get_users(
 		array(
-			'meta_key'   => GWCPP_USER_ORG_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Exact match on an indexed meta row; this is the intended shape, see the note on meta keys above.
+			'meta_key'   => GWC_PP_USER_ORG_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Exact match on an indexed meta row; this is the intended shape, see the note on meta keys above.
 			'meta_value' => (string) $org_id,    // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- As above.
 			'orderby'    => 'display_name',
 			'order'      => 'ASC',
@@ -211,16 +211,16 @@ function gwcpp_org_members( int $org_id ): array {
  * @param int $org_id  Organisation post ID.
  * @return bool True when membership exists after the call.
  */
-function gwcpp_add_user_to_org( int $user_id, int $org_id ): bool {
-	if ( $user_id <= 0 || $org_id <= 0 || GWCPP_ORG_TYPE !== get_post_type( $org_id ) ) {
+function gwc_pp_add_user_to_org( int $user_id, int $org_id ): bool {
+	if ( $user_id <= 0 || $org_id <= 0 || GWC_PP_ORG_TYPE !== get_post_type( $org_id ) ) {
 		return false;
 	}
 
-	if ( in_array( $org_id, gwcpp_user_orgs( $user_id ), true ) ) {
+	if ( in_array( $org_id, gwc_pp_user_orgs( $user_id ), true ) ) {
 		return true;
 	}
 
-	return (bool) add_user_meta( $user_id, GWCPP_USER_ORG_META, $org_id, false );
+	return (bool) add_user_meta( $user_id, GWC_PP_USER_ORG_META, $org_id, false );
 }
 
 /**
@@ -234,12 +234,12 @@ function gwcpp_add_user_to_org( int $user_id, int $org_id ): bool {
  * @param int $org_id  Organisation post ID.
  * @return bool
  */
-function gwcpp_remove_user_from_org( int $user_id, int $org_id ): bool {
+function gwc_pp_remove_user_from_org( int $user_id, int $org_id ): bool {
 	if ( $user_id <= 0 || $org_id <= 0 ) {
 		return false;
 	}
 
-	return (bool) delete_user_meta( $user_id, GWCPP_USER_ORG_META, $org_id );
+	return (bool) delete_user_meta( $user_id, GWC_PP_USER_ORG_META, $org_id );
 }
 
 /**
@@ -249,16 +249,16 @@ function gwcpp_remove_user_from_org( int $user_id, int $org_id ): bool {
  * @param int $post_id Post ID.
  * @return bool
  */
-function gwcpp_add_post_editor( int $user_id, int $post_id ): bool {
+function gwc_pp_add_post_editor( int $user_id, int $post_id ): bool {
 	if ( $user_id <= 0 || $post_id <= 0 ) {
 		return false;
 	}
 
-	if ( in_array( $user_id, gwcpp_post_editors( $post_id ), true ) ) {
+	if ( in_array( $user_id, gwc_pp_post_editors( $post_id ), true ) ) {
 		return true;
 	}
 
-	return (bool) add_post_meta( $post_id, GWCPP_POST_EDITOR_META, $user_id, false );
+	return (bool) add_post_meta( $post_id, GWC_PP_POST_EDITOR_META, $user_id, false );
 }
 
 /**
@@ -268,12 +268,12 @@ function gwcpp_add_post_editor( int $user_id, int $post_id ): bool {
  * @param int $post_id Post ID.
  * @return bool
  */
-function gwcpp_remove_post_editor( int $user_id, int $post_id ): bool {
+function gwc_pp_remove_post_editor( int $user_id, int $post_id ): bool {
 	if ( $user_id <= 0 || $post_id <= 0 ) {
 		return false;
 	}
 
-	return (bool) delete_post_meta( $post_id, GWCPP_POST_EDITOR_META, $user_id );
+	return (bool) delete_post_meta( $post_id, GWC_PP_POST_EDITOR_META, $user_id );
 }
 
 /**
@@ -283,20 +283,20 @@ function gwcpp_remove_post_editor( int $user_id, int $post_id ): bool {
  * @param int $org_id  Organisation post ID, or 0 to clear.
  * @return bool
  */
-function gwcpp_set_post_org( int $post_id, int $org_id ): bool {
+function gwc_pp_set_post_org( int $post_id, int $org_id ): bool {
 	if ( $post_id <= 0 ) {
 		return false;
 	}
 
 	if ( $org_id <= 0 ) {
-		return (bool) delete_post_meta( $post_id, GWCPP_POST_ORG_META );
+		return (bool) delete_post_meta( $post_id, GWC_PP_POST_ORG_META );
 	}
 
-	if ( GWCPP_ORG_TYPE !== get_post_type( $org_id ) ) {
+	if ( GWC_PP_ORG_TYPE !== get_post_type( $org_id ) ) {
 		return false;
 	}
 
-	return (bool) update_post_meta( $post_id, GWCPP_POST_ORG_META, $org_id );
+	return (bool) update_post_meta( $post_id, GWC_PP_POST_ORG_META, $org_id );
 }
 
 /**
@@ -304,10 +304,10 @@ function gwcpp_set_post_org( int $post_id, int $org_id ): bool {
  *
  * @return WP_Post[]
  */
-function gwcpp_all_orgs(): array {
+function gwc_pp_all_orgs(): array {
 	return get_posts(
 		array(
-			'post_type'        => GWCPP_ORG_TYPE,
+			'post_type'        => GWC_PP_ORG_TYPE,
 			'post_status'      => array( 'publish', 'draft', 'private' ),
 			'numberposts'      => 500, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_numberposts -- Bounded on purpose. An organisation with more entries than this is past what this screen is for, and an unbounded query would be worse.
 			'orderby'          => 'title',

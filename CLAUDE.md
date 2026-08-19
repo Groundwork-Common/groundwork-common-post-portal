@@ -15,7 +15,7 @@ The founding rule, from that README:
 
 ## Two structural pillars
 
-**1. One authorization function.** `gwcpp_user_can_edit_post( int $user_id, int
+**1. One authorization function.** `gwc_pp_user_can_edit_post( int $user_id, int
 $post_id ): bool` in `inc/access.php`. Never add a second path, never inline an
 equivalent check, and do not introduce a pluggable strategy registry — the main
 file explains why:
@@ -28,10 +28,10 @@ Guards **end the request** rather than returning a value. Keep it that way;
 nothing underneath would catch a handler that forgot.
 
 **2. A field-type registry of callables** in `inc/field-types.php`, with a
-seven-callable contract enforced by `GWCPP_TYPE_CONTRACT`: `render_portal`,
+seven-callable contract enforced by `GWC_PP_TYPE_CONTRACT`: `render_portal`,
 `render_admin`, `sanitize`, `validate`, `is_empty`, `to_display`, `schema_form`.
 **Nothing may branch on `$field['type']` outside that file.** Rich types register
-themselves onto the `gwcpp_field_types` filter.
+themselves onto the `gwc_pp_field_types` filter.
 
 ## The most dangerous file
 
@@ -48,7 +48,7 @@ EXIF-stripping re-encode or `test_form => false`.
 
 ## The shape of the code
 
-Procedural PHP, prefix `gwcpp_`, **zero classes, zero namespaces**, 32 files in
+Procedural PHP, prefix `gwc_pp_`, **zero classes, zero namespaces**, 32 files in
 `inc/`, guarded requires in a documented order. No build step —
 `blocks/portal/edit.js` and `edit.asset.php` are both hand-written and must stay
 in step, or the editor throws an error that looks like a WordPress bug.
@@ -109,11 +109,17 @@ group: identical groups in a caller and the workflow it calls make the called
 run cancel the run that started it.
 
 `.dev/` is gitignored, but a fresh clone is no longer empty: `tests/seed.php`
-carries the demo data and `tests/mu-plugins/mailpit.php` the mail routing, both
-committed and both excluded from the release zip by `.distignore`. wp-env's
-default `wordpress@localhost` From address has no TLD, so PHPMailer rejects it
-and `wp_mail()` returns false before anything is sent — that is why a mail
-catcher is part of the setup, locally and in CI alike.
+carries the demo data, committed and excluded from the release zip by
+`.distignore`.
+
+**No mail catcher is part of the setup.** wp-env's default
+`wordpress@localhost` From address has no TLD, so PHPMailer rejects it and
+`wp_mail()` returns false before anything is sent — which used to mean routing
+SMTP at a Mailpit container from a committed mu-plugin, in CI and locally
+alike. `tests/integration/phase3.php` now captures mail on `pre_wp_mail`
+instead: it short-circuits before PHPMailer is involved, so the From address
+never matters and the rendered body is readable in process. Do not reintroduce a
+sink to make a test pass — if a check needs the message, capture it.
 
 `phpcs.xml.dist` is `WordPress` plus WordPress-Docs, which is what a directory
 reviewer runs. Exactly one rule is off wholesale, at the bottom, with its reason;
@@ -176,7 +182,8 @@ activates. `--dry-run` first if in doubt. README.md has the full account.
   path does not fail, it succeeds against production. The script refuses to run
   unless it finds a beta-only mu-plugin at the target — do not remove that check
   to make a one-off deploy easier.
-- **Mail is trapped, not routed to Mailpit.** There is no sink on that host; an
+- **Mail is trapped, not routed.** There is no sink on that host, nor anywhere
+  else in this project since the tests stopped needing one; an
   mu-plugin intercepts `wp_mail()` at `pre_wp_mail` and stores the message, read
   under Tools → Trapped mail. It hooks `pre_wp_mail` rather than `phpmailer_init`
   because the latter can only redirect a send, not stop it — and a PHPMailer
@@ -219,18 +226,18 @@ plugin. Copy it up and run it by absolute path.
 - **Page caching is only half-solvable in PHP.** `nocache_headers()` alone sends
   `must-revalidate`, which several CDNs read as "store it, just revalidate".
 
-Note a doc drift: `README.md` names `_gwcpp_orgs` and `_gwcpp_editors`; the actual
-constants are `GWCPP_USER_ORG_META = '_gwcpp_org'` and `GWCPP_POST_EDITOR_META =
-'_gwcpp_editor'`, singular. **Trust the constants.**
+Note a doc drift: `README.md` names `_gwc_pp_orgs` and `_gwc_pp_editors`; the actual
+constants are `GWC_PP_USER_ORG_META = '_gwc_pp_org'` and `GWC_PP_POST_EDITOR_META =
+'_gwc_pp_editor'`, singular. **Trust the constants.**
 
 ## Hard rules
 
 1. **Never grant the portal role real WordPress capabilities.** It holds `read`
-   plus the marker cap `gwcpp_use_portal` and nothing else. Enabled post types
+   plus the marker cap `gwc_pp_use_portal` and nothing else. Enabled post types
    typically use `capability_type => 'post'`, so real caps would leak access to
    every ordinary post on the site.
 2. **The owned-post cache group is non-persistent on purpose.** Making
-   `GWCPP_CACHE_GROUP` persistent is an access-control decision about stale data.
+   `GWC_PP_CACHE_GROUP` persistent is an access-control decision about stale data.
 3. **POSTs dispatch from `template_redirect`**, not `admin-post.php` or
    `admin-ajax.php` — the role is redirected away from `/wp-admin/`.
 4. **Portal users cannot delete anything.** The strongest action is
@@ -239,16 +246,16 @@ constants are `GWCPP_USER_ORG_META = '_gwcpp_org'` and `GWCPP_POST_EDITOR_META =
    exist. Only a stale nonce gets a real message.
 6. **Uninstall deletes no posts, no post meta, no users**, not even armed.
 7. **A handover never removes anybody.** Removal stays a staff action in wp-admin.
-8. **`gwcpp_allowed_upload_types` and `gwcpp_richtext_allowed_html` are security
+8. **`gwc_pp_allowed_upload_types` and `gwc_pp_richtext_allowed_html` are security
    surfaces.** Widen either only on purpose.
 9. **Add every new hook to the README table.**
-10. Bump header, `GWCPP_VERSION`, `readme.txt` Stable tag, changelog and upgrade
+10. Bump header, `GWC_PP_VERSION`, `readme.txt` Stable tag, changelog and upgrade
     notice together.
 
 ## Vocabulary
 
 **portal** the front-end page, pinned by ID · **portal user** the
-`gwcpp_portal_user` role · **organisation** the primary access path · **direct
+`gwc_pp_portal_user` role · **organisation** the primary access path · **direct
 grant** per-post access meta · **changeset** one whole submission in one meta row
 · **diff** computed at view time, never stored · **sign-in link** 15-minute
 single-use transient · **durable token** 7-day user meta that survives a transient

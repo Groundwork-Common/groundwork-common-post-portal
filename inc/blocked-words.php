@@ -43,8 +43,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * @return string[]
  */
-function gwcpp_blocked_words(): array {
-	$raw = (string) gwcpp_setting( 'blocked_words' );
+function gwc_pp_blocked_words(): array {
+	$raw = (string) gwc_pp_setting( 'blocked_words' );
 
 	$words = array();
 	foreach ( preg_split( '/[\r\n,]+/', $raw ) as $word ) {
@@ -68,7 +68,7 @@ function gwcpp_blocked_words(): array {
 	 *
 	 * @param string[] $words Lowercased words.
 	 */
-	return array_values( array_unique( (array) apply_filters( 'gwcpp_blocked_words', $words ) ) );
+	return array_values( array_unique( (array) apply_filters( 'gwc_pp_blocked_words', $words ) ) );
 }
 
 /**
@@ -84,14 +84,14 @@ function gwcpp_blocked_words(): array {
  * @param array  $words Blocked words. Defaults to the site's list.
  * @return string The word that matched, or ''.
  */
-function gwcpp_blocked_word_in( string $text, ?array $words = null ): string {
+function gwc_pp_blocked_word_in( string $text, ?array $words = null ): string {
 	$text = trim( $text );
 
 	if ( '' === $text ) {
 		return '';
 	}
 
-	$words = null === $words ? gwcpp_blocked_words() : $words;
+	$words = null === $words ? gwc_pp_blocked_words() : $words;
 
 	if ( ! $words ) {
 		return '';
@@ -102,7 +102,7 @@ function gwcpp_blocked_word_in( string $text, ?array $words = null ): string {
 			continue;
 		}
 
-		if ( preg_match( gwcpp_blocked_word_pattern( $word ), $text ) ) {
+		if ( preg_match( gwc_pp_blocked_word_pattern( $word ), $text ) ) {
 			return $word;
 		}
 	}
@@ -125,7 +125,7 @@ function gwcpp_blocked_word_in( string $text, ?array $words = null ): string {
  * @param string $word Blocked word, lowercased.
  * @return string A PCRE pattern.
  */
-function gwcpp_blocked_word_pattern( string $word ): string {
+function gwc_pp_blocked_word_pattern( string $word ): string {
 	$last = mb_substr( $word, -1 );
 
 	// Vowels are not doubled, and neither are w, x or y.
@@ -141,7 +141,7 @@ function gwcpp_blocked_word_pattern( string $word ): string {
  * through, so a blocked word is reported beside its own field exactly like a
  * bad phone number rather than as a separate kind of failure.
  */
-add_filter( 'gwcpp_validation_errors', 'gwcpp_screen_submission', 20, 3 );
+add_filter( 'gwc_pp_validation_errors', 'gwc_pp_screen_submission', 20, 3 );
 
 /**
  * Add an error for any changed field containing a blocked word.
@@ -151,18 +151,18 @@ add_filter( 'gwcpp_validation_errors', 'gwcpp_screen_submission', 20, 3 );
  * @param string $post_type Post type slug.
  * @return array
  */
-function gwcpp_screen_submission( $errors, $values, $post_type ) {
+function gwc_pp_screen_submission( $errors, $values, $post_type ) {
 	$errors = is_array( $errors ) ? $errors : array();
-	$words  = gwcpp_blocked_words();
+	$words  = gwc_pp_blocked_words();
 
 	if ( ! $words || ! is_array( $values ) ) {
 		return $errors;
 	}
 
-	$post_id = gwcpp_screening_post_id();
-	$current = $post_id > 0 ? gwcpp_current_values( $post_id, (string) $post_type ) : array();
+	$post_id = gwc_pp_screening_post_id();
+	$current = $post_id > 0 ? gwc_pp_current_values( $post_id, (string) $post_type ) : array();
 
-	foreach ( gwcpp_type_fields( (string) $post_type ) as $field ) {
+	foreach ( gwc_pp_type_fields( (string) $post_type ) as $field ) {
 		$key = (string) $field['key'];
 
 		if ( ! array_key_exists( $key, $values ) || isset( $errors[ $key ] ) ) {
@@ -174,8 +174,8 @@ function gwcpp_screen_submission( $errors, $values, $post_type ) {
 			continue;
 		}
 
-		$text = (string) gwcpp_field_call( $field, 'to_display', array( $values[ $key ], $field ) );
-		$hit  = gwcpp_blocked_word_in( $text, $words );
+		$text = (string) gwc_pp_field_call( $field, 'to_display', array( $values[ $key ], $field ) );
+		$hit  = gwc_pp_blocked_word_in( $text, $words );
 
 		if ( '' === $hit ) {
 			continue;
@@ -218,13 +218,13 @@ function gwcpp_screen_submission( $errors, $values, $post_type ) {
  *
  * @return int
  */
-function gwcpp_screening_post_id(): int {
+function gwc_pp_screening_post_id(): int {
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only, and the handler guards verified a nonce bound to this same ID before validation ran.
-	$post_id = isset( $_POST['gwcpp_post_id'] ) ? (int) $_POST['gwcpp_post_id'] : 0;
+	$post_id = isset( $_POST['gwc_pp_post_id'] ) ? (int) $_POST['gwc_pp_post_id'] : 0;
 
 	if ( $post_id <= 0 ) {
 		return 0;
 	}
 
-	return gwcpp_user_can_edit_post( get_current_user_id(), $post_id ) ? $post_id : 0;
+	return gwc_pp_user_can_edit_post( get_current_user_id(), $post_id ) ? $post_id : 0;
 }

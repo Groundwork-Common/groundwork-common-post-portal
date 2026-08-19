@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'init', 'gwcpp_register_block' );
+add_action( 'init', 'gwc_pp_register_block' );
 
 /*
  * The shortcode is not a deprecation path and is not going away. A block is
@@ -15,17 +15,17 @@ add_action( 'init', 'gwcpp_register_block' );
  * template, or a site still on the classic editor — all of which exist on the
  * kind of site this plugin is for.
  */
-add_shortcode( 'post_portal', 'gwcpp_shortcode' );
+add_shortcode( 'gwc_pp_portal', 'gwc_pp_shortcode' );
 
 /**
  * Register the block.
  */
-function gwcpp_register_block(): void {
+function gwc_pp_register_block(): void {
 	if ( ! function_exists( 'register_block_type_from_metadata' ) ) {
 		return;
 	}
 
-	$type = register_block_type_from_metadata( GWCPP_DIR . 'blocks/portal' );
+	$type = register_block_type_from_metadata( GWC_PP_DIR . 'blocks/portal' );
 
 	if ( ! $type instanceof WP_Block_Type ) {
 		return;
@@ -44,7 +44,7 @@ function gwcpp_register_block(): void {
 
 	$handle = (string) $handles[0];
 
-	wp_set_script_translations( $handle, 'groundwork-common-post-portal', GWCPP_DIR . 'languages' );
+	wp_set_script_translations( $handle, 'groundwork-common-post-portal', GWC_PP_DIR . 'languages' );
 
 	/*
 	 * Two booleans, because they are the two ways this block can be placed and
@@ -54,10 +54,10 @@ function gwcpp_register_block(): void {
 	 */
 	wp_add_inline_script(
 		$handle,
-		'window.GWCPP_EDITOR = ' . wp_json_encode(
+		'window.GWC_PP_EDITOR = ' . wp_json_encode(
 			array(
-				'hasPortalPage' => gwcpp_portal_page_id() > 0,
-				'hasPostTypes'  => (bool) gwcpp_post_types(),
+				'hasPortalPage' => gwc_pp_portal_page_id() > 0,
+				'hasPostTypes'  => (bool) gwc_pp_post_types(),
 			)
 		) . ';',
 		'before'
@@ -70,8 +70,8 @@ function gwcpp_register_block(): void {
  * @param array|string $atts Shortcode attributes.
  * @return string
  */
-function gwcpp_shortcode( $atts = array() ): string {
+function gwc_pp_shortcode( $atts = array() ): string {
 	unset( $atts );
 
-	return gwcpp_render_portal();
+	return gwc_pp_render_portal();
 }

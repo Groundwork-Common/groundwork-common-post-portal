@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 final class RepeaterTest extends TestCase {
 
 	protected function setUp(): void {
-		gwcpp_test_reset();
+		gwc_pp_test_reset();
 	}
 
 	/**
@@ -34,7 +34,7 @@ final class RepeaterTest extends TestCase {
 	/* ── The column definition ───────────────────────────────────────────── */
 
 	public function test_columns_parse_with_their_types(): void {
-		$subs = gwcpp_repeater_subfields( $this->field() );
+		$subs = gwc_pp_repeater_subfields( $this->field() );
 
 		$this->assertSame( array( 'day', 'opens', 'closes' ), array_column( $subs, 'key' ) );
 		$this->assertSame( array( 'select', 'text', 'text' ), array_column( $subs, 'type' ) );
@@ -42,7 +42,7 @@ final class RepeaterTest extends TestCase {
 	}
 
 	public function test_select_options_parse(): void {
-		$subs = gwcpp_repeater_subfields( $this->field() );
+		$subs = gwc_pp_repeater_subfields( $this->field() );
 
 		$this->assertSame(
 			array( 'mon', 'tue' ),
@@ -56,7 +56,7 @@ final class RepeaterTest extends TestCase {
 
 		$this->assertSame(
 			'text',
-			gwcpp_repeater_subfields( $field )[0]['type'],
+			gwc_pp_repeater_subfields( $field )[0]['type'],
 			'A repeater of repeaters is a data model that wants its own post type.'
 		);
 	}
@@ -64,27 +64,27 @@ final class RepeaterTest extends TestCase {
 	public function test_a_media_column_is_refused(): void {
 		$field = $this->field( array( 'subfields_raw' => 'photo|Photo|media' ) );
 
-		$this->assertSame( 'text', gwcpp_repeater_subfields( $field )[0]['type'] );
+		$this->assertSame( 'text', gwc_pp_repeater_subfields( $field )[0]['type'] );
 	}
 
 	public function test_duplicate_column_keys_are_dropped(): void {
 		$field = $this->field( array( 'subfields_raw' => "a|First|text\na|Second|text\nb|Third|text" ) );
 
-		$this->assertSame( array( 'a', 'b' ), array_column( gwcpp_repeater_subfields( $field ), 'key' ) );
+		$this->assertSame( array( 'a', 'b' ), array_column( gwc_pp_repeater_subfields( $field ), 'key' ) );
 	}
 
 	public function test_no_columns_means_no_rows_and_a_message(): void {
 		$field = $this->field( array( 'subfields_raw' => '' ) );
 
-		$this->assertSame( array(), gwcpp_repeater_subfields( $field ) );
-		$this->assertSame( array(), gwcpp_sanitize_repeater( array( 'rows' => array( array( 'x' => 'y' ) ) ), $field ) );
-		$this->assertNotSame( '', gwcpp_validate_repeater( array(), $field ) );
+		$this->assertSame( array(), gwc_pp_repeater_subfields( $field ) );
+		$this->assertSame( array(), gwc_pp_sanitize_repeater( array( 'rows' => array( array( 'x' => 'y' ) ) ), $field ) );
+		$this->assertNotSame( '', gwc_pp_validate_repeater( array(), $field ) );
 	}
 
 	/* ── Sanitizing rows ─────────────────────────────────────────────────── */
 
 	public function test_rows_are_sanitized_by_their_own_column_types(): void {
-		$rows = gwcpp_sanitize_repeater(
+		$rows = gwc_pp_sanitize_repeater(
 			array(
 				'rows' => array(
 					array(
@@ -103,7 +103,7 @@ final class RepeaterTest extends TestCase {
 	}
 
 	public function test_a_choice_not_on_the_column_list_is_refused(): void {
-		$rows = gwcpp_sanitize_repeater(
+		$rows = gwc_pp_sanitize_repeater(
 			array( 'rows' => array( array( 'day' => 'funday', 'opens' => '9am' ) ) ),
 			$this->field()
 		);
@@ -112,7 +112,7 @@ final class RepeaterTest extends TestCase {
 	}
 
 	public function test_a_completely_blank_row_is_dropped(): void {
-		$rows = gwcpp_sanitize_repeater(
+		$rows = gwc_pp_sanitize_repeater(
 			array(
 				'rows' => array(
 					array( 'day' => 'mon', 'opens' => '9am', 'closes' => '5pm' ),
@@ -130,7 +130,7 @@ final class RepeaterTest extends TestCase {
 	}
 
 	public function test_the_template_row_is_never_stored(): void {
-		$rows = gwcpp_sanitize_repeater(
+		$rows = gwc_pp_sanitize_repeater(
 			array(
 				'rows' => array(
 					'__i__' => array( 'day' => 'mon', 'opens' => '9am' ),
@@ -145,7 +145,7 @@ final class RepeaterTest extends TestCase {
 	}
 
 	public function test_rows_are_reindexed_so_gaps_do_not_survive(): void {
-		$rows = gwcpp_sanitize_repeater(
+		$rows = gwc_pp_sanitize_repeater(
 			array(
 				'rows' => array(
 					'0' => array( 'day' => 'mon', 'opens' => '9am' ),
@@ -165,7 +165,7 @@ final class RepeaterTest extends TestCase {
 			$rows[] = array( 'day' => 'mon', 'opens' => (string) $i );
 		}
 
-		$sanitized = gwcpp_sanitize_repeater(
+		$sanitized = gwc_pp_sanitize_repeater(
 			array( 'rows' => $rows ),
 			$this->field( array( 'max_rows' => 3 ) )
 		);
@@ -174,18 +174,18 @@ final class RepeaterTest extends TestCase {
 	}
 
 	public function test_the_hard_ceiling_applies_even_without_a_setting(): void {
-		$this->assertSame( GWCPP_REPEATER_MAX, gwcpp_repeater_max( $this->field() ) );
+		$this->assertSame( GWC_PP_REPEATER_MAX, gwc_pp_repeater_max( $this->field() ) );
 		$this->assertSame(
-			GWCPP_REPEATER_MAX,
-			gwcpp_repeater_max( $this->field( array( 'max_rows' => 9999 ) ) ),
+			GWC_PP_REPEATER_MAX,
+			gwc_pp_repeater_max( $this->field( array( 'max_rows' => 9999 ) ) ),
 			'A setting must not be able to raise the ceiling.'
 		);
 	}
 
 	public function test_nonsense_input_yields_no_rows(): void {
-		$this->assertSame( array(), gwcpp_sanitize_repeater( 'not an array', $this->field() ) );
-		$this->assertSame( array(), gwcpp_sanitize_repeater( array(), $this->field() ) );
-		$this->assertSame( array(), gwcpp_sanitize_repeater( array( 'rows' => 'nope' ), $this->field() ) );
+		$this->assertSame( array(), gwc_pp_sanitize_repeater( 'not an array', $this->field() ) );
+		$this->assertSame( array(), gwc_pp_sanitize_repeater( array(), $this->field() ) );
+		$this->assertSame( array(), gwc_pp_sanitize_repeater( array( 'rows' => 'nope' ), $this->field() ) );
 	}
 
 	/* ── Display ─────────────────────────────────────────────────────────── */
@@ -198,20 +198,20 @@ final class RepeaterTest extends TestCase {
 
 		$this->assertSame(
 			'Monday 9am 5pm; Tuesday 10am 4pm',
-			gwcpp_display_repeater( $value, $this->field() ),
+			gwc_pp_display_repeater( $value, $this->field() ),
 			'Labels, not stored values, or the approval diff is unreadable.'
 		);
 	}
 
 	public function test_display_of_nothing_is_empty(): void {
-		$this->assertSame( '', gwcpp_display_repeater( array(), $this->field() ) );
-		$this->assertSame( '', gwcpp_display_repeater( 'nope', $this->field() ) );
+		$this->assertSame( '', gwc_pp_display_repeater( array(), $this->field() ) );
+		$this->assertSame( '', gwc_pp_display_repeater( 'nope', $this->field() ) );
 	}
 
 	public function test_emptiness_is_the_shared_array_check(): void {
-		$this->assertTrue( gwcpp_field_call( $this->field(), 'is_empty', array( array(), $this->field() ) ) );
+		$this->assertTrue( gwc_pp_field_call( $this->field(), 'is_empty', array( array(), $this->field() ) ) );
 		$this->assertFalse(
-			gwcpp_field_call( $this->field(), 'is_empty', array( array( array( 'day' => 'mon' ) ), $this->field() ) )
+			gwc_pp_field_call( $this->field(), 'is_empty', array( array( array( 'day' => 'mon' ) ), $this->field() ) )
 		);
 	}
 }

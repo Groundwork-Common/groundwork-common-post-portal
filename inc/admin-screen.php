@@ -23,11 +23,11 @@ defined( 'ABSPATH' ) || exit;
  */
 
 /** The Settings screen's tabs, in order. */
-const GWCPP_TABS = array( 'general', 'signin', 'appearance', 'fields' );
+const GWC_PP_TABS = array( 'general', 'signin', 'appearance', 'fields' );
 
-add_action( 'admin_menu', 'gwcpp_admin_menu' );
-add_action( 'admin_menu', 'gwcpp_order_submenu', 100 );
-add_action( 'admin_post_gwcpp_save_settings', 'gwcpp_handle_save_settings' );
+add_action( 'admin_menu', 'gwc_pp_admin_menu' );
+add_action( 'admin_menu', 'gwc_pp_order_submenu', 100 );
+add_action( 'admin_post_gwc_pp_save_settings', 'gwc_pp_handle_save_settings' );
 
 /**
  * The capability everything on these screens requires.
@@ -36,7 +36,7 @@ add_action( 'admin_post_gwcpp_save_settings', 'gwcpp_handle_save_settings' );
  * to remember to check the return value, and the one that forgets is the one
  * that writes.
  */
-function gwcpp_require_admin_caps(): void {
+function gwc_pp_require_admin_caps(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_die(
 			esc_html__( 'You do not have permission to change portal settings.', 'groundwork-common-post-portal' ),
@@ -49,7 +49,7 @@ function gwcpp_require_admin_caps(): void {
 /**
  * Register the menu.
  */
-function gwcpp_admin_menu(): void {
+function gwc_pp_admin_menu(): void {
 	/*
 	 * The top level opens Pending Changes rather than Settings. Settings is a
 	 * screen somebody visits when setting the portal up and then rarely again;
@@ -60,8 +60,8 @@ function gwcpp_admin_menu(): void {
 		__( 'Post Portal', 'groundwork-common-post-portal' ),
 		__( 'Portal', 'groundwork-common-post-portal' ),
 		'manage_options',
-		GWCPP_QUEUE_SLUG,
-		'gwcpp_queue_screen',
+		GWC_PP_QUEUE_SLUG,
+		'gwc_pp_queue_screen',
 		'dashicons-id-alt',
 		58
 	);
@@ -71,7 +71,7 @@ function gwcpp_admin_menu(): void {
 	 * queue is a screen somebody has to remember to visit, and a submission
 	 * waits until a partner emails to ask why nothing happened.
 	 */
-	$waiting = gwcpp_pending_count();
+	$waiting = gwc_pp_pending_count();
 	$label   = __( 'Pending Changes', 'groundwork-common-post-portal' );
 
 	if ( $waiting > 0 ) {
@@ -87,12 +87,12 @@ function gwcpp_admin_menu(): void {
 	 * rather than adding a second row.
 	 */
 	$queue = add_submenu_page(
-		GWCPP_QUEUE_SLUG,
+		GWC_PP_QUEUE_SLUG,
 		__( 'Pending Changes', 'groundwork-common-post-portal' ),
 		$label,
 		'manage_options',
-		GWCPP_QUEUE_SLUG,
-		'gwcpp_queue_screen'
+		GWC_PP_QUEUE_SLUG,
+		'gwc_pp_queue_screen'
 	);
 
 	/*
@@ -101,17 +101,17 @@ function gwcpp_admin_menu(): void {
 	 * on one tab over, and as a sibling menu item it read as a separate feature.
 	 */
 	$settings = add_submenu_page(
-		GWCPP_QUEUE_SLUG,
+		GWC_PP_QUEUE_SLUG,
 		__( 'Portal Settings', 'groundwork-common-post-portal' ),
 		__( 'Settings', 'groundwork-common-post-portal' ),
 		'manage_options',
-		GWCPP_MENU_SLUG,
-		'gwcpp_settings_screen'
+		GWC_PP_MENU_SLUG,
+		'gwc_pp_settings_screen'
 	);
 
 	foreach ( array( $queue, $settings ) as $hook ) {
 		if ( $hook ) {
-			add_action( 'load-' . $hook, 'gwcpp_add_help_tabs' );
+			add_action( 'load-' . $hook, 'gwc_pp_add_help_tabs' );
 		}
 	}
 }
@@ -129,21 +129,21 @@ function gwcpp_admin_menu(): void {
  * Anything else somebody hooks in lands after the three we know about, in
  * whatever order it arrived.
  */
-function gwcpp_order_submenu(): void {
+function gwc_pp_order_submenu(): void {
 	global $submenu;
 
-	if ( empty( $submenu[ GWCPP_QUEUE_SLUG ] ) || ! is_array( $submenu[ GWCPP_QUEUE_SLUG ] ) ) {
+	if ( empty( $submenu[ GWC_PP_QUEUE_SLUG ] ) || ! is_array( $submenu[ GWC_PP_QUEUE_SLUG ] ) ) {
 		return;
 	}
 
 	$wanted = array(
-		GWCPP_QUEUE_SLUG,
-		'edit.php?post_type=' . GWCPP_ORG_TYPE,
-		GWCPP_MENU_SLUG,
+		GWC_PP_QUEUE_SLUG,
+		'edit.php?post_type=' . GWC_PP_ORG_TYPE,
+		GWC_PP_MENU_SLUG,
 	);
 
 	usort(
-		$submenu[ GWCPP_QUEUE_SLUG ],
+		$submenu[ GWC_PP_QUEUE_SLUG ],
 		static function ( $a, $b ) use ( $wanted ): int {
 			$a_at = array_search( $a[2] ?? '', $wanted, true );
 			$b_at = array_search( $b[2] ?? '', $wanted, true );
@@ -158,20 +158,20 @@ function gwcpp_order_submenu(): void {
  *
  * @return string
  */
-function gwcpp_current_tab(): string {
+function gwc_pp_current_tab(): string {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection on a GET request.
 	$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'general';
 
-	return in_array( $tab, GWCPP_TABS, true ) ? $tab : 'general';
+	return in_array( $tab, GWC_PP_TABS, true ) ? $tab : 'general';
 }
 
 /**
  * The Settings screen.
  */
-function gwcpp_settings_screen(): void {
-	gwcpp_require_admin_caps();
+function gwc_pp_settings_screen(): void {
+	gwc_pp_require_admin_caps();
 
-	$tab = gwcpp_current_tab();
+	$tab = gwc_pp_current_tab();
 
 	echo '<div class="wrap gwcpp-admin">';
 	printf( '<h1>%s</h1>', esc_html__( 'Post Portal', 'groundwork-common-post-portal' ) );
@@ -182,11 +182,11 @@ function gwcpp_settings_screen(): void {
 	 * it, and because a colophon below four tabs of settings is one nobody
 	 * reaches. Same position it holds in Location Finder.
 	 */
-	gwcpp_render_colophon();
+	gwc_pp_render_colophon();
 
-	gwcpp_render_admin_notice();
-	gwcpp_render_tabs( $tab );
-	gwcpp_render_setup_checklist();
+	gwc_pp_render_admin_notice();
+	gwc_pp_render_tabs( $tab );
+	gwc_pp_render_setup_checklist();
 
 	if ( 'fields' === $tab ) {
 		/*
@@ -195,22 +195,22 @@ function gwcpp_settings_screen(): void {
 		 * and its own confirmation. Nested inside a form whose button reads "Save
 		 * settings", an Enter pressed in a field label would submit the wrong one.
 		 */
-		gwcpp_render_fields_tab();
+		gwc_pp_render_fields_tab();
 	} else {
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		wp_nonce_field( 'gwcpp_save_settings' );
-		echo '<input type="hidden" name="action" value="gwcpp_save_settings" />';
+		wp_nonce_field( 'gwc_pp_save_settings' );
+		echo '<input type="hidden" name="action" value="gwc_pp_save_settings" />';
 		printf( '<input type="hidden" name="tab" value="%s" />', esc_attr( $tab ) );
 
 		switch ( $tab ) {
 			case 'signin':
-				gwcpp_tab_signin();
+				gwc_pp_tab_signin();
 				break;
 			case 'appearance':
-				gwcpp_tab_appearance();
+				gwc_pp_tab_appearance();
 				break;
 			default:
-				gwcpp_tab_general();
+				gwc_pp_tab_general();
 		}
 
 		submit_button( __( 'Save settings', 'groundwork-common-post-portal' ) );
@@ -226,7 +226,7 @@ function gwcpp_settings_screen(): void {
  *
  * @param string $current Current tab.
  */
-function gwcpp_render_tabs( string $current ): void {
+function gwc_pp_render_tabs( string $current ): void {
 	$labels = array(
 		'general'    => __( 'General', 'groundwork-common-post-portal' ),
 		'signin'     => __( 'Signing in', 'groundwork-common-post-portal' ),
@@ -235,10 +235,10 @@ function gwcpp_render_tabs( string $current ): void {
 	);
 
 	echo '<nav class="nav-tab-wrapper">';
-	foreach ( GWCPP_TABS as $tab ) {
+	foreach ( GWC_PP_TABS as $tab ) {
 		printf(
 			'<a href="%s" class="nav-tab%s">%s</a>',
-			esc_url( admin_url( 'admin.php?page=' . GWCPP_MENU_SLUG . '&tab=' . $tab ) ),
+			esc_url( admin_url( 'admin.php?page=' . GWC_PP_MENU_SLUG . '&tab=' . $tab ) ),
 			$tab === $current ? ' nav-tab-active' : '',
 			esc_html( $labels[ $tab ] )
 		);
@@ -255,24 +255,24 @@ function gwcpp_render_tabs( string $current ): void {
  * anywhere, so the only place they can be caught is here, before somebody
  * invites a partner and discovers it from them.
  */
-function gwcpp_render_setup_checklist(): void {
+function gwc_pp_render_setup_checklist(): void {
 	$missing = array();
 
-	if ( ! gwcpp_post_types() ) {
+	if ( ! gwc_pp_post_types() ) {
 		$missing[] = __( 'No post types are switched on yet, so there is nothing for anyone to edit.', 'groundwork-common-post-portal' );
 	}
 
-	if ( ! gwcpp_portal_page_id() ) {
+	if ( ! gwc_pp_portal_page_id() ) {
 		$missing[] = __( 'No portal page is chosen, so sign-in links have nowhere to send people. Create a page, add the Post Portal block to it, publish it, then choose it below.', 'groundwork-common-post-portal' );
 	} else {
 		$mapped = false;
-		foreach ( gwcpp_post_types() as $post_type ) {
-			if ( gwcpp_type_fields( $post_type ) ) {
+		foreach ( gwc_pp_post_types() as $post_type ) {
+			if ( gwc_pp_type_fields( $post_type ) ) {
 				$mapped = true;
 				break;
 			}
 		}
-		if ( gwcpp_post_types() && ! $mapped ) {
+		if ( gwc_pp_post_types() && ! $mapped ) {
 			$missing[] = __( 'No fields are mapped yet, so the edit form would be empty. Set them up on the Fields tab.', 'groundwork-common-post-portal' );
 		}
 	}
@@ -293,21 +293,21 @@ function gwcpp_render_setup_checklist(): void {
 /**
  * The General tab.
  */
-function gwcpp_tab_general(): void {
-	$enabled = gwcpp_post_types();
+function gwc_pp_tab_general(): void {
+	$enabled = gwc_pp_post_types();
 
 	echo '<h2>' . esc_html__( 'What can be edited', 'groundwork-common-post-portal' ) . '</h2>';
 	echo '<p class="description">' . esc_html__( 'Switch on the post types portal users may edit. Nothing is switched on by default, and switching one off immediately withdraws access to every post of that type.', 'groundwork-common-post-portal' ) . '</p>';
 
 	echo '<table class="form-table" role="presentation"><tbody>';
 
-	foreach ( gwcpp_candidate_post_types() as $object ) {
+	foreach ( gwc_pp_candidate_post_types() as $object ) {
 		$slug = $object->name;
 		$on   = in_array( $slug, $enabled, true );
 
 		echo '<tr><th scope="row">';
 		printf(
-			'<label><input type="checkbox" name="gwcpp_settings[post_types][]" value="%s"%s /> %s</label>',
+			'<label><input type="checkbox" name="gwc_pp_settings[post_types][]" value="%s"%s /> %s</label>',
 			esc_attr( $slug ),
 			checked( $on, true, false ),
 			esc_html( $object->labels->name )
@@ -315,7 +315,7 @@ function gwcpp_tab_general(): void {
 		printf( '<br /><code>%s</code>', esc_html( $slug ) );
 		echo '</th><td>';
 
-		gwcpp_render_type_flags( $slug );
+		gwc_pp_render_type_flags( $slug );
 
 		echo '</td></tr>';
 	}
@@ -329,9 +329,9 @@ function gwcpp_tab_general(): void {
 
 	wp_dropdown_pages(
 		array(
-			'name'              => 'gwcpp_settings[portal_page]',
+			'name'              => 'gwc_pp_settings[portal_page]',
 			'id'                => 'gwcpp-portal-page',
-			'selected'          => (int) gwcpp_portal_page_id(),
+			'selected'          => (int) gwc_pp_portal_page_id(),
 			// wp_dropdown_pages() echoes, so its label goes out as-is.
 			'show_option_none'  => esc_html__( '— none chosen —', 'groundwork-common-post-portal' ),
 			'option_none_value' => '0',
@@ -351,8 +351,8 @@ function gwcpp_tab_general(): void {
 	printf( '<label for="gwcpp-blocked">%s</label>', esc_html__( 'Blocked words', 'groundwork-common-post-portal' ) );
 	echo '</th><td>';
 	printf(
-		'<textarea id="gwcpp-blocked" name="gwcpp_settings[blocked_words]" rows="4" class="large-text code">%s</textarea>',
-		esc_textarea( (string) gwcpp_setting( 'blocked_words' ) )
+		'<textarea id="gwcpp-blocked" name="gwc_pp_settings[blocked_words]" rows="4" class="large-text code">%s</textarea>',
+		esc_textarea( (string) gwc_pp_setting( 'blocked_words' ) )
 	);
 	printf(
 		'<p class="description">%s</p>',
@@ -370,7 +370,7 @@ function gwcpp_tab_general(): void {
  *
  * @param string $post_type Post type slug.
  */
-function gwcpp_render_type_flags( string $post_type ): void {
+function gwc_pp_render_type_flags( string $post_type ): void {
 	$flags = array(
 		'require_approval' => __( 'Changes need staff approval before going live', 'groundwork-common-post-portal' ),
 		'allow_create'     => __( 'Portal users may add new ones', 'groundwork-common-post-portal' ),
@@ -388,29 +388,29 @@ function gwcpp_render_type_flags( string $post_type ): void {
 	 * type to false.
 	 */
 	printf(
-		'<input type="hidden" name="gwcpp_settings[types][%s][_present]" value="1" />',
+		'<input type="hidden" name="gwc_pp_settings[types][%s][_present]" value="1" />',
 		esc_attr( $post_type )
 	);
 
 	foreach ( $flags as $key => $label ) {
 		printf(
-			'<label><input type="checkbox" name="gwcpp_settings[types][%1$s][%2$s]" value="1"%3$s /> %4$s</label><br />',
+			'<label><input type="checkbox" name="gwc_pp_settings[types][%1$s][%2$s]" value="1"%3$s /> %4$s</label><br />',
 			esc_attr( $post_type ),
 			esc_attr( $key ),
-			checked( (bool) gwcpp_type_setting( $post_type, $key ), true, false ),
+			checked( (bool) gwc_pp_type_setting( $post_type, $key ), true, false ),
 			esc_html( $label )
 		);
 	}
 
 	printf(
-		'<p class="gwcpp-cadence"><label for="gwcpp-cadence-%1$s">%2$s</label> <input type="number" id="gwcpp-cadence-%1$s" name="gwcpp_settings[types][%1$s][review_months]" value="%3$d" min="0" max="120" class="small-text" /> %4$s</p>',
+		'<p class="gwcpp-cadence"><label for="gwcpp-cadence-%1$s">%2$s</label> <input type="number" id="gwcpp-cadence-%1$s" name="gwc_pp_settings[types][%1$s][review_months]" value="%3$d" min="0" max="120" class="small-text" /> %4$s</p>',
 		esc_attr( $post_type ),
 		esc_html__( 'Ask owners to confirm their details every', 'groundwork-common-post-portal' ),
-		(int) gwcpp_type_setting( $post_type, 'review_months' ),
+		(int) gwc_pp_type_setting( $post_type, 'review_months' ),
 		esc_html__( 'months (0 = never ask)', 'groundwork-common-post-portal' )
 	);
 
-	$cadence = gwcpp_review_cadence( $post_type );
+	$cadence = gwc_pp_review_cadence( $post_type );
 	if ( $cadence > 0 ) {
 		printf(
 			'<p class="description">%s</p>',
@@ -444,9 +444,9 @@ function gwcpp_render_type_flags( string $post_type ): void {
  *
  * @return WP_Post_Type[]
  */
-function gwcpp_candidate_post_types(): array {
+function gwc_pp_candidate_post_types(): array {
 	$excluded = array(
-		GWCPP_ORG_TYPE,
+		GWC_PP_ORG_TYPE,
 		'attachment',
 		'revision',
 		'nav_menu_item',
@@ -486,20 +486,20 @@ function gwcpp_candidate_post_types(): array {
 /**
  * The Signing in tab.
  */
-function gwcpp_tab_signin(): void {
+function gwc_pp_tab_signin(): void {
 	echo '<table class="form-table" role="presentation"><tbody>';
 
 	echo '<tr><th scope="row">' . esc_html__( 'Ways to sign in', 'groundwork-common-post-portal' ) . '</th><td><fieldset>';
-	echo '<input type="hidden" name="gwcpp_settings[_tab_signin]" value="1" />';
+	echo '<input type="hidden" name="gwc_pp_settings[_tab_signin]" value="1" />';
 
 	printf(
-		'<label><input type="checkbox" name="gwcpp_settings[signin_magic]" value="1"%s /> %s</label><br />',
-		checked( (bool) gwcpp_setting( 'signin_magic' ), true, false ),
+		'<label><input type="checkbox" name="gwc_pp_settings[signin_magic]" value="1"%s /> %s</label><br />',
+		checked( (bool) gwc_pp_setting( 'signin_magic' ), true, false ),
 		esc_html__( 'A link emailed to them (no password)', 'groundwork-common-post-portal' )
 	);
 	printf(
-		'<label><input type="checkbox" name="gwcpp_settings[signin_password]" value="1"%s /> %s</label>',
-		checked( (bool) gwcpp_setting( 'signin_password' ), true, false ),
+		'<label><input type="checkbox" name="gwc_pp_settings[signin_password]" value="1"%s /> %s</label>',
+		checked( (bool) gwc_pp_setting( 'signin_password' ), true, false ),
 		esc_html__( 'Username and password', 'groundwork-common-post-portal' )
 	);
 	printf(
@@ -512,8 +512,8 @@ function gwcpp_tab_signin(): void {
 	printf( '<label for="gwcpp-session">%s</label>', esc_html__( 'Stay signed in for', 'groundwork-common-post-portal' ) );
 	echo '</th><td>';
 	printf(
-		'<input type="number" id="gwcpp-session" name="gwcpp_settings[session_hours]" value="%d" min="1" max="720" class="small-text" /> %s',
-		(int) gwcpp_setting( 'session_hours' ),
+		'<input type="number" id="gwcpp-session" name="gwc_pp_settings[session_hours]" value="%d" min="1" max="720" class="small-text" /> %s',
+		(int) gwc_pp_setting( 'session_hours' ),
 		esc_html__( 'hours', 'groundwork-common-post-portal' )
 	);
 	printf(
@@ -526,8 +526,8 @@ function gwcpp_tab_signin(): void {
 	printf( '<label for="gwcpp-staff-email">%s</label>', esc_html__( 'Notifications go to', 'groundwork-common-post-portal' ) );
 	echo '</th><td>';
 	printf(
-		'<input type="email" id="gwcpp-staff-email" name="gwcpp_settings[staff_email]" value="%s" class="regular-text" placeholder="%s" />',
-		esc_attr( (string) gwcpp_setting( 'staff_email' ) ),
+		'<input type="email" id="gwcpp-staff-email" name="gwc_pp_settings[staff_email]" value="%s" class="regular-text" placeholder="%s" />',
+		esc_attr( (string) gwc_pp_setting( 'staff_email' ) ),
 		esc_attr( (string) get_option( 'admin_email' ) )
 	);
 	printf(
@@ -538,13 +538,13 @@ function gwcpp_tab_signin(): void {
 
 	echo '<tr><th scope="row">' . esc_html__( 'Emails come from', 'groundwork-common-post-portal' ) . '</th><td>';
 	printf(
-		'<input type="text" name="gwcpp_settings[from_name]" value="%s" class="regular-text" placeholder="%s" /> ',
-		esc_attr( (string) gwcpp_setting( 'from_name' ) ),
+		'<input type="text" name="gwc_pp_settings[from_name]" value="%s" class="regular-text" placeholder="%s" /> ',
+		esc_attr( (string) gwc_pp_setting( 'from_name' ) ),
 		esc_attr( (string) get_bloginfo( 'name' ) )
 	);
 	printf(
-		'<input type="email" name="gwcpp_settings[from_email]" value="%s" class="regular-text" />',
-		esc_attr( (string) gwcpp_setting( 'from_email' ) )
+		'<input type="email" name="gwc_pp_settings[from_email]" value="%s" class="regular-text" />',
+		esc_attr( (string) gwc_pp_setting( 'from_email' ) )
 	);
 	printf(
 		'<p class="description">%s</p>',
@@ -558,7 +558,7 @@ function gwcpp_tab_signin(): void {
 /**
  * The Appearance tab.
  */
-function gwcpp_tab_appearance(): void {
+function gwc_pp_tab_appearance(): void {
 	$fields = array(
 		'accent_color'  => array( __( 'Accent colour', 'groundwork-common-post-portal' ), 'color' ),
 		'portal_bg'     => array( __( 'Background', 'groundwork-common-post-portal' ), 'color' ),
@@ -574,18 +574,18 @@ function gwcpp_tab_appearance(): void {
 		esc_html__( 'Everything here is optional. Left blank, the portal uses neutral defaults that sit reasonably inside most themes.', 'groundwork-common-post-portal' )
 	);
 
-	echo '<input type="hidden" name="gwcpp_settings[_tab_appearance]" value="1" />';
+	echo '<input type="hidden" name="gwc_pp_settings[_tab_appearance]" value="1" />';
 	echo '<table class="form-table" role="presentation"><tbody>';
 
 	foreach ( $fields as $key => $spec ) {
 		list( $label, $type ) = $spec;
-		$value                = (string) gwcpp_setting( $key );
+		$value                = (string) gwc_pp_setting( $key );
 
 		echo '<tr><th scope="row">';
 		printf( '<label for="gwcpp-%1$s">%2$s</label>', esc_attr( $key ), esc_html( $label ) );
 		echo '</th><td>';
 		printf(
-			'<input type="text" id="gwcpp-%1$s" name="gwcpp_settings[%1$s]" value="%2$s" class="regular-text" placeholder="%3$s" />',
+			'<input type="text" id="gwcpp-%1$s" name="gwc_pp_settings[%1$s]" value="%2$s" class="regular-text" placeholder="%3$s" />',
 			esc_attr( $key ),
 			esc_attr( $value ),
 			esc_attr( 'color' === $type ? '#2b6cb0' : '42rem' )
@@ -599,30 +599,30 @@ function gwcpp_tab_appearance(): void {
 /**
  * Save the Settings screen.
  */
-function gwcpp_handle_save_settings(): void {
-	gwcpp_require_admin_caps();
-	check_admin_referer( 'gwcpp_save_settings' );
+function gwc_pp_handle_save_settings(): void {
+	gwc_pp_require_admin_caps();
+	check_admin_referer( 'gwc_pp_save_settings' );
 
 	$raw = array();
-	if ( isset( $_POST['gwcpp_settings'] ) && is_array( $_POST['gwcpp_settings'] ) ) {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- An array cannot go through a scalar sanitizer; gwcpp_sanitize_settings() below builds its result from the stored option and writes only keys it names, each through sanitize_key/sanitize_email/sanitize_text_field/(int).
-		$raw = (array) wp_unslash( $_POST['gwcpp_settings'] );
+	if ( isset( $_POST['gwc_pp_settings'] ) && is_array( $_POST['gwc_pp_settings'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- An array cannot go through a scalar sanitizer; gwc_pp_sanitize_settings() below builds its result from the stored option and writes only keys it names, each through sanitize_key/sanitize_email/sanitize_text_field/(int).
+		$raw = (array) wp_unslash( $_POST['gwc_pp_settings'] );
 	}
 
 	$tab = isset( $_POST['tab'] ) ? sanitize_key( wp_unslash( $_POST['tab'] ) ) : 'general';
-	$tab = in_array( $tab, GWCPP_TABS, true ) ? $tab : 'general';
+	$tab = in_array( $tab, GWC_PP_TABS, true ) ? $tab : 'general';
 
-	$stored = get_option( GWCPP_SETTINGS_OPTION );
+	$stored = get_option( GWC_PP_SETTINGS_OPTION );
 	$stored = is_array( $stored ) ? $stored : array();
 
-	update_option( GWCPP_SETTINGS_OPTION, gwcpp_sanitize_settings( $raw, $stored, $tab ), true );
+	update_option( GWC_PP_SETTINGS_OPTION, gwc_pp_sanitize_settings( $raw, $stored, $tab ), true );
 
 	wp_safe_redirect(
 		add_query_arg(
 			array(
-				'page'         => GWCPP_MENU_SLUG,
-				'tab'          => $tab,
-				'gwcpp_notice' => 'saved',
+				'page'          => GWC_PP_MENU_SLUG,
+				'tab'           => $tab,
+				'gwc_pp_notice' => 'saved',
 			),
 			admin_url( 'admin.php' )
 		)
@@ -648,7 +648,7 @@ function gwcpp_handle_save_settings(): void {
  * @param string $tab    Which tab was submitted.
  * @return array
  */
-function gwcpp_sanitize_settings( array $raw, array $stored, string $tab ): array {
+function gwc_pp_sanitize_settings( array $raw, array $stored, string $tab ): array {
 	$out = $stored;
 
 	if ( 'general' === $tab ) {
@@ -716,15 +716,15 @@ function gwcpp_sanitize_settings( array $raw, array $stored, string $tab ): arra
 /**
  * Show the message a redirect left behind.
  */
-function gwcpp_render_admin_notice(): void {
+function gwc_pp_render_admin_notice(): void {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display of a whitelisted message code.
-	$code = isset( $_GET['gwcpp_notice'] ) ? sanitize_key( wp_unslash( $_GET['gwcpp_notice'] ) ) : '';
+	$code = isset( $_GET['gwc_pp_notice'] ) ? sanitize_key( wp_unslash( $_GET['gwc_pp_notice'] ) ) : '';
 
 	if ( '' === $code ) {
 		return;
 	}
 
-	$messages = gwcpp_admin_messages();
+	$messages = gwc_pp_admin_messages();
 	if ( ! isset( $messages[ $code ] ) ) {
 		return;
 	}
@@ -743,7 +743,7 @@ function gwcpp_render_admin_notice(): void {
  *
  * @return array<string, array{0:string,1:string}>
  */
-function gwcpp_admin_messages(): array {
+function gwc_pp_admin_messages(): array {
 	return array(
 		'saved'         => array( 'success', __( 'Settings saved.', 'groundwork-common-post-portal' ) ),
 		'field_saved'   => array( 'success', __( 'Field saved.', 'groundwork-common-post-portal' ) ),
@@ -779,7 +779,7 @@ function gwcpp_admin_messages(): array {
  * @param int $now          Current timestamp.
  * @return bool
  */
-function gwcpp_colophon_snoozed( int $collapsed_at, int $now ): bool {
+function gwc_pp_colophon_snoozed( int $collapsed_at, int $now ): bool {
 	if ( $collapsed_at <= 0 ) {
 		return false;
 	}
@@ -798,21 +798,21 @@ function gwcpp_colophon_snoozed( int $collapsed_at, int $now ): bool {
 }
 
 /** User meta, single: when this person folded the panel away. */
-const GWCPP_COLOPHON_META = 'gwcpp_colophon_collapsed_at';
+const GWC_PP_COLOPHON_META = 'gwc_pp_colophon_collapsed_at';
 
 /** Where a bug report should go. */
-const GWCPP_ISSUES_URL = 'https://github.com/Groundwork-Common/groundwork-common-post-portal/issues';
+const GWC_PP_ISSUES_URL = 'https://github.com/Groundwork-Common/groundwork-common-post-portal/issues';
 
-add_action( 'admin_init', 'gwcpp_handle_colophon_toggle' );
+add_action( 'admin_init', 'gwc_pp_handle_colophon_toggle' );
 
 /**
  * Whether to render the panel collapsed for the current user.
  *
  * @return bool
  */
-function gwcpp_colophon_is_collapsed(): bool {
-	return gwcpp_colophon_snoozed(
-		(int) get_user_meta( get_current_user_id(), GWCPP_COLOPHON_META, true ),
+function gwc_pp_colophon_is_collapsed(): bool {
+	return gwc_pp_colophon_snoozed(
+		(int) get_user_meta( get_current_user_id(), GWC_PP_COLOPHON_META, true ),
 		time()
 	);
 }
@@ -825,9 +825,9 @@ function gwcpp_colophon_is_collapsed(): bool {
  * the alternative would add an endpoint, a nonce to ship to the browser and a
  * script, all to avoid a reload nobody will notice.
  */
-function gwcpp_handle_colophon_toggle(): void {
+function gwc_pp_handle_colophon_toggle(): void {
 	// Presence check only; the nonce is verified below before anything is written.
-	if ( ! isset( $_GET['gwcpp_colophon'] ) ) {
+	if ( ! isset( $_GET['gwc_pp_colophon'] ) ) {
 		return;
 	}
 
@@ -835,15 +835,15 @@ function gwcpp_handle_colophon_toggle(): void {
 		return;
 	}
 
-	check_admin_referer( 'gwcpp_colophon' );
+	check_admin_referer( 'gwc_pp_colophon' );
 
 	// Verified directly above.
-	$wanted = sanitize_key( wp_unslash( $_GET['gwcpp_colophon'] ) );
+	$wanted = sanitize_key( wp_unslash( $_GET['gwc_pp_colophon'] ) );
 
 	if ( 'collapse' === $wanted ) {
-		update_user_meta( get_current_user_id(), GWCPP_COLOPHON_META, time() );
+		update_user_meta( get_current_user_id(), GWC_PP_COLOPHON_META, time() );
 	} else {
-		delete_user_meta( get_current_user_id(), GWCPP_COLOPHON_META );
+		delete_user_meta( get_current_user_id(), GWC_PP_COLOPHON_META );
 	}
 
 	/*
@@ -851,7 +851,7 @@ function gwcpp_handle_colophon_toggle(): void {
 	 * refresh would re-fire the toggle, and the nonce would outlive its
 	 * usefulness in the address bar.
 	 */
-	wp_safe_redirect( remove_query_arg( array( 'gwcpp_colophon', '_wpnonce' ) ) );
+	wp_safe_redirect( remove_query_arg( array( 'gwc_pp_colophon', '_wpnonce' ) ) );
 	exit;
 }
 
@@ -861,8 +861,8 @@ function gwcpp_handle_colophon_toggle(): void {
  * @param string $action 'collapse' or 'expand'.
  * @return string
  */
-function gwcpp_colophon_toggle_url( string $action ): string {
-	return wp_nonce_url( add_query_arg( 'gwcpp_colophon', $action ), 'gwcpp_colophon' );
+function gwc_pp_colophon_toggle_url( string $action ): string {
+	return wp_nonce_url( add_query_arg( 'gwc_pp_colophon', $action ), 'gwc_pp_colophon' );
 }
 
 /**
@@ -883,17 +883,17 @@ function gwcpp_colophon_toggle_url( string $action ): string {
  * maintained, and it describes the exchange accurately: the money buys
  * continued work, not goodwill.
  */
-function gwcpp_render_colophon(): void {
-	if ( '' === GWCPP_SPONSOR_URL && '' === GWCPP_GWC_URL ) {
+function gwc_pp_render_colophon(): void {
+	if ( '' === GWC_PP_SPONSOR_URL && '' === GWC_PP_GWC_URL ) {
 		return;
 	}
 
-	if ( gwcpp_colophon_is_collapsed() ) {
+	if ( gwc_pp_colophon_is_collapsed() ) {
 		?>
 		<div class="gwcpp-colophon gwcpp-colophon--collapsed">
 			<span class="gwcpp-colophon__logo" aria-hidden="true"></span>
 			<span class="screen-reader-text"><?php esc_html_e( 'Groundwork Common', 'groundwork-common-post-portal' ); ?></span>
-			<a class="gwcpp-colophon__toggle" href="<?php echo esc_url( gwcpp_colophon_toggle_url( 'expand' ) ); ?>">
+			<a class="gwcpp-colophon__toggle" href="<?php echo esc_url( gwc_pp_colophon_toggle_url( 'expand' ) ); ?>">
 				<?php esc_html_e( 'Show', 'groundwork-common-post-portal' ); ?>
 			</a>
 		</div>
@@ -902,7 +902,7 @@ function gwcpp_render_colophon(): void {
 	}
 	?>
 	<div class="gwcpp-colophon">
-		<a class="gwcpp-colophon__toggle" href="<?php echo esc_url( gwcpp_colophon_toggle_url( 'collapse' ) ); ?>">
+		<a class="gwcpp-colophon__toggle" href="<?php echo esc_url( gwc_pp_colophon_toggle_url( 'collapse' ) ); ?>">
 			<?php esc_html_e( 'Hide for 30 days', 'groundwork-common-post-portal' ); ?>
 		</a>
 
@@ -922,7 +922,7 @@ function gwcpp_render_colophon(): void {
 				 * by ink — "-light" is the one for light backgrounds.
 				 */
 				?>
-				<a href="<?php echo esc_url( GWCPP_GWC_URL ); ?>" target="_blank" rel="noopener noreferrer">
+				<a href="<?php echo esc_url( GWC_PP_GWC_URL ); ?>" target="_blank" rel="noopener noreferrer">
 					<span class="screen-reader-text"><?php esc_html_e( 'Groundwork Common', 'groundwork-common-post-portal' ); ?></span>
 					<span class="gwcpp-colophon__logo" aria-hidden="true"></span>
 				</a>
@@ -936,9 +936,9 @@ function gwcpp_render_colophon(): void {
 				 * can break and no HTML has to survive a round trip through
 				 * translate.wordpress.org.
 				 */
-				$gwcpp_gwc_link = sprintf(
+				$gwc_pp_gwc_link = sprintf(
 					'<a href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>',
-					esc_url( GWCPP_GWC_URL ),
+					esc_url( GWC_PP_GWC_URL ),
 					esc_html__( 'Groundwork Common', 'groundwork-common-post-portal' )
 				);
 
@@ -946,7 +946,7 @@ function gwcpp_render_colophon(): void {
 					/* translators: %s: Groundwork Common, linked to the company site. */
 					esc_html__( '%s provides technology leadership and support for nonprofits — fractional, by the project, or alongside an in-house team. We release tools like this one because good technology work should leave an organization more capable, not more dependent on whoever built it.', 'groundwork-common-post-portal' ),
 					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Assembled directly above from esc_url() and esc_html__().
-					$gwcpp_gwc_link
+					$gwc_pp_gwc_link
 				);
 				?>
 			</p>
@@ -957,7 +957,7 @@ function gwcpp_render_colophon(): void {
 
 			<?php /* Directly under the referral ask, which is what it answers. */ ?>
 			<p>
-				<a class="button" href="<?php echo esc_url( GWCPP_GWC_URL ); ?>" target="_blank" rel="noopener noreferrer">
+				<a class="button" href="<?php echo esc_url( GWC_PP_GWC_URL ); ?>" target="_blank" rel="noopener noreferrer">
 					<?php esc_html_e( 'Learn about Groundwork Common', 'groundwork-common-post-portal' ); ?>
 				</a>
 			</p>
@@ -965,20 +965,20 @@ function gwcpp_render_colophon(): void {
 
 		<?php /* Second column: the two things a reader can act on. */ ?>
 		<div class="gwcpp-colophon__aside">
-			<?php if ( '' !== GWCPP_SPONSOR_URL ) : ?>
+			<?php if ( '' !== GWC_PP_SPONSOR_URL ) : ?>
 				<p>
 					<?php esc_html_e( 'You can also support our WordPress plugins directly. While we offer the plugin free to you, it costs us to maintain it — the security updates, the compatibility testing against each new WordPress release, the bug nobody but you has hit. We can’t do it without your support, and we appreciate whatever support you can give.', 'groundwork-common-post-portal' ); ?>
 				</p>
 
 				<p>
-					<a class="button button-primary" href="<?php echo esc_url( GWCPP_SPONSOR_URL ); ?>" target="_blank" rel="noopener noreferrer">
+					<a class="button button-primary" href="<?php echo esc_url( GWC_PP_SPONSOR_URL ); ?>" target="_blank" rel="noopener noreferrer">
 						<?php esc_html_e( 'Support our work', 'groundwork-common-post-portal' ); ?>
 					</a>
 				</p>
 			<?php endif; ?>
 
 			<p>
-				<a href="<?php echo esc_url( GWCPP_ISSUES_URL ); ?>" target="_blank" rel="noopener noreferrer">
+				<a href="<?php echo esc_url( GWC_PP_ISSUES_URL ); ?>" target="_blank" rel="noopener noreferrer">
 					<?php esc_html_e( 'Report a problem', 'groundwork-common-post-portal' ); ?>
 				</a>
 			</p>

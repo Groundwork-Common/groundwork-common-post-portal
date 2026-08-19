@@ -25,7 +25,7 @@ defined( 'ABSPATH' ) || exit;
  * @param string $type Type slug.
  * @return string
  */
-function gwcpp_field_label_mode( string $type ): string {
+function gwc_pp_field_label_mode( string $type ): string {
 	if ( in_array( $type, array( 'radio', 'multiselect' ), true ) ) {
 		return 'legend';
 	}
@@ -42,13 +42,13 @@ function gwcpp_field_label_mode( string $type ): string {
  * @param mixed  $value Current value.
  * @param string $error Message for this field, or ''.
  */
-function gwcpp_render_field( array $field, $value, string $error = '' ): void {
+function gwc_pp_render_field( array $field, $value, string $error = '' ): void {
 	$key   = (string) $field['key'];
 	$type  = (string) $field['type'];
-	$name  = GWCPP_FIELD_PARAM . '[' . $key . ']';
-	$id    = gwcpp_field_id( $name );
-	$mode  = gwcpp_field_label_mode( $type );
-	$label = gwcpp_field_label( $field );
+	$name  = GWC_PP_FIELD_PARAM . '[' . $key . ']';
+	$id    = gwc_pp_field_id( $name );
+	$mode  = gwc_pp_field_label_mode( $type );
+	$label = gwc_pp_field_label( $field );
 	$help  = (string) ( $field['description'] ?? '' );
 
 	$describedby = array();
@@ -73,17 +73,17 @@ function gwcpp_render_field( array $field, $value, string $error = '' ): void {
 	if ( 'legend' === $mode ) {
 		echo '<fieldset class="gwcpp-fieldset"><legend class="gwcpp-label">';
 		echo esc_html( $label );
-		gwcpp_render_required_mark( $field );
+		gwc_pp_render_required_mark( $field );
 		echo '</legend>';
 	} elseif ( 'label' === $mode ) {
 		printf( '<label class="gwcpp-label" for="%s">', esc_attr( $id ) );
 		echo esc_html( $label );
-		gwcpp_render_required_mark( $field );
+		gwc_pp_render_required_mark( $field );
 		echo '</label>';
 	} else {
 		echo '<span class="gwcpp-label">';
 		echo esc_html( $label );
-		gwcpp_render_required_mark( $field );
+		gwc_pp_render_required_mark( $field );
 		echo '</span>';
 	}
 
@@ -103,7 +103,7 @@ function gwcpp_render_field( array $field, $value, string $error = '' ): void {
 	}
 
 	echo '<div class="gwcpp-field__control">';
-	gwcpp_field_call( $field, 'render_portal', array( $field, $value, $name, $ctx ) );
+	gwc_pp_field_call( $field, 'render_portal', array( $field, $value, $name, $ctx ) );
 	echo '</div>';
 
 	if ( '' !== $error ) {
@@ -130,7 +130,7 @@ function gwcpp_render_field( array $field, $value, string $error = '' ): void {
  *
  * @param array $field Field definition.
  */
-function gwcpp_render_required_mark( array $field ): void {
+function gwc_pp_render_required_mark( array $field ): void {
 	if ( empty( $field['required'] ) ) {
 		return;
 	}
@@ -148,8 +148,8 @@ function gwcpp_render_required_mark( array $field ): void {
  * @param array   $values Current or resubmitted values.
  * @param array   $errors Field key => message.
  */
-function gwcpp_render_edit_form( WP_Post $post, array $values, array $errors = array() ): void {
-	$fields = gwcpp_type_fields( $post->post_type );
+function gwc_pp_render_edit_form( WP_Post $post, array $values, array $errors = array() ): void {
+	$fields = gwc_pp_type_fields( $post->post_type );
 
 	if ( ! $fields ) {
 		printf(
@@ -159,7 +159,7 @@ function gwcpp_render_edit_form( WP_Post $post, array $values, array $errors = a
 		return;
 	}
 
-	$summary = gwcpp_error_summary( $errors );
+	$summary = gwc_pp_error_summary( $errors );
 
 	/*
 	 * enctype unconditionally, rather than only when a media field is mapped.
@@ -168,7 +168,7 @@ function gwcpp_render_edit_form( WP_Post $post, array $values, array $errors = a
 	 * would get it wrong is "somebody added a media field after this template
 	 * was written".
 	 */
-	echo '<form class="gwcpp-form" method="post" enctype="multipart/form-data" action="' . esc_url( gwcpp_portal_url() ) . '">';
+	echo '<form class="gwcpp-form" method="post" enctype="multipart/form-data" action="' . esc_url( gwc_pp_portal_url() ) . '">';
 
 	if ( '' !== $summary ) {
 		printf(
@@ -177,12 +177,12 @@ function gwcpp_render_edit_form( WP_Post $post, array $values, array $errors = a
 		);
 	}
 
-	wp_nonce_field( 'gwcpp_save_' . $post->ID, 'gwcpp_save_nonce' );
-	printf( '<input type="hidden" name="gwcpp_post_id" value="%d" />', (int) $post->ID );
+	wp_nonce_field( 'gwc_pp_save_' . $post->ID, 'gwc_pp_save_nonce' );
+	printf( '<input type="hidden" name="gwc_pp_post_id" value="%d" />', (int) $post->ID );
 
 	foreach ( $fields as $field ) {
 		$key = (string) $field['key'];
-		gwcpp_render_field(
+		gwc_pp_render_field(
 			$field,
 			$values[ $key ] ?? null,
 			isset( $errors[ $key ] ) ? (string) $errors[ $key ] : ''
@@ -190,15 +190,15 @@ function gwcpp_render_edit_form( WP_Post $post, array $values, array $errors = a
 	}
 
 	printf(
-		'<div class="gwcpp-actions"><button type="submit" name="gwcpp_save" value="1" class="gwcpp-button gwcpp-button--primary">%s</button> <a class="gwcpp-button gwcpp-button--quiet" href="%s">%s</a></div>',
-		esc_html( gwcpp_save_button_label( $post->post_type ) ),
-		esc_url( gwcpp_portal_url() ),
+		'<div class="gwcpp-actions"><button type="submit" name="gwc_pp_save" value="1" class="gwcpp-button gwcpp-button--primary">%s</button> <a class="gwcpp-button gwcpp-button--quiet" href="%s">%s</a></div>',
+		esc_html( gwc_pp_save_button_label( $post->post_type ) ),
+		esc_url( gwc_pp_portal_url() ),
 		esc_html__( 'Cancel', 'groundwork-common-post-portal' )
 	);
 
 	echo '</form>';
 
-	gwcpp_render_unpublish_form( $post );
+	gwc_pp_render_unpublish_form( $post );
 }
 
 /**
@@ -212,8 +212,8 @@ function gwcpp_render_edit_form( WP_Post $post, array $values, array $errors = a
  * @param string $post_type Post type slug.
  * @return string
  */
-function gwcpp_save_button_label( string $post_type ): string {
-	return gwcpp_type_setting( $post_type, 'require_approval' )
+function gwc_pp_save_button_label( string $post_type ): string {
+	return gwc_pp_type_setting( $post_type, 'require_approval' )
 		? __( 'Submit changes for review', 'groundwork-common-post-portal' )
 		: __( 'Save changes', 'groundwork-common-post-portal' );
 }
@@ -227,17 +227,17 @@ function gwcpp_save_button_label( string $post_type ): string {
  *
  * @param WP_Post $post The post.
  */
-function gwcpp_render_unpublish_form( WP_Post $post ): void {
-	if ( ! gwcpp_type_setting( $post->post_type, 'allow_unpublish' ) ) {
+function gwc_pp_render_unpublish_form( WP_Post $post ): void {
+	if ( ! gwc_pp_type_setting( $post->post_type, 'allow_unpublish' ) ) {
 		return;
 	}
 
 	if ( 'publish' === $post->post_status ) {
-		echo '<form class="gwcpp-form gwcpp-form--danger" method="post" action="' . esc_url( gwcpp_portal_url() ) . '">';
-		wp_nonce_field( 'gwcpp_unpublish_' . $post->ID, 'gwcpp_unpublish_nonce' );
-		printf( '<input type="hidden" name="gwcpp_post_id" value="%d" />', (int) $post->ID );
+		echo '<form class="gwcpp-form gwcpp-form--danger" method="post" action="' . esc_url( gwc_pp_portal_url() ) . '">';
+		wp_nonce_field( 'gwc_pp_unpublish_' . $post->ID, 'gwc_pp_unpublish_nonce' );
+		printf( '<input type="hidden" name="gwc_pp_post_id" value="%d" />', (int) $post->ID );
 		printf(
-			'<h2 class="gwcpp-danger__title">%s</h2><p>%s</p><button type="submit" name="gwcpp_unpublish" value="1" class="gwcpp-button gwcpp-button--danger">%s</button>',
+			'<h2 class="gwcpp-danger__title">%s</h2><p>%s</p><button type="submit" name="gwc_pp_unpublish" value="1" class="gwcpp-button gwcpp-button--danger">%s</button>',
 			esc_html__( 'Take this off the site', 'groundwork-common-post-portal' ),
 			esc_html__( 'This hides it from the public. Nothing is deleted, and it can be put back.', 'groundwork-common-post-portal' ),
 			esc_html__( 'Take it off the site', 'groundwork-common-post-portal' )
@@ -246,12 +246,12 @@ function gwcpp_render_unpublish_form( WP_Post $post ): void {
 		return;
 	}
 
-	if ( 'draft' === $post->post_status && get_post_meta( $post->ID, '_gwcpp_unpublished_by', true ) ) {
-		echo '<form class="gwcpp-form" method="post" action="' . esc_url( gwcpp_portal_url() ) . '">';
-		wp_nonce_field( 'gwcpp_republish_' . $post->ID, 'gwcpp_republish_nonce' );
-		printf( '<input type="hidden" name="gwcpp_post_id" value="%d" />', (int) $post->ID );
+	if ( 'draft' === $post->post_status && get_post_meta( $post->ID, '_gwc_pp_unpublished_by', true ) ) {
+		echo '<form class="gwcpp-form" method="post" action="' . esc_url( gwc_pp_portal_url() ) . '">';
+		wp_nonce_field( 'gwc_pp_republish_' . $post->ID, 'gwc_pp_republish_nonce' );
+		printf( '<input type="hidden" name="gwc_pp_post_id" value="%d" />', (int) $post->ID );
 		printf(
-			'<p>%s</p><button type="submit" name="gwcpp_republish" value="1" class="gwcpp-button">%s</button>',
+			'<p>%s</p><button type="submit" name="gwc_pp_republish" value="1" class="gwcpp-button">%s</button>',
 			esc_html__( 'This is currently hidden from the public.', 'groundwork-common-post-portal' ),
 			esc_html__( 'Put it back on the site', 'groundwork-common-post-portal' )
 		);
@@ -266,8 +266,8 @@ function gwcpp_render_unpublish_form( WP_Post $post ): void {
  * @param array  $values    Resubmitted values.
  * @param array  $errors    Field key => message.
  */
-function gwcpp_render_create_form( string $post_type, array $values = array(), array $errors = array() ): void {
-	$fields = gwcpp_type_fields( $post_type );
+function gwc_pp_render_create_form( string $post_type, array $values = array(), array $errors = array() ): void {
+	$fields = gwc_pp_type_fields( $post_type );
 	$object = get_post_type_object( $post_type );
 
 	if ( ! $fields || ! $object ) {
@@ -278,9 +278,9 @@ function gwcpp_render_create_form( string $post_type, array $values = array(), a
 		return;
 	}
 
-	$summary = gwcpp_error_summary( $errors );
+	$summary = gwc_pp_error_summary( $errors );
 
-	echo '<form class="gwcpp-form" method="post" enctype="multipart/form-data" action="' . esc_url( gwcpp_portal_url() ) . '">';
+	echo '<form class="gwcpp-form" method="post" enctype="multipart/form-data" action="' . esc_url( gwc_pp_portal_url() ) . '">';
 
 	if ( '' !== $summary ) {
 		printf(
@@ -289,12 +289,12 @@ function gwcpp_render_create_form( string $post_type, array $values = array(), a
 		);
 	}
 
-	wp_nonce_field( 'gwcpp_create_' . $post_type, 'gwcpp_create_nonce' );
-	printf( '<input type="hidden" name="gwcpp_post_type" value="%s" />', esc_attr( $post_type ) );
+	wp_nonce_field( 'gwc_pp_create_' . $post_type, 'gwc_pp_create_nonce' );
+	printf( '<input type="hidden" name="gwc_pp_post_type" value="%s" />', esc_attr( $post_type ) );
 
 	foreach ( $fields as $field ) {
 		$key = (string) $field['key'];
-		gwcpp_render_field(
+		gwc_pp_render_field(
 			$field,
 			$values[ $key ] ?? null,
 			isset( $errors[ $key ] ) ? (string) $errors[ $key ] : ''
@@ -302,9 +302,9 @@ function gwcpp_render_create_form( string $post_type, array $values = array(), a
 	}
 
 	printf(
-		'<div class="gwcpp-actions"><button type="submit" name="gwcpp_create" value="1" class="gwcpp-button gwcpp-button--primary">%s</button> <a class="gwcpp-button gwcpp-button--quiet" href="%s">%s</a></div>',
+		'<div class="gwcpp-actions"><button type="submit" name="gwc_pp_create" value="1" class="gwcpp-button gwcpp-button--primary">%s</button> <a class="gwcpp-button gwcpp-button--quiet" href="%s">%s</a></div>',
 		esc_html__( 'Add it', 'groundwork-common-post-portal' ),
-		esc_url( gwcpp_portal_url() ),
+		esc_url( gwc_pp_portal_url() ),
 		esc_html__( 'Cancel', 'groundwork-common-post-portal' )
 	);
 

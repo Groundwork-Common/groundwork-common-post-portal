@@ -8,7 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /** User meta, single: marks an account this plugin created. */
-const GWCPP_PROVISIONED_META = '_gwcpp_provisioned';
+const GWC_PP_PROVISIONED_META = '_gwc_pp_provisioned';
 
 /**
  * Give somebody access to an organisation, creating their account if needed.
@@ -33,23 +33,23 @@ const GWCPP_PROVISIONED_META = '_gwcpp_provisioned';
  * @param string $email  Email address.
  * @return int|WP_Error User ID, or an error whose message is safe to show staff.
  */
-function gwcpp_grant_access( int $org_id, string $email ) {
+function gwc_pp_grant_access( int $org_id, string $email ) {
 	$email = sanitize_email( trim( $email ) );
 
 	if ( ! is_email( $email ) ) {
-		return new WP_Error( 'gwcpp_bad_email', __( 'That does not look like an email address.', 'groundwork-common-post-portal' ) );
+		return new WP_Error( 'gwc_pp_bad_email', __( 'That does not look like an email address.', 'groundwork-common-post-portal' ) );
 	}
 
-	if ( $org_id <= 0 || GWCPP_ORG_TYPE !== get_post_type( $org_id ) ) {
-		return new WP_Error( 'gwcpp_bad_org', __( 'That organisation no longer exists.', 'groundwork-common-post-portal' ) );
+	if ( $org_id <= 0 || GWC_PP_ORG_TYPE !== get_post_type( $org_id ) ) {
+		return new WP_Error( 'gwc_pp_bad_org', __( 'That organisation no longer exists.', 'groundwork-common-post-portal' ) );
 	}
 
 	$existing = get_user_by( 'email', $email );
 
 	if ( $existing instanceof WP_User ) {
-		if ( ! gwcpp_user_is_portal_user( $existing->ID ) ) {
+		if ( ! gwc_pp_user_is_portal_user( $existing->ID ) ) {
 			return new WP_Error(
-				'gwcpp_existing_user',
+				'gwc_pp_existing_user',
 				sprintf(
 					/* translators: %s: an email address. */
 					__( '%s already has an account on this site that is not a portal account. Adding portal access to it could change what that person can do elsewhere, so it has to be done deliberately — either invite a different address, or change that account\'s role yourself first.', 'groundwork-common-post-portal' ),
@@ -58,14 +58,14 @@ function gwcpp_grant_access( int $org_id, string $email ) {
 			);
 		}
 
-		gwcpp_add_user_to_org( $existing->ID, $org_id );
+		gwc_pp_add_user_to_org( $existing->ID, $org_id );
 
 		return $existing->ID;
 	}
 
 	$user_id = wp_insert_user(
 		array(
-			'user_login'   => gwcpp_unique_login( $email ),
+			'user_login'   => gwc_pp_unique_login( $email ),
 			'user_email'   => $email,
 			// Never shown to anybody, never emailed, and never usable: sign-in
 			// is a link, and wp_generate_password() at this length is not
@@ -76,8 +76,8 @@ function gwcpp_grant_access( int $org_id, string $email ) {
 			// on password sign-in later needs these accounts to be able to hold
 			// a real password once somebody sets one.
 			'user_pass'    => wp_generate_password( 64, true, true ),
-			'display_name' => gwcpp_display_name_from_email( $email ),
-			'role'         => GWCPP_ROLE,
+			'display_name' => gwc_pp_display_name_from_email( $email ),
+			'role'         => GWC_PP_ROLE,
 		)
 	);
 
@@ -85,8 +85,8 @@ function gwcpp_grant_access( int $org_id, string $email ) {
 		return $user_id;
 	}
 
-	update_user_meta( $user_id, GWCPP_PROVISIONED_META, 1 );
-	gwcpp_add_user_to_org( (int) $user_id, $org_id );
+	update_user_meta( $user_id, GWC_PP_PROVISIONED_META, 1 );
+	gwc_pp_add_user_to_org( (int) $user_id, $org_id );
 
 	return (int) $user_id;
 }
@@ -101,7 +101,7 @@ function gwcpp_grant_access( int $org_id, string $email ) {
  * @param string $email Email address.
  * @return string
  */
-function gwcpp_unique_login( string $email ): string {
+function gwc_pp_unique_login( string $email ): string {
 	$local = strstr( $email, '@', true );
 	$base  = sanitize_user( is_string( $local ) ? $local : $email, true );
 	$base  = strtolower( trim( $base, '.-_' ) );
@@ -142,7 +142,7 @@ function gwcpp_unique_login( string $email ): string {
  * @param string $email Email address.
  * @return string
  */
-function gwcpp_display_name_from_email( string $email ): string {
+function gwc_pp_display_name_from_email( string $email ): string {
 	$local = strstr( $email, '@', true );
 	if ( ! is_string( $local ) || '' === $local ) {
 		return $email;
@@ -173,8 +173,8 @@ function gwcpp_display_name_from_email( string $email ): string {
  * @param bool $destroy_sessions End their signed-in sessions immediately.
  * @return bool
  */
-function gwcpp_revoke_access( int $user_id, int $org_id, bool $destroy_sessions = true ): bool {
-	$removed = gwcpp_remove_user_from_org( $user_id, $org_id );
+function gwc_pp_revoke_access( int $user_id, int $org_id, bool $destroy_sessions = true ): bool {
+	$removed = gwc_pp_remove_user_from_org( $user_id, $org_id );
 
 	if ( $removed && $destroy_sessions ) {
 		/*
@@ -197,8 +197,8 @@ function gwcpp_revoke_access( int $user_id, int $org_id, bool $destroy_sessions 
  * @param int $user_id User ID.
  * @return bool
  */
-function gwcpp_user_was_provisioned( int $user_id ): bool {
-	return (bool) get_user_meta( $user_id, GWCPP_PROVISIONED_META, true );
+function gwc_pp_user_was_provisioned( int $user_id ): bool {
+	return (bool) get_user_meta( $user_id, GWC_PP_PROVISIONED_META, true );
 }
 
 /**
@@ -207,9 +207,9 @@ function gwcpp_user_was_provisioned( int $user_id ): bool {
  * @param int $user_id User ID.
  * @return string
  */
-function gwcpp_user_org_names( int $user_id ): string {
+function gwc_pp_user_org_names( int $user_id ): string {
 	$names = array();
-	foreach ( gwcpp_user_orgs( $user_id ) as $org_id ) {
+	foreach ( gwc_pp_user_orgs( $user_id ) as $org_id ) {
 		$title = get_the_title( $org_id );
 		if ( '' !== $title ) {
 			$names[] = $title;

@@ -14,6 +14,6 @@
 		"align": [ "wide", "full" ]
 	},
 	"editorScript": "file:./edit.js",
-	"style": "gwcpp-portal",
+	"style": "gwc-pp-portal",
 	"render": "file:./render.php"
 }

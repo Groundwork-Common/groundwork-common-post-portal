@@ -5,7 +5,7 @@
  * ── What this is guarding ────────────────────────────────────────────────────
  * The media control carries the current attachment forward in a hidden `keep`
  * input, so that a save which does not touch the file does not clear it. Hidden
- * means attacker-controlled, and gwcpp_sanitize_media() only ever checked that
+ * means attacker-controlled, and gwc_pp_sanitize_media() only ever checked that
  * the ID named *an* attachment — not that it named this post's attachment.
  *
  * Posting somebody else's ID therefore got you that file's thumbnail, URL and
@@ -16,7 +16,7 @@
  *
  * The check cannot live in the sanitizer, which is handed a value and a field
  * definition and has no idea which post is being edited. It lives in
- * gwcpp_reconcile_media(), run from gwcpp_apply_uploads() in the save path.
+ * gwc_pp_reconcile_media(), run from gwc_pp_apply_uploads() in the save path.
  *
  * @package PostPortal
  */
@@ -39,15 +39,15 @@ final class MediaReconcileTest extends TestCase {
 	);
 
 	protected function setUp(): void {
-		gwcpp_test_reset();
-		$GLOBALS['gwcpp_test']['types'][] = 'clinic';
+		gwc_pp_test_reset();
+		$GLOBALS['gwc_pp_test']['types'][] = 'clinic';
 
-		gwcpp_test_post( self::POST, 'clinic', 'publish', 0, 'Main Street Clinic' );
-		gwcpp_test_post( self::OTHER, 'clinic', 'publish', 0, 'Other Clinic' );
+		gwc_pp_test_post( self::POST, 'clinic', 'publish', 0, 'Main Street Clinic' );
+		gwc_pp_test_post( self::OTHER, 'clinic', 'publish', 0, 'Other Clinic' );
 
-		gwcpp_test_post( self::MINE, 'attachment' );
-		gwcpp_test_post( self::THEIRS, 'attachment' );
-		gwcpp_test_post( self::FRESH, 'attachment' );
+		gwc_pp_test_post( self::MINE, 'attachment' );
+		gwc_pp_test_post( self::THEIRS, 'attachment' );
+		gwc_pp_test_post( self::FRESH, 'attachment' );
 
 		// What this post actually carries.
 		update_post_meta( self::POST, 'photo', self::MINE );
@@ -60,13 +60,13 @@ final class MediaReconcileTest extends TestCase {
 	public function test_another_posts_attachment_is_refused(): void {
 		$this->assertSame(
 			'',
-			gwcpp_reconcile_media( self::THEIRS, $this->field, self::POST ),
+			gwc_pp_reconcile_media( self::THEIRS, $this->field, self::POST ),
 			'A hidden input naming another organisation\'s file must not be honoured.'
 		);
 	}
 
 	public function test_an_arbitrary_attachment_id_is_refused(): void {
-		$this->assertSame( '', gwcpp_reconcile_media( 4242, $this->field, self::POST ) );
+		$this->assertSame( '', gwc_pp_reconcile_media( 4242, $this->field, self::POST ) );
 	}
 
 	/**
@@ -77,7 +77,7 @@ final class MediaReconcileTest extends TestCase {
 	public function test_the_sanitizer_alone_does_not_catch_it(): void {
 		$this->assertSame(
 			self::THEIRS,
-			gwcpp_sanitize_media( array( 'keep' => self::THEIRS ) ),
+			gwc_pp_sanitize_media( array( 'keep' => self::THEIRS ) ),
 			'The sanitizer checks shape only; ownership is the save path\'s job.'
 		);
 	}
@@ -85,13 +85,13 @@ final class MediaReconcileTest extends TestCase {
 	/* ── The three things that are legitimate ────────────────────────────── */
 
 	public function test_the_posts_own_attachment_survives(): void {
-		$this->assertSame( self::MINE, gwcpp_reconcile_media( self::MINE, $this->field, self::POST ) );
+		$this->assertSame( self::MINE, gwc_pp_reconcile_media( self::MINE, $this->field, self::POST ) );
 	}
 
 	public function test_an_attachment_uploaded_by_this_submission_survives(): void {
 		$this->assertSame(
 			self::FRESH,
-			gwcpp_reconcile_media( self::FRESH, $this->field, self::POST, self::FRESH )
+			gwc_pp_reconcile_media( self::FRESH, $this->field, self::POST, self::FRESH )
 		);
 	}
 
@@ -102,20 +102,20 @@ final class MediaReconcileTest extends TestCase {
 	 * waiting for review.
 	 */
 	public function test_a_pending_changesets_attachment_survives(): void {
-		gwcpp_store_changeset( self::POST, 7, array( 'photo' => self::FRESH ), array( self::FRESH ) );
+		gwc_pp_store_changeset( self::POST, 7, array( 'photo' => self::FRESH ), array( self::FRESH ) );
 
 		$this->assertSame(
 			self::FRESH,
-			gwcpp_reconcile_media( self::FRESH, $this->field, self::POST )
+			gwc_pp_reconcile_media( self::FRESH, $this->field, self::POST )
 		);
 	}
 
 	public function test_a_pending_changeset_does_not_launder_a_foreign_attachment(): void {
-		gwcpp_store_changeset( self::POST, 7, array( 'photo' => self::FRESH ), array( self::FRESH ) );
+		gwc_pp_store_changeset( self::POST, 7, array( 'photo' => self::FRESH ), array( self::FRESH ) );
 
 		$this->assertSame(
 			'',
-			gwcpp_reconcile_media( self::THEIRS, $this->field, self::POST )
+			gwc_pp_reconcile_media( self::THEIRS, $this->field, self::POST )
 		);
 	}
 
@@ -124,7 +124,7 @@ final class MediaReconcileTest extends TestCase {
 	public function test_nothing_can_be_kept_when_creating(): void {
 		$this->assertSame(
 			'',
-			gwcpp_reconcile_media( self::MINE, $this->field, 0 ),
+			gwc_pp_reconcile_media( self::MINE, $this->field, 0 ),
 			'There is no post yet, so nothing can have been carried forward.'
 		);
 	}
@@ -132,35 +132,35 @@ final class MediaReconcileTest extends TestCase {
 	public function test_an_upload_still_survives_when_creating(): void {
 		$this->assertSame(
 			self::FRESH,
-			gwcpp_reconcile_media( self::FRESH, $this->field, 0, self::FRESH )
+			gwc_pp_reconcile_media( self::FRESH, $this->field, 0, self::FRESH )
 		);
 	}
 
 	/* ── Emptiness ───────────────────────────────────────────────────────── */
 
 	public function test_empty_stays_empty(): void {
-		$this->assertSame( '', gwcpp_reconcile_media( '', $this->field, self::POST ) );
-		$this->assertSame( '', gwcpp_reconcile_media( 0, $this->field, self::POST ) );
+		$this->assertSame( '', gwc_pp_reconcile_media( '', $this->field, self::POST ) );
+		$this->assertSame( '', gwc_pp_reconcile_media( 0, $this->field, self::POST ) );
 	}
 
 	/* ── Wired into the save path, not just declared ─────────────────────── */
 
 	public function test_the_media_type_declares_the_reconciler(): void {
-		$def = gwcpp_field_type( 'media' );
+		$def = gwc_pp_field_type( 'media' );
 
 		$this->assertIsArray( $def );
 		$this->assertSame(
-			'gwcpp_reconcile_media',
+			'gwc_pp_reconcile_media',
 			$def['reconcile'] ?? '',
-			'gwcpp_apply_uploads() runs this off the type registry; unregistered means never called.'
+			'gwc_pp_apply_uploads() runs this off the type registry; unregistered means never called.'
 		);
 	}
 
 	public function test_apply_uploads_refuses_a_foreign_attachment_end_to_end(): void {
-		update_option( 'gwcpp_settings', array( 'post_types' => array( 'clinic' ) ) );
-		gwcpp_settings_cache( null, true );
+		update_option( 'gwc_pp_settings', array( 'post_types' => array( 'clinic' ) ) );
+		gwc_pp_settings_cache( null, true );
 
-		gwcpp_save_schema(
+		gwc_pp_save_schema(
 			array(
 				'types' => array(
 					'clinic' => array(
@@ -172,16 +172,16 @@ final class MediaReconcileTest extends TestCase {
 			)
 		);
 
-		$result = gwcpp_apply_uploads( 'clinic', array( 'photo' => self::THEIRS ), 7, self::POST );
+		$result = gwc_pp_apply_uploads( 'clinic', array( 'photo' => self::THEIRS ), 7, self::POST );
 
 		$this->assertSame( '', $result['values']['photo'] );
 	}
 
 	public function test_apply_uploads_keeps_the_posts_own_attachment_end_to_end(): void {
-		update_option( 'gwcpp_settings', array( 'post_types' => array( 'clinic' ) ) );
-		gwcpp_settings_cache( null, true );
+		update_option( 'gwc_pp_settings', array( 'post_types' => array( 'clinic' ) ) );
+		gwc_pp_settings_cache( null, true );
 
-		gwcpp_save_schema(
+		gwc_pp_save_schema(
 			array(
 				'types' => array(
 					'clinic' => array(
@@ -193,7 +193,7 @@ final class MediaReconcileTest extends TestCase {
 			)
 		);
 
-		$result = gwcpp_apply_uploads( 'clinic', array( 'photo' => self::MINE ), 7, self::POST );
+		$result = gwc_pp_apply_uploads( 'clinic', array( 'photo' => self::MINE ), 7, self::POST );
 
 		$this->assertSame( self::MINE, $result['values']['photo'] );
 	}

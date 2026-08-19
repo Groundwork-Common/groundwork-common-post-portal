@@ -22,14 +22,14 @@ defined( 'ABSPATH' ) || exit;
  * render path and always after `init`. The static memo means the tables are
  * still built once per request.
  *
- * Tables with no strings in them stay `const` — GWCPP_PORTAL_VIEWS below — for
+ * Tables with no strings in them stay `const` — GWC_PP_PORTAL_VIEWS below — for
  * exactly the same reason inverted: there is nothing to translate, so there is
  * nothing to defer.
  * ───────────────────────────────────────────────────────────────────────────
  */
 
 /** The views the portal can be in. Order is the order of the nav. */
-const GWCPP_PORTAL_VIEWS = array( 'list', 'edit', 'new', 'account' );
+const GWC_PP_PORTAL_VIEWS = array( 'list', 'edit', 'new', 'account' );
 
 /**
  * Post statuses as a portal user should see them named.
@@ -41,7 +41,7 @@ const GWCPP_PORTAL_VIEWS = array( 'list', 'edit', 'new', 'account' );
  *
  * @return array<string, string>
  */
-function gwcpp_status_labels(): array {
+function gwc_pp_status_labels(): array {
 	static $labels = null;
 	if ( null !== $labels ) {
 		return $labels;
@@ -68,8 +68,8 @@ function gwcpp_status_labels(): array {
  * @param string $status Post status slug.
  * @return string
  */
-function gwcpp_status_label( string $status ): string {
-	$labels = gwcpp_status_labels();
+function gwc_pp_status_label( string $status ): string {
+	$labels = gwc_pp_status_labels();
 	return $labels[ $status ] ?? $status;
 }
 
@@ -86,7 +86,7 @@ function gwcpp_status_label( string $status ): string {
  *
  * @return string
  */
-function gwcpp_stale_form_message(): string {
+function gwc_pp_stale_form_message(): string {
 	static $message = null;
 	if ( null !== $message ) {
 		return $message;
@@ -105,7 +105,7 @@ function gwcpp_stale_form_message(): string {
  *
  * @return array<string, string>
  */
-function gwcpp_field_groups(): array {
+function gwc_pp_field_groups(): array {
 	static $groups = null;
 	if ( null !== $groups ) {
 		return $groups;

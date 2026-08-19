@@ -105,8 +105,8 @@
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<properties>
 			<property name="prefixes" type="array">
-				<element value="gwcpp"/>
-				<element value="GWCPP"/>
+				<element value="gwc_pp"/>
+				<element value="GWC_PP"/>
 			</property>
 		</properties>
 	</rule>

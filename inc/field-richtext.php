@@ -27,13 +27,13 @@ defined( 'ABSPATH' ) || exit;
  * running and raw <script> goes into a post.
  *
  * So this file's list is used every time, for every user, regardless of
- * capability. There is no path through gwcpp_sanitize_richtext() that stores
+ * capability. There is no path through gwc_pp_sanitize_richtext() that stores
  * what was submitted. The cost is that a portal user cannot write an embed. That
  * is the intended cost.
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-add_filter( 'gwcpp_field_types', 'gwcpp_register_richtext_type' );
+add_filter( 'gwc_pp_field_types', 'gwc_pp_register_richtext_type' );
 
 /**
  * Register the type.
@@ -41,17 +41,17 @@ add_filter( 'gwcpp_field_types', 'gwcpp_register_richtext_type' );
  * @param array $types Registry.
  * @return array
  */
-function gwcpp_register_richtext_type( array $types ): array {
+function gwc_pp_register_richtext_type( array $types ): array {
 	$types['richtext'] = array(
 		'label'         => __( 'Formatted text', 'groundwork-common-post-portal' ),
 		'group'         => 'rich',
-		'render_portal' => 'gwcpp_render_richtext',
-		'render_admin'  => 'gwcpp_render_richtext_admin',
-		'sanitize'      => 'gwcpp_sanitize_richtext',
-		'validate'      => 'gwcpp_validate_richtext',
-		'is_empty'      => 'gwcpp_empty_richtext',
-		'to_display'    => 'gwcpp_display_richtext',
-		'schema_form'   => 'gwcpp_schema_form_richtext',
+		'render_portal' => 'gwc_pp_render_richtext',
+		'render_admin'  => 'gwc_pp_render_richtext_admin',
+		'sanitize'      => 'gwc_pp_sanitize_richtext',
+		'validate'      => 'gwc_pp_validate_richtext',
+		'is_empty'      => 'gwc_pp_empty_richtext',
+		'to_display'    => 'gwc_pp_display_richtext',
+		'schema_form'   => 'gwc_pp_schema_form_richtext',
 	);
 
 	return $types;
@@ -67,7 +67,7 @@ function gwcpp_register_richtext_type( array $types ): array {
  *
  * @return array
  */
-function gwcpp_richtext_allowed_html(): array {
+function gwc_pp_richtext_allowed_html(): array {
 	/*
 	 * Empty, and it has to be written this way. No `class` and no `style`,
 	 * because both let submitted content borrow the site's own visual language,
@@ -93,7 +93,7 @@ function gwcpp_richtext_allowed_html(): array {
 	 * @param array $allowed wp_kses() allow-list.
 	 */
 	return (array) apply_filters(
-		'gwcpp_richtext_allowed_html',
+		'gwc_pp_richtext_allowed_html',
 		array(
 			'p'          => $common,
 			'br'         => array(),
@@ -124,8 +124,8 @@ function gwcpp_richtext_allowed_html(): array {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_sanitize_richtext( $raw, array $field = array() ): string {
-	$html = gwcpp_scalar_string( $raw );
+function gwc_pp_sanitize_richtext( $raw, array $field = array() ): string {
+	$html = gwc_pp_scalar_string( $raw );
 
 	if ( '' === trim( $html ) ) {
 		return '';
@@ -135,18 +135,18 @@ function gwcpp_sanitize_richtext( $raw, array $field = array() ): string {
 	 * wp_kses with our own list, never wp_kses_post, and never conditional on
 	 * current_user_can( 'unfiltered_html' ) — see the note at the top.
 	 */
-	$html = wp_kses( $html, gwcpp_richtext_allowed_html(), array( 'http', 'https', 'mailto', 'tel' ) );
+	$html = wp_kses( $html, gwc_pp_richtext_allowed_html(), array( 'http', 'https', 'mailto', 'tel' ) );
 
 	// Links out of submitted content get rel="nofollow noopener" whether or not
 	// the submitter wrote one, which is why rel is not in the allow-list.
-	$html = gwcpp_harden_links( $html );
+	$html = gwc_pp_harden_links( $html );
 
 	/*
 	 * Characters, not bytes. The setting is labelled "Character limit" on the
 	 * Fields screen and the refusal below says "under %d characters", and
 	 * strlen() counts neither — it counts bytes, so a limit of 300 refused
 	 * Japanese or Cyrillic text at about a hundred characters and then told the
-	 * person they had written too much. gwcpp_sanitize_text() has always used
+	 * person they had written too much. gwc_pp_sanitize_text() has always used
 	 * mb_substr for exactly this reason; this is the same rule, applied to the
 	 * one type that was still measuring the other thing.
 	 *
@@ -154,7 +154,7 @@ function gwcpp_sanitize_richtext( $raw, array $field = array() ): string {
 	 * on any build without mbstring, which is why blocked-words.php calls it the
 	 * same way.
 	 */
-	$max = (int) gwcpp_field_setting( $field, 'maxlength', 0 );
+	$max = (int) gwc_pp_field_setting( $field, 'maxlength', 0 );
 	if ( $max > 0 && mb_strlen( wp_strip_all_tags( $html ) ) > $max ) {
 		/*
 		 * Truncating HTML by length breaks tags in half and produces markup
@@ -173,7 +173,7 @@ function gwcpp_sanitize_richtext( $raw, array $field = array() ): string {
  * @param string $html Cleaned HTML.
  * @return string
  */
-function gwcpp_harden_links( string $html ): string {
+function gwc_pp_harden_links( string $html ): string {
 	return (string) preg_replace_callback(
 		'/<a\s([^>]*)>/i',
 		static function ( $m ) {
@@ -198,10 +198,10 @@ function gwcpp_harden_links( string $html ): string {
  * @param string $name  Form control name.
  * @param array  $ctx   Render context.
  */
-function gwcpp_render_richtext( array $field, $value, string $name, array $ctx = array() ): void {
+function gwc_pp_render_richtext( array $field, $value, string $name, array $ctx = array() ): void {
 	unset( $ctx );
 
-	$id = gwcpp_field_id( $name );
+	$id = gwc_pp_field_id( $name );
 
 	wp_editor(
 		is_scalar( $value ) ? (string) $value : '',
@@ -210,7 +210,7 @@ function gwcpp_render_richtext( array $field, $value, string $name, array $ctx =
 		str_replace( '-', '_', $id ),
 		array(
 			'textarea_name' => $name,
-			'textarea_rows' => max( 4, (int) gwcpp_field_setting( $field, 'rows', 8 ) ),
+			'textarea_rows' => max( 4, (int) gwc_pp_field_setting( $field, 'rows', 8 ) ),
 			'teeny'         => true,
 			'media_buttons' => false,
 			'quicktags'     => false,
@@ -229,8 +229,8 @@ function gwcpp_render_richtext( array $field, $value, string $name, array $ctx =
  * @param mixed  $value Stored value.
  * @param string $name  Form control name.
  */
-function gwcpp_render_richtext_admin( array $field, $value, string $name ): void {
-	gwcpp_render_richtext( $field, $value, $name, array() );
+function gwc_pp_render_richtext_admin( array $field, $value, string $name ): void {
+	gwc_pp_render_richtext( $field, $value, $name, array() );
 }
 
 /**
@@ -240,10 +240,10 @@ function gwcpp_render_richtext_admin( array $field, $value, string $name ): void
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_validate_richtext( $value, array $field = array() ): string {
+function gwc_pp_validate_richtext( $value, array $field = array() ): string {
 	unset( $value );
 
-	$max = (int) gwcpp_field_setting( $field, 'maxlength', 0 );
+	$max = (int) gwc_pp_field_setting( $field, 'maxlength', 0 );
 	if ( $max <= 0 ) {
 		return '';
 	}
@@ -266,7 +266,7 @@ function gwcpp_validate_richtext( $value, array $field = array() ): string {
  * @param array $field Field definition.
  * @return bool
  */
-function gwcpp_empty_richtext( $value, array $field = array() ): bool {
+function gwc_pp_empty_richtext( $value, array $field = array() ): bool {
 	unset( $field );
 
 	if ( ! is_scalar( $value ) ) {
@@ -298,7 +298,7 @@ function gwcpp_empty_richtext( $value, array $field = array() ): bool {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_display_richtext( $value, array $field = array() ): string {
+function gwc_pp_display_richtext( $value, array $field = array() ): string {
 	unset( $field );
 
 	if ( ! is_scalar( $value ) ) {
@@ -332,12 +332,12 @@ function gwcpp_display_richtext( $value, array $field = array() ): string {
  *
  * @param array $field Field definition.
  */
-function gwcpp_schema_form_richtext( array $field ): void {
-	gwcpp_schema_setting_input( 'rows', __( 'Rows', 'groundwork-common-post-portal' ), gwcpp_field_setting( $field, 'rows', 8 ), 'number' );
-	gwcpp_schema_setting_input(
+function gwc_pp_schema_form_richtext( array $field ): void {
+	gwc_pp_schema_setting_input( 'rows', __( 'Rows', 'groundwork-common-post-portal' ), gwc_pp_field_setting( $field, 'rows', 8 ), 'number' );
+	gwc_pp_schema_setting_input(
 		'maxlength',
 		__( 'Character limit', 'groundwork-common-post-portal' ),
-		gwcpp_field_setting( $field, 'maxlength' ),
+		gwc_pp_field_setting( $field, 'maxlength' ),
 		'number',
 		__( 'Counted on the text, not the markup. Leave blank for no limit.', 'groundwork-common-post-portal' )
 	);

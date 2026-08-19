@@ -7,30 +7,30 @@
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'admin_post_gwcpp_approve', 'gwcpp_handle_approve' );
-add_action( 'admin_post_gwcpp_reject', 'gwcpp_handle_reject' );
-add_action( 'add_meta_boxes', 'gwcpp_add_pending_meta_box', 20 );
+add_action( 'admin_post_gwc_pp_approve', 'gwc_pp_handle_approve' );
+add_action( 'admin_post_gwc_pp_reject', 'gwc_pp_handle_reject' );
+add_action( 'add_meta_boxes', 'gwc_pp_add_pending_meta_box', 20 );
 
 /**
  * The queue screen.
  */
-function gwcpp_queue_screen(): void {
-	gwcpp_require_admin_caps();
+function gwc_pp_queue_screen(): void {
+	gwc_pp_require_admin_caps();
 
-	$pending = gwcpp_pending_post_ids();
-	$total   = gwcpp_pending_count();
+	$pending = gwc_pp_pending_post_ids();
+	$total   = gwc_pp_pending_count();
 
 	echo '<div class="wrap gwcpp-admin">';
 	printf( '<h1>%s</h1>', esc_html__( 'Pending Changes', 'groundwork-common-post-portal' ) );
 
-	gwcpp_render_admin_notice();
+	gwc_pp_render_admin_notice();
 
 	/*
 	 * Shown here rather than as a site-wide nag: this is the screen the warning
 	 * is about, and somebody standing on it is the person who needs to know that
 	 * the queue has been filling up without anybody being told.
 	 */
-	if ( gwcpp_staff_mail_in_trouble() ) {
+	if ( gwc_pp_staff_mail_in_trouble() ) {
 		printf(
 			'<div class="notice notice-warning"><p><strong>%s</strong> %s</p></div>',
 			esc_html__( 'We could not email you about a recent change.', 'groundwork-common-post-portal' ),
@@ -68,7 +68,7 @@ function gwcpp_queue_screen(): void {
 	}
 
 	foreach ( $pending as $post_id ) {
-		gwcpp_render_queue_item( (int) $post_id );
+		gwc_pp_render_queue_item( (int) $post_id );
 	}
 
 	echo '</div>';
@@ -79,15 +79,15 @@ function gwcpp_queue_screen(): void {
  *
  * @param int $post_id Post ID.
  */
-function gwcpp_render_queue_item( int $post_id ): void {
-	$changeset = gwcpp_get_changeset( $post_id );
+function gwc_pp_render_queue_item( int $post_id ): void {
+	$changeset = gwc_pp_get_changeset( $post_id );
 	$post      = get_post( $post_id );
 
 	if ( null === $changeset || ! $post instanceof WP_Post ) {
 		return;
 	}
 
-	$diff = gwcpp_changeset_diff( $post_id );
+	$diff = gwc_pp_changeset_diff( $post_id );
 	$who  = get_userdata( $changeset['user'] );
 
 	echo '<div class="postbox gwcpp-queue-item"><div class="inside">';
@@ -122,10 +122,10 @@ function gwcpp_render_queue_item( int $post_id ): void {
 			esc_html__( 'Nothing here differs from the entry any more — somebody has already made these changes. Approving will simply clear it.', 'groundwork-common-post-portal' )
 		);
 	} else {
-		gwcpp_render_diff_table( $diff );
+		gwc_pp_render_diff_table( $diff );
 	}
 
-	gwcpp_render_queue_actions( $post_id );
+	gwc_pp_render_queue_actions( $post_id );
 
 	echo '</div></div>';
 }
@@ -133,9 +133,9 @@ function gwcpp_render_queue_item( int $post_id ): void {
 /**
  * The old-against-new table.
  *
- * @param array $diff From gwcpp_changeset_diff().
+ * @param array $diff From gwc_pp_changeset_diff().
  */
-function gwcpp_render_diff_table( array $diff ): void {
+function gwc_pp_render_diff_table( array $diff ): void {
 	echo '<table class="widefat striped gwcpp-diff"><thead><tr>';
 	printf( '<th scope="col">%s</th>', esc_html__( 'Field', 'groundwork-common-post-portal' ) );
 	printf( '<th scope="col">%s</th>', esc_html__( 'Now', 'groundwork-common-post-portal' ) );
@@ -166,12 +166,12 @@ function gwcpp_render_diff_table( array $diff ): void {
  *
  * @param int $post_id Post ID.
  */
-function gwcpp_render_queue_actions( int $post_id ): void {
+function gwc_pp_render_queue_actions( int $post_id ): void {
 	echo '<div class="gwcpp-queue-actions">';
 
 	echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-	wp_nonce_field( 'gwcpp_approve_' . $post_id );
-	echo '<input type="hidden" name="action" value="gwcpp_approve" />';
+	wp_nonce_field( 'gwc_pp_approve_' . $post_id );
+	echo '<input type="hidden" name="action" value="gwc_pp_approve" />';
 	printf( '<input type="hidden" name="post" value="%d" />', (int) $post_id );
 	printf(
 		'<button type="submit" class="button button-primary">%s</button>',
@@ -180,8 +180,8 @@ function gwcpp_render_queue_actions( int $post_id ): void {
 	echo '</form>';
 
 	echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="gwcpp-queue-reject">';
-	wp_nonce_field( 'gwcpp_reject_' . $post_id );
-	echo '<input type="hidden" name="action" value="gwcpp_reject" />';
+	wp_nonce_field( 'gwc_pp_reject_' . $post_id );
+	echo '<input type="hidden" name="action" value="gwc_pp_reject" />';
 	printf( '<input type="hidden" name="post" value="%d" />', (int) $post_id );
 	printf(
 		'<label class="screen-reader-text" for="gwcpp-note-%1$d">%2$s</label><input type="text" id="gwcpp-note-%1$d" name="note" class="regular-text" placeholder="%3$s" />',
@@ -206,8 +206,8 @@ function gwcpp_render_queue_actions( int $post_id ): void {
  * @param string $action Nonce action prefix.
  * @return int
  */
-function gwcpp_queue_guard( string $action ): int {
-	gwcpp_require_admin_caps();
+function gwc_pp_queue_guard( string $action ): int {
+	gwc_pp_require_admin_caps();
 
 	// Verified immediately below against this same value.
 	$post_id = isset( $_POST['post'] ) ? (int) $_POST['post'] : 0;
@@ -233,38 +233,38 @@ function gwcpp_queue_guard( string $action ): int {
 /**
  * Approve a change.
  */
-function gwcpp_handle_approve(): void {
-	$post_id   = gwcpp_queue_guard( 'gwcpp_approve_' );
-	$changeset = gwcpp_get_changeset( $post_id );
+function gwc_pp_handle_approve(): void {
+	$post_id   = gwc_pp_queue_guard( 'gwc_pp_approve_' );
+	$changeset = gwc_pp_get_changeset( $post_id );
 
 	if ( null === $changeset ) {
-		gwcpp_queue_redirect( 'queue_gone' );
+		gwc_pp_queue_redirect( 'queue_gone' );
 	}
 
-	gwcpp_apply_changeset( $post_id, get_current_user_id() );
-	gwcpp_notify_submitter_approved( $post_id, $changeset['user'] );
+	gwc_pp_apply_changeset( $post_id, get_current_user_id() );
+	gwc_pp_notify_submitter_approved( $post_id, $changeset['user'] );
 
-	gwcpp_queue_redirect( 'approved' );
+	gwc_pp_queue_redirect( 'approved' );
 }
 
 /**
  * Reject a change.
  */
-function gwcpp_handle_reject(): void {
-	$post_id   = gwcpp_queue_guard( 'gwcpp_reject_' );
-	$changeset = gwcpp_get_changeset( $post_id );
+function gwc_pp_handle_reject(): void {
+	$post_id   = gwc_pp_queue_guard( 'gwc_pp_reject_' );
+	$changeset = gwc_pp_get_changeset( $post_id );
 
 	if ( null === $changeset ) {
-		gwcpp_queue_redirect( 'queue_gone' );
+		gwc_pp_queue_redirect( 'queue_gone' );
 	}
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in the guard above.
 	$note = isset( $_POST['note'] ) ? sanitize_text_field( wp_unslash( $_POST['note'] ) ) : '';
 
-	gwcpp_reject_changeset( $post_id, get_current_user_id(), $note );
-	gwcpp_notify_submitter_rejected( $post_id, $changeset['user'], $note );
+	gwc_pp_reject_changeset( $post_id, get_current_user_id(), $note );
+	gwc_pp_notify_submitter_rejected( $post_id, $changeset['user'], $note );
 
-	gwcpp_queue_redirect( 'rejected' );
+	gwc_pp_queue_redirect( 'rejected' );
 }
 
 /**
@@ -272,12 +272,12 @@ function gwcpp_handle_reject(): void {
  *
  * @param string $code Message code.
  */
-function gwcpp_queue_redirect( string $code ): void {
+function gwc_pp_queue_redirect( string $code ): void {
 	wp_safe_redirect(
 		add_query_arg(
 			array(
-				'page'         => GWCPP_QUEUE_SLUG,
-				'gwcpp_notice' => $code,
+				'page'          => GWC_PP_QUEUE_SLUG,
+				'gwc_pp_notice' => $code,
 			),
 			admin_url( 'admin.php' )
 		)
@@ -290,12 +290,12 @@ function gwcpp_queue_redirect( string $code ): void {
 /**
  * Register the pending box on posts that have one.
  */
-function gwcpp_add_pending_meta_box(): void {
-	foreach ( gwcpp_post_types() as $post_type ) {
+function gwc_pp_add_pending_meta_box(): void {
+	foreach ( gwc_pp_post_types() as $post_type ) {
 		add_meta_box(
-			'gwcpp-pending',
+			'gwc-pp-pending',
 			__( 'Waiting for review', 'groundwork-common-post-portal' ),
-			'gwcpp_render_pending_meta_box',
+			'gwc_pp_render_pending_meta_box',
 			$post_type,
 			'normal',
 			'high'
@@ -313,8 +313,8 @@ function gwcpp_add_pending_meta_box(): void {
  *
  * @param WP_Post $post The post.
  */
-function gwcpp_render_pending_meta_box( WP_Post $post ): void {
-	$changeset = gwcpp_get_changeset( $post->ID );
+function gwc_pp_render_pending_meta_box( WP_Post $post ): void {
+	$changeset = gwc_pp_get_changeset( $post->ID );
 
 	if ( null === $changeset ) {
 		printf(
@@ -338,12 +338,12 @@ function gwcpp_render_pending_meta_box( WP_Post $post ): void {
 		)
 	);
 
-	$diff = gwcpp_changeset_diff( $post->ID );
+	$diff = gwc_pp_changeset_diff( $post->ID );
 	if ( $diff ) {
-		gwcpp_render_diff_table( $diff );
+		gwc_pp_render_diff_table( $diff );
 	}
 
-	gwcpp_render_queue_actions( $post->ID );
+	gwc_pp_render_queue_actions( $post->ID );
 
 	/*
 	 * Worth saying out loud on this screen in particular: staff editing the

@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
  * Hooked from admin-screen.php on the load- action of each of our screens, so
  * it never runs on anybody else's.
  */
-function gwcpp_add_help_tabs(): void {
+function gwc_pp_add_help_tabs(): void {
 	$screen = get_current_screen();
 	if ( ! $screen ) {
 		return;
@@ -21,7 +21,7 @@ function gwcpp_add_help_tabs(): void {
 
 	$screen->add_help_tab(
 		array(
-			'id'      => 'gwcpp-help-setup',
+			'id'      => 'gwc-pp-help-setup',
 			'title'   => __( 'Getting started', 'groundwork-common-post-portal' ),
 			'content' =>
 				'<p>' . esc_html__( 'Four things have to be true before anybody can use the portal:', 'groundwork-common-post-portal' ) . '</p><ol>'
@@ -35,7 +35,7 @@ function gwcpp_add_help_tabs(): void {
 
 	$screen->add_help_tab(
 		array(
-			'id'      => 'gwcpp-help-access',
+			'id'      => 'gwc-pp-help-access',
 			'title'   => __( 'Who can edit what', 'groundwork-common-post-portal' ),
 			'content' =>
 				'<p>' . esc_html__( 'A portal user reaches a post in one of three ways:', 'groundwork-common-post-portal' ) . '</p><ul>'
@@ -48,7 +48,7 @@ function gwcpp_add_help_tabs(): void {
 
 	$screen->add_help_tab(
 		array(
-			'id'      => 'gwcpp-help-safety',
+			'id'      => 'gwc-pp-help-safety',
 			'title'   => __( 'What portal users cannot do', 'groundwork-common-post-portal' ),
 			'content' =>
 				'<ul>'
@@ -62,6 +62,6 @@ function gwcpp_add_help_tabs(): void {
 
 	$screen->set_help_sidebar(
 		'<p><strong>' . esc_html__( 'More', 'groundwork-common-post-portal' ) . '</strong></p>'
-		. '<p><a href="' . esc_url( GWCPP_GWC_URL ) . '">' . esc_html__( 'Groundwork Common', 'groundwork-common-post-portal' ) . '</a></p>'
+		. '<p><a href="' . esc_url( GWC_PP_GWC_URL ) . '">' . esc_html__( 'Groundwork Common', 'groundwork-common-post-portal' ) . '</a></p>'
 	);
 }

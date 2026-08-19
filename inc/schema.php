@@ -38,7 +38,7 @@ defined( 'ABSPATH' ) || exit;
  * Keys beginning `__` are post columns rather than post meta: __title is
  * post_title, __excerpt is post_excerpt. They sit in `fields` and in `order`
  * beside real keys so the Fields screen is one list with one set of rules, and
- * gwcpp_sanitize_field_key() forbids a leading underscore on a user-created key
+ * gwc_pp_sanitize_field_key() forbids a leading underscore on a user-created key
  * so the two can never collide.
  *
  * __content is deliberately absent in this phase. Offering it before the rich
@@ -49,14 +49,14 @@ defined( 'ABSPATH' ) || exit;
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-const GWCPP_SCHEMA_OPTION = 'gwcpp_schema';
+const GWC_PP_SCHEMA_OPTION = 'gwc_pp_schema';
 
 /**
  * The post columns a field key can point at, and how each behaves.
  *
  * @return array<string, array>
  */
-function gwcpp_synthetic_fields(): array {
+function gwc_pp_synthetic_fields(): array {
 	static $fields = null;
 	if ( null !== $fields ) {
 		return $fields;
@@ -107,8 +107,8 @@ function gwcpp_synthetic_fields(): array {
  * @param string $key Field key.
  * @return bool
  */
-function gwcpp_is_synthetic( string $key ): bool {
-	return isset( gwcpp_synthetic_fields()[ $key ] );
+function gwc_pp_is_synthetic( string $key ): bool {
+	return isset( gwc_pp_synthetic_fields()[ $key ] );
 }
 
 /**
@@ -116,7 +116,7 @@ function gwcpp_is_synthetic( string $key ): bool {
  *
  * @return array
  */
-function gwcpp_field_defaults(): array {
+function gwc_pp_field_defaults(): array {
 	return array(
 		'key'         => '',
 		'type'        => 'text',
@@ -142,9 +142,9 @@ function gwcpp_field_defaults(): array {
  *
  * @return array
  */
-function gwcpp_default_schema(): array {
+function gwc_pp_default_schema(): array {
 	return array(
-		'version' => GWCPP_SCHEMA_VERSION,
+		'version' => GWC_PP_SCHEMA_VERSION,
 		'types'   => array(),
 	);
 }
@@ -152,7 +152,7 @@ function gwcpp_default_schema(): array {
 /**
  * The per-request schema memo.
  *
- * Its own function for the same reason gwcpp_settings_cache() is: a writer
+ * Its own function for the same reason gwc_pp_settings_cache() is: a writer
  * needs a way to invalidate a reader's cache, and PHP cannot reach another
  * function's static variable.
  *
@@ -160,7 +160,7 @@ function gwcpp_default_schema(): array {
  * @param bool       $clear Forget the cached value.
  * @return array|null
  */
-function gwcpp_schema_cache( ?array $set = null, bool $clear = false ): ?array {
+function gwc_pp_schema_cache( ?array $set = null, bool $clear = false ): ?array {
 	static $cache = null;
 	if ( $clear ) {
 		$cache = null;
@@ -172,14 +172,14 @@ function gwcpp_schema_cache( ?array $set = null, bool $clear = false ): ?array {
 	return $cache;
 }
 
-add_action( 'update_option_' . GWCPP_SCHEMA_OPTION, 'gwcpp_reset_schema_cache' );
-add_action( 'add_option_' . GWCPP_SCHEMA_OPTION, 'gwcpp_reset_schema_cache' );
+add_action( 'update_option_' . GWC_PP_SCHEMA_OPTION, 'gwc_pp_reset_schema_cache' );
+add_action( 'add_option_' . GWC_PP_SCHEMA_OPTION, 'gwc_pp_reset_schema_cache' );
 
 /**
  * Clear the schema memo.
  */
-function gwcpp_reset_schema_cache(): void {
-	gwcpp_schema_cache( null, true );
+function gwc_pp_reset_schema_cache(): void {
+	gwc_pp_schema_cache( null, true );
 }
 
 /**
@@ -193,15 +193,15 @@ function gwcpp_reset_schema_cache(): void {
  *
  * @return array
  */
-function gwcpp_get_schema(): array {
-	$cached = gwcpp_schema_cache();
+function gwc_pp_get_schema(): array {
+	$cached = gwc_pp_schema_cache();
 	if ( null !== $cached ) {
 		return $cached;
 	}
 
-	$stored = get_option( GWCPP_SCHEMA_OPTION );
+	$stored = get_option( GWC_PP_SCHEMA_OPTION );
 	if ( ! is_array( $stored ) ) {
-		$stored = gwcpp_default_schema();
+		$stored = gwc_pp_default_schema();
 	}
 
 	$schema = array(
@@ -222,7 +222,7 @@ function gwcpp_get_schema(): array {
 		);
 	}
 
-	gwcpp_schema_cache( $schema );
+	gwc_pp_schema_cache( $schema );
 
 	return $schema;
 }
@@ -233,14 +233,14 @@ function gwcpp_get_schema(): array {
  * @param array $schema Schema.
  * @return bool
  */
-function gwcpp_save_schema( array $schema ): bool {
-	$schema['version'] = GWCPP_SCHEMA_VERSION;
+function gwc_pp_save_schema( array $schema ): bool {
+	$schema['version'] = GWC_PP_SCHEMA_VERSION;
 
 	/*
-	 * Not autoloaded, unlike gwcpp_settings.
+	 * Not autoloaded, unlike gwc_pp_settings.
 	 *
 	 * The settings option is small and is read on every front-end request, by
-	 * gwcpp_is_portal(); autoloading it is right. This one is the whole field
+	 * gwc_pp_is_portal(); autoloading it is right. This one is the whole field
 	 * map for every enabled post type — labels, descriptions, choice lists,
 	 * repeater sub-field trees — and it is read on the portal page, the Fields
 	 * screen and the queue, and nowhere else. Autoloaded, an ordinary blog post
@@ -252,15 +252,15 @@ function gwcpp_save_schema( array $schema ): bool {
 	 * schema is next saved — which is the first time anybody touches the Fields
 	 * screen. Costing what it already cost until then is not worth a migration.
 	 */
-	$saved = update_option( GWCPP_SCHEMA_OPTION, $schema, false );
-	gwcpp_reset_schema_cache();
+	$saved = update_option( GWC_PP_SCHEMA_OPTION, $schema, false );
+	gwc_pp_reset_schema_cache();
 
 	/**
 	 * Fires after the schema is written.
 	 *
 	 * @param array $schema The schema as stored.
 	 */
-	do_action( 'gwcpp_schema_saved', $schema );
+	do_action( 'gwc_pp_schema_saved', $schema );
 
 	return $saved;
 }
@@ -271,8 +271,8 @@ function gwcpp_save_schema( array $schema ): bool {
  * @param string $post_type Post type slug.
  * @return array{fields:array,order:array,retired:array}
  */
-function gwcpp_type_schema( string $post_type ): array {
-	$schema = gwcpp_get_schema();
+function gwc_pp_type_schema( string $post_type ): array {
+	$schema = gwc_pp_get_schema();
 
 	return $schema['types'][ $post_type ] ?? array(
 		'fields'  => array(),
@@ -290,27 +290,27 @@ function gwcpp_type_schema( string $post_type ): array {
  * is missing a field or fatals on a stale key.
  *
  * Fields whose type is no longer registered are dropped here rather than
- * rendered. gwcpp_field_call() would fail closed on them anyway, but a form
+ * rendered. gwc_pp_field_call() would fail closed on them anyway, but a form
  * showing a label with no control under it looks like a broken page, and a form
  * that quietly omits an unrenderable field looks like a form.
  *
  * @param string $post_type Post type slug.
  * @return array<int, array>
  */
-function gwcpp_type_fields( string $post_type ): array {
-	$entry = gwcpp_type_schema( $post_type );
+function gwc_pp_type_fields( string $post_type ): array {
+	$entry = gwc_pp_type_schema( $post_type );
 
 	$by_key = array();
 	foreach ( $entry['fields'] as $field ) {
 		if ( ! is_array( $field ) ) {
 			continue;
 		}
-		$field = array_merge( gwcpp_field_defaults(), $field );
+		$field = array_merge( gwc_pp_field_defaults(), $field );
 		$key   = (string) $field['key'];
-		if ( '' === $key || null === gwcpp_field_type( (string) $field['type'] ) ) {
+		if ( '' === $key || null === gwc_pp_field_type( (string) $field['type'] ) ) {
 			continue;
 		}
-		$by_key[ $key ] = gwcpp_hydrate_field( $field );
+		$by_key[ $key ] = gwc_pp_hydrate_field( $field );
 	}
 
 	$ordered = array();
@@ -340,13 +340,13 @@ function gwcpp_type_fields( string $post_type ): array {
  * @param array $field Field definition.
  * @return array
  */
-function gwcpp_hydrate_field( array $field ): array {
+function gwc_pp_hydrate_field( array $field ): array {
 	$key = (string) ( $field['key'] ?? '' );
-	if ( ! gwcpp_is_synthetic( $key ) ) {
+	if ( ! gwc_pp_is_synthetic( $key ) ) {
 		return $field;
 	}
 
-	$synthetic = gwcpp_synthetic_fields()[ $key ];
+	$synthetic = gwc_pp_synthetic_fields()[ $key ];
 
 	$field['type']   = $synthetic['type'];
 	$field['column'] = $synthetic['column'];
@@ -367,8 +367,8 @@ function gwcpp_hydrate_field( array $field ): array {
  * @param string $key       Field key.
  * @return array|null
  */
-function gwcpp_find_field( string $post_type, string $key ): ?array {
-	foreach ( gwcpp_type_fields( $post_type ) as $field ) {
+function gwc_pp_find_field( string $post_type, string $key ): ?array {
+	foreach ( gwc_pp_type_fields( $post_type ) as $field ) {
 		if ( (string) $field['key'] === $key ) {
 			return $field;
 		}
@@ -382,7 +382,7 @@ function gwcpp_find_field( string $post_type, string $key ): ?array {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_field_label( array $field ): string {
+function gwc_pp_field_label( array $field ): string {
 	$label = (string) ( $field['label'] ?? '' );
 	if ( '' === $label ) {
 		$label = (string) ( $field['key'] ?? '' );
@@ -394,7 +394,7 @@ function gwcpp_field_label( array $field ): string {
 	 * @param string $label The label.
 	 * @param array  $field Field definition.
 	 */
-	return (string) apply_filters( 'gwcpp_field_label', $label, $field );
+	return (string) apply_filters( 'gwc_pp_field_label', $label, $field );
 }
 
 /**
@@ -415,7 +415,7 @@ function gwcpp_field_label( array $field ): string {
  * @param string $key Raw key.
  * @return string Sanitized key, or '' if nothing usable was left.
  */
-function gwcpp_sanitize_field_key( string $key ): string {
+function gwc_pp_sanitize_field_key( string $key ): string {
 	$key = strtolower( trim( $key ) );
 	$key = preg_replace( '/[^a-z0-9_]/', '_', $key );
 	$key = preg_replace( '/_+/', '_', (string) $key );
@@ -434,31 +434,31 @@ function gwcpp_sanitize_field_key( string $key ): string {
  * @param array $raw Raw definition, e.g. from $_POST.
  * @return array|null
  */
-function gwcpp_sanitize_field( array $raw ): ?array {
-	$field = array_merge( gwcpp_field_defaults(), array() );
+function gwc_pp_sanitize_field( array $raw ): ?array {
+	$field = array_merge( gwc_pp_field_defaults(), array() );
 
 	$type = sanitize_key( (string) ( $raw['type'] ?? '' ) );
-	if ( null === gwcpp_field_type( $type ) ) {
+	if ( null === gwc_pp_field_type( $type ) ) {
 		return null;
 	}
 	$field['type'] = $type;
 
 	$key = (string) ( $raw['key'] ?? '' );
 
-	if ( gwcpp_is_synthetic( $key ) ) {
+	if ( gwc_pp_is_synthetic( $key ) ) {
 		// A synthetic key names a post column and passes through as-is.
 		$field['key'] = $key;
-	} elseif ( gwcpp_type_is_taxonomy( $type ) ) {
+	} elseif ( gwc_pp_type_is_taxonomy( $type ) ) {
 		/*
 		 * Not a meta key at all — it is a taxonomy slug, so the meta-key rules
 		 * do not apply to it. Dashes in particular are ordinary in a taxonomy
-		 * slug and are exactly what gwcpp_sanitize_field_key() would replace,
+		 * slug and are exactly what gwc_pp_sanitize_field_key() would replace,
 		 * turning `service-type` into `service_type` and pointing the field at
 		 * a taxonomy that does not exist.
 		 */
 		$field['key'] = sanitize_key( $key );
 	} else {
-		$field['key'] = gwcpp_sanitize_field_key( $key );
+		$field['key'] = gwc_pp_sanitize_field_key( $key );
 	}
 
 	if ( '' === $field['key'] ) {
@@ -477,13 +477,13 @@ function gwcpp_sanitize_field( array $raw ): ?array {
 	 * through WP-CLI or a migration gets the same treatment as one typed in.
 	 */
 	if ( isset( $settings['options_raw'] ) ) {
-		$settings['options'] = gwcpp_parse_options( (string) $settings['options_raw'] );
+		$settings['options'] = gwc_pp_parse_options( (string) $settings['options_raw'] );
 		unset( $settings['options_raw'] );
 	}
 
-	$field['settings'] = gwcpp_sanitize_field_settings( $settings );
+	$field['settings'] = gwc_pp_sanitize_field_settings( $settings );
 
-	return gwcpp_hydrate_field( $field );
+	return gwc_pp_hydrate_field( $field );
 }
 
 /**
@@ -496,7 +496,7 @@ function gwcpp_sanitize_field( array $raw ): ?array {
  * @param array $raw Raw settings.
  * @return array
  */
-function gwcpp_sanitize_field_settings( array $raw ): array {
+function gwc_pp_sanitize_field_settings( array $raw ): array {
 	$out = array();
 
 	foreach ( array( 'placeholder', 'checkbox_label' ) as $key ) {
@@ -578,9 +578,9 @@ function gwcpp_sanitize_field_settings( array $raw ): array {
  * @param array  $field     Sanitized definition.
  * @return bool
  */
-function gwcpp_put_field( string $post_type, array $field ): bool {
-	$schema = gwcpp_get_schema();
-	$entry  = gwcpp_type_schema( $post_type );
+function gwc_pp_put_field( string $post_type, array $field ): bool {
+	$schema = gwc_pp_get_schema();
+	$entry  = gwc_pp_type_schema( $post_type );
 	$key    = (string) $field['key'];
 
 	$replaced = false;
@@ -615,7 +615,7 @@ function gwcpp_put_field( string $post_type, array $field ): bool {
 
 	$schema['types'][ $post_type ] = $entry;
 
-	return gwcpp_save_schema( $schema );
+	return gwc_pp_save_schema( $schema );
 }
 
 /**
@@ -629,9 +629,9 @@ function gwcpp_put_field( string $post_type, array $field ): bool {
  * @param string $key       Field key.
  * @return bool
  */
-function gwcpp_retire_field( string $post_type, string $key ): bool {
-	$schema = gwcpp_get_schema();
-	$entry  = gwcpp_type_schema( $post_type );
+function gwc_pp_retire_field( string $post_type, string $key ): bool {
+	$schema = gwc_pp_get_schema();
+	$entry  = gwc_pp_type_schema( $post_type );
 
 	$removed = null;
 	foreach ( $entry['fields'] as $i => $field ) {
@@ -652,7 +652,7 @@ function gwcpp_retire_field( string $post_type, string $key ): bool {
 
 	$schema['types'][ $post_type ] = $entry;
 
-	return gwcpp_save_schema( $schema );
+	return gwc_pp_save_schema( $schema );
 }
 
 /**
@@ -667,9 +667,9 @@ function gwcpp_retire_field( string $post_type, string $key ): bool {
  * @param string[] $order     Field keys, in order.
  * @return bool
  */
-function gwcpp_set_field_order( string $post_type, array $order ): bool {
-	$schema = gwcpp_get_schema();
-	$entry  = gwcpp_type_schema( $post_type );
+function gwc_pp_set_field_order( string $post_type, array $order ): bool {
+	$schema = gwc_pp_get_schema();
+	$entry  = gwc_pp_type_schema( $post_type );
 
 	$known = array();
 	foreach ( $entry['fields'] as $field ) {
@@ -694,7 +694,7 @@ function gwcpp_set_field_order( string $post_type, array $order ): bool {
 	$entry['order']                = $clean;
 	$schema['types'][ $post_type ] = $entry;
 
-	return gwcpp_save_schema( $schema );
+	return gwc_pp_save_schema( $schema );
 }
 
 /*
@@ -710,13 +710,13 @@ function gwcpp_set_field_order( string $post_type, array $order ): bool {
  * pretending otherwise is how a half-applied one happens.
  * ───────────────────────────────────────────────────────────────────────────
  */
-add_action( 'init', 'gwcpp_maybe_migrate_schema', 5 );
+add_action( 'init', 'gwc_pp_maybe_migrate_schema', 5 );
 
 /**
  * Apply any schema migrations this install has not seen.
  */
-function gwcpp_maybe_migrate_schema(): void {
-	$stored = get_option( GWCPP_SCHEMA_OPTION );
+function gwc_pp_maybe_migrate_schema(): void {
+	$stored = get_option( GWC_PP_SCHEMA_OPTION );
 
 	// Never written. There is nothing to migrate, and writing a default schema
 	// here would create an option on every site that never configures a field.
@@ -725,7 +725,7 @@ function gwcpp_maybe_migrate_schema(): void {
 	}
 
 	$from = isset( $stored['version'] ) ? (int) $stored['version'] : 0;
-	if ( $from >= GWCPP_SCHEMA_VERSION ) {
+	if ( $from >= GWC_PP_SCHEMA_VERSION ) {
 		return;
 	}
 
@@ -734,15 +734,15 @@ function gwcpp_maybe_migrate_schema(): void {
 	 *
 	 * @param array<int, callable> $steps Migrations.
 	 */
-	$steps = (array) apply_filters( 'gwcpp_schema_migrations', array() );
+	$steps = (array) apply_filters( 'gwc_pp_schema_migrations', array() );
 	ksort( $steps );
 
-	$schema = gwcpp_get_schema();
+	$schema = gwc_pp_get_schema();
 	foreach ( $steps as $version => $step ) {
 		if ( (int) $version > $from && is_callable( $step ) ) {
 			$schema = (array) call_user_func( $step, $schema );
 		}
 	}
 
-	gwcpp_save_schema( $schema );
+	gwc_pp_save_schema( $schema );
 }

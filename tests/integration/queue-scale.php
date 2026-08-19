@@ -26,8 +26,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit( 1 );
 }
 
-$GLOBALS['gwcpp_pass'] = 0;
-$GLOBALS['gwcpp_fail'] = 0;
+$GLOBALS['gwc_pp_pass'] = 0;
+$GLOBALS['gwc_pp_fail'] = 0;
 
 /**
  * Report one check.
@@ -38,12 +38,12 @@ $GLOBALS['gwcpp_fail'] = 0;
  */
 function vok( string $label, bool $ok, string $detail = '' ): void {
 	if ( $ok ) {
-		++$GLOBALS['gwcpp_pass'];
+		++$GLOBALS['gwc_pp_pass'];
 		echo "PASS  {$label}\n";
 		return;
 	}
 
-	++$GLOBALS['gwcpp_fail'];
+	++$GLOBALS['gwc_pp_fail'];
 	echo "FAIL  {$label}";
 	echo '' !== $detail ? "  — {$detail}\n" : "\n";
 }
@@ -51,18 +51,18 @@ function vok( string $label, bool $ok, string $detail = '' ): void {
 /* ── Setup ───────────────────────────────────────────────────────────────── */
 
 update_option(
-	'gwcpp_settings',
+	'gwc_pp_settings',
 	array(
 		'post_types' => array( 'post' ),
 		'types'      => array( 'post' => array( 'review_months' => 6 ) ),
 	)
 );
-gwcpp_settings_cache( null, true );
+gwc_pp_settings_cache( null, true );
 
 /* One page and a bit. Below the page size every one of these assertions passes
  * against the broken code, which is the whole point of the threshold.
  */
-$total = GWCPP_QUEUE_PAGE_SIZE + 5;
+$total = GWC_PP_QUEUE_PAGE_SIZE + 5;
 $made  = array();
 
 echo "Creating {$total} posts, each with a pending changeset…\n";
@@ -95,7 +95,7 @@ for ( $i = 0; $i < $total; $i++ ) {
 	/* The attachment ID is a stand-in: nothing here reads the attachment, only
 	 * whether the queue still names it.
 	 */
-	gwcpp_store_changeset( (int) $post_id, 1, array( 'title' => 'changed ' . $i ), array( 900000 + $i ) );
+	gwc_pp_store_changeset( (int) $post_id, 1, array( 'title' => 'changed ' . $i ), array( 900000 + $i ) );
 }
 
 $made_count = count( $made );
@@ -109,12 +109,12 @@ $oldest_attachment = 900000;
 
 /* ── The queue ───────────────────────────────────────────────────────────── */
 
-$page = gwcpp_pending_post_ids();
-$all  = gwcpp_every_pending_post_id();
+$page = gwc_pp_pending_post_ids();
+$all  = gwc_pp_every_pending_post_id();
 
 vok(
 	'the screen draws one page and no more',
-	count( $page ) === GWCPP_QUEUE_PAGE_SIZE,
+	count( $page ) === GWC_PP_QUEUE_PAGE_SIZE,
 	'got ' . count( $page )
 );
 
@@ -126,8 +126,8 @@ vok(
 
 vok(
 	'the count is the real one, not the page size',
-	gwcpp_pending_count() >= $total,
-	'bubble said ' . gwcpp_pending_count()
+	gwc_pp_pending_count() >= $total,
+	'bubble said ' . gwc_pp_pending_count()
 );
 
 vok(
@@ -145,11 +145,11 @@ vok(
 
 vok(
 	'an upload on a changeset past the first page is not treated as an orphan',
-	gwcpp_attachment_is_claimed( $oldest_attachment ),
+	gwc_pp_attachment_is_claimed( $oldest_attachment ),
 	'the reaper would have deleted a file somebody was still waiting on'
 );
 
-$claimed = gwcpp_claimed_attachment_ids();
+$claimed = gwc_pp_claimed_attachment_ids();
 vok(
 	'every waiting upload is accounted for',
 	count( $claimed ) >= $total,
@@ -158,7 +158,7 @@ vok(
 
 /* ── The review cycle ────────────────────────────────────────────────────── */
 
-$reviewable = gwcpp_reviewable_post_ids();
+$reviewable = gwc_pp_reviewable_post_ids();
 
 vok(
 	'the cycle walks past its own page size',
@@ -178,11 +178,11 @@ foreach ( $made as $post_id ) {
 	wp_delete_post( $post_id, true );
 }
 
-delete_option( 'gwcpp_settings' );
-gwcpp_settings_cache( null, true );
+delete_option( 'gwc_pp_settings' );
+gwc_pp_settings_cache( null, true );
 
-echo "\n{$GLOBALS['gwcpp_pass']} passed, {$GLOBALS['gwcpp_fail']} failed\n";
+echo "\n{$GLOBALS['gwc_pp_pass']} passed, {$GLOBALS['gwc_pp_fail']} failed\n";
 
-if ( $GLOBALS['gwcpp_fail'] > 0 ) {
+if ( $GLOBALS['gwc_pp_fail'] > 0 ) {
 	exit( 1 );
 }

@@ -30,10 +30,10 @@ defined( 'ABSPATH' ) || exit;
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-add_filter( 'gwcpp_field_types', 'gwcpp_register_repeater_type' );
+add_filter( 'gwc_pp_field_types', 'gwc_pp_register_repeater_type' );
 
 /** The most rows one repeater will accept. */
-const GWCPP_REPEATER_MAX = 50;
+const GWC_PP_REPEATER_MAX = 50;
 
 /**
  * Register the type.
@@ -41,17 +41,17 @@ const GWCPP_REPEATER_MAX = 50;
  * @param array $types Registry.
  * @return array
  */
-function gwcpp_register_repeater_type( array $types ): array {
+function gwc_pp_register_repeater_type( array $types ): array {
 	$types['repeater'] = array(
 		'label'         => __( 'Repeating rows', 'groundwork-common-post-portal' ),
 		'group'         => 'rich',
-		'render_portal' => 'gwcpp_render_repeater',
-		'render_admin'  => 'gwcpp_render_repeater',
-		'sanitize'      => 'gwcpp_sanitize_repeater',
-		'validate'      => 'gwcpp_validate_repeater',
-		'is_empty'      => 'gwcpp_empty_array',
-		'to_display'    => 'gwcpp_display_repeater',
-		'schema_form'   => 'gwcpp_schema_form_repeater',
+		'render_portal' => 'gwc_pp_render_repeater',
+		'render_admin'  => 'gwc_pp_render_repeater',
+		'sanitize'      => 'gwc_pp_sanitize_repeater',
+		'validate'      => 'gwc_pp_validate_repeater',
+		'is_empty'      => 'gwc_pp_empty_array',
+		'to_display'    => 'gwc_pp_display_repeater',
+		'schema_form'   => 'gwc_pp_schema_form_repeater',
 		'needs_present' => true,
 	);
 
@@ -74,8 +74,8 @@ function gwcpp_register_repeater_type( array $types ): array {
  * @param array $field Field definition.
  * @return array<int, array>
  */
-function gwcpp_repeater_subfields( array $field ): array {
-	$raw  = (string) gwcpp_field_setting( $field, 'subfields_raw', '' );
+function gwc_pp_repeater_subfields( array $field ): array {
+	$raw  = (string) gwc_pp_field_setting( $field, 'subfields_raw', '' );
 	$out  = array();
 	$seen = array();
 
@@ -88,14 +88,14 @@ function gwcpp_repeater_subfields( array $field ): array {
 		}
 
 		$parts = array_map( 'trim', explode( '|', $line ) );
-		$key   = gwcpp_sanitize_field_key( (string) ( $parts[0] ?? '' ) );
+		$key   = gwc_pp_sanitize_field_key( (string) ( $parts[0] ?? '' ) );
 
 		if ( '' === $key || isset( $seen[ $key ] ) ) {
 			continue;
 		}
 
 		$type = sanitize_key( (string) ( $parts[2] ?? 'text' ) );
-		if ( ! in_array( $type, $allowed, true ) || null === gwcpp_field_type( $type ) ) {
+		if ( ! in_array( $type, $allowed, true ) || null === gwc_pp_field_type( $type ) ) {
 			$type = 'text';
 		}
 
@@ -135,10 +135,10 @@ function gwcpp_repeater_subfields( array $field ): array {
  * @param string $name  Form control name.
  * @param array  $ctx   Render context.
  */
-function gwcpp_render_repeater( array $field, $value, string $name, array $ctx = array() ): void {
-	gwcpp_render_present_marker( $name );
+function gwc_pp_render_repeater( array $field, $value, string $name, array $ctx = array() ): void {
+	gwc_pp_render_present_marker( $name );
 
-	$subfields = gwcpp_repeater_subfields( $field );
+	$subfields = gwc_pp_repeater_subfields( $field );
 
 	if ( ! $subfields ) {
 		printf(
@@ -149,17 +149,17 @@ function gwcpp_render_repeater( array $field, $value, string $name, array $ctx =
 	}
 
 	$rows = is_array( $value ) ? array_values( $value ) : array();
-	$id   = gwcpp_field_id( $name );
+	$id   = gwc_pp_field_id( $name );
 
 	printf(
 		'<div class="gwcpp-repeater" data-gwcpp-repeater data-max="%d"%s>',
-		(int) gwcpp_repeater_max( $field ),
+		(int) gwc_pp_repeater_max( $field ),
 		! empty( $ctx['describedby'] ) ? ' aria-describedby="' . esc_attr( (string) $ctx['describedby'] ) . '"' : ''
 	);
 
 	echo '<div class="gwcpp-repeater__rows" data-gwcpp-rows>';
 	foreach ( $rows as $i => $row ) {
-		gwcpp_render_repeater_row( $subfields, is_array( $row ) ? $row : array(), $name, (string) $i );
+		gwc_pp_render_repeater_row( $subfields, is_array( $row ) ? $row : array(), $name, (string) $i );
 	}
 	echo '</div>';
 
@@ -169,7 +169,7 @@ function gwcpp_render_repeater( array $field, $value, string $name, array $ctx =
 	 * — an ordinary hidden div would submit __i__ as a real row on every save.
 	 */
 	echo '<template data-gwcpp-row-template>';
-	gwcpp_render_repeater_row( $subfields, array(), $name, '__i__' );
+	gwc_pp_render_repeater_row( $subfields, array(), $name, '__i__' );
 	echo '</template>';
 
 	printf(
@@ -211,7 +211,7 @@ function gwcpp_render_repeater( array $field, $value, string $name, array $ctx =
  * @param string $name      The repeater's control name.
  * @param string $index     Row index, or the literal __i__ for the template.
  */
-function gwcpp_render_repeater_row( array $subfields, array $row, string $name, string $index ): void {
+function gwc_pp_render_repeater_row( array $subfields, array $row, string $name, string $index ): void {
 	echo '<div class="gwcpp-repeater__row" data-gwcpp-row>';
 
 	foreach ( $subfields as $sub ) {
@@ -221,10 +221,10 @@ function gwcpp_render_repeater_row( array $subfields, array $row, string $name, 
 		echo '<div class="gwcpp-repeater__cell">';
 		printf(
 			'<label class="gwcpp-label gwcpp-label--sub" for="%s">%s</label>',
-			esc_attr( gwcpp_field_id( $sub_name ) ),
+			esc_attr( gwc_pp_field_id( $sub_name ) ),
 			esc_html( (string) $sub['label'] )
 		);
-		gwcpp_field_call( $sub, 'render_portal', array( $sub, $row[ $sub_key ] ?? null, $sub_name, array() ) );
+		gwc_pp_field_call( $sub, 'render_portal', array( $sub, $row[ $sub_key ] ?? null, $sub_name, array() ) );
 		echo '</div>';
 	}
 
@@ -242,10 +242,10 @@ function gwcpp_render_repeater_row( array $subfields, array $row, string $name, 
  * @param array $field Field definition.
  * @return int
  */
-function gwcpp_repeater_max( array $field ): int {
-	$configured = (int) gwcpp_field_setting( $field, 'max_rows', 0 );
+function gwc_pp_repeater_max( array $field ): int {
+	$configured = (int) gwc_pp_field_setting( $field, 'max_rows', 0 );
 
-	return $configured > 0 ? min( $configured, GWCPP_REPEATER_MAX ) : GWCPP_REPEATER_MAX;
+	return $configured > 0 ? min( $configured, GWC_PP_REPEATER_MAX ) : GWC_PP_REPEATER_MAX;
 }
 
 /**
@@ -255,8 +255,8 @@ function gwcpp_repeater_max( array $field ): int {
  * @param array $field Field definition.
  * @return array
  */
-function gwcpp_sanitize_repeater( $raw, array $field = array() ): array {
-	$subfields = gwcpp_repeater_subfields( $field );
+function gwc_pp_sanitize_repeater( $raw, array $field = array() ): array {
+	$subfields = gwc_pp_repeater_subfields( $field );
 	if ( ! $subfields || ! is_array( $raw ) ) {
 		return array();
 	}
@@ -275,7 +275,7 @@ function gwcpp_sanitize_repeater( $raw, array $field = array() ): array {
 			continue;
 		}
 
-		if ( count( $out ) >= gwcpp_repeater_max( $field ) ) {
+		if ( count( $out ) >= gwc_pp_repeater_max( $field ) ) {
 			break;
 		}
 
@@ -284,9 +284,9 @@ function gwcpp_sanitize_repeater( $raw, array $field = array() ): array {
 
 		foreach ( $subfields as $sub ) {
 			$sub_key           = (string) $sub['key'];
-			$clean[ $sub_key ] = gwcpp_field_call( $sub, 'sanitize', array( $row[ $sub_key ] ?? null, $sub ) );
+			$clean[ $sub_key ] = gwc_pp_field_call( $sub, 'sanitize', array( $row[ $sub_key ] ?? null, $sub ) );
 
-			if ( ! gwcpp_field_call( $sub, 'is_empty', array( $clean[ $sub_key ], $sub ) ) ) {
+			if ( ! gwc_pp_field_call( $sub, 'is_empty', array( $clean[ $sub_key ], $sub ) ) ) {
 				$any = true;
 			}
 		}
@@ -311,12 +311,12 @@ function gwcpp_sanitize_repeater( $raw, array $field = array() ): array {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_validate_repeater( $value, array $field = array() ): string {
-	if ( ! gwcpp_repeater_subfields( $field ) ) {
+function gwc_pp_validate_repeater( $value, array $field = array() ): string {
+	if ( ! gwc_pp_repeater_subfields( $field ) ) {
 		return __( 'This field is not set up properly. Please tell us and we will fix it.', 'groundwork-common-post-portal' );
 	}
 
-	$max = gwcpp_repeater_max( $field );
+	$max = gwc_pp_repeater_max( $field );
 	if ( is_array( $value ) && count( $value ) > $max ) {
 		return sprintf(
 			/* translators: %d: the largest number of rows allowed. */
@@ -335,12 +335,12 @@ function gwcpp_validate_repeater( $value, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_display_repeater( $value, array $field = array() ): string {
+function gwc_pp_display_repeater( $value, array $field = array() ): string {
 	if ( ! is_array( $value ) || ! $value ) {
 		return '';
 	}
 
-	$subfields = gwcpp_repeater_subfields( $field );
+	$subfields = gwc_pp_repeater_subfields( $field );
 	$lines     = array();
 
 	foreach ( $value as $row ) {
@@ -350,7 +350,7 @@ function gwcpp_display_repeater( $value, array $field = array() ): string {
 
 		$cells = array();
 		foreach ( $subfields as $sub ) {
-			$text = (string) gwcpp_field_call( $sub, 'to_display', array( $row[ (string) $sub['key'] ] ?? '', $sub ) );
+			$text = (string) gwc_pp_field_call( $sub, 'to_display', array( $row[ (string) $sub['key'] ] ?? '', $sub ) );
 			if ( '' !== $text ) {
 				$cells[] = $text;
 			}
@@ -369,12 +369,12 @@ function gwcpp_display_repeater( $value, array $field = array() ): string {
  *
  * @param array $field Field definition.
  */
-function gwcpp_schema_form_repeater( array $field ): void {
+function gwc_pp_schema_form_repeater( array $field ): void {
 	printf(
 		'<p class="gwcpp-schema-setting"><label for="gwcpp-set-subfields">%s</label><textarea id="gwcpp-set-subfields" name="%s" rows="6" class="large-text code">%s</textarea></p>',
 		esc_html__( 'Columns', 'groundwork-common-post-portal' ),
-		esc_attr( 'gwcpp_field[settings][subfields_raw]' ),
-		esc_textarea( (string) gwcpp_field_setting( $field, 'subfields_raw', '' ) )
+		esc_attr( 'gwc_pp_field[settings][subfields_raw]' ),
+		esc_textarea( (string) gwc_pp_field_setting( $field, 'subfields_raw', '' ) )
 	);
 
 	printf(
@@ -384,15 +384,15 @@ function gwcpp_schema_form_repeater( array $field ): void {
 		esc_html( 'day|Day|select|mon=Monday;tue=Tuesday' )
 	);
 
-	gwcpp_schema_setting_input(
+	gwc_pp_schema_setting_input(
 		'max_rows',
 		__( 'Most rows allowed', 'groundwork-common-post-portal' ),
-		gwcpp_field_setting( $field, 'max_rows' ),
+		gwc_pp_field_setting( $field, 'max_rows' ),
 		'number',
 		sprintf(
 			/* translators: %d: a number of rows. */
 			__( 'Leave blank for the default. Never more than %d.', 'groundwork-common-post-portal' ),
-			GWCPP_REPEATER_MAX
+			GWC_PP_REPEATER_MAX
 		)
 	);
 }

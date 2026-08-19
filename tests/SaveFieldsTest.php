@@ -3,7 +3,7 @@
  * Writing values out, and in particular clearing them.
  *
  * ── Why the multi-value cases are worth their own file ───────────────────────
- * gwcpp_save_fields() decides whether a field that has gone empty needs its meta
+ * gwc_pp_save_fields() decides whether a field that has gone empty needs its meta
  * row deleted, and to do that it has to look at what is stored. For most types
  * that is a string. For multiselect, checkbox and repeater it is an array, and
  * `(string) $array` is a PHP warning rather than a comparison.
@@ -25,15 +25,15 @@ final class SaveFieldsTest extends TestCase {
 	private const POST = 80;
 
 	protected function setUp(): void {
-		gwcpp_test_reset();
-		$GLOBALS['gwcpp_test']['types'][] = 'clinic';
+		gwc_pp_test_reset();
+		$GLOBALS['gwc_pp_test']['types'][] = 'clinic';
 
-		gwcpp_test_post( self::POST, 'clinic', 'publish', 0, 'Main Street Clinic' );
+		gwc_pp_test_post( self::POST, 'clinic', 'publish', 0, 'Main Street Clinic' );
 
-		update_option( 'gwcpp_settings', array( 'post_types' => array( 'clinic' ) ) );
-		gwcpp_settings_cache( null, true );
+		update_option( 'gwc_pp_settings', array( 'post_types' => array( 'clinic' ) ) );
+		gwc_pp_settings_cache( null, true );
 
-		gwcpp_save_schema(
+		gwc_pp_save_schema(
 			array(
 				'types' => array(
 					'clinic' => array(
@@ -63,7 +63,7 @@ final class SaveFieldsTest extends TestCase {
 	public function test_clearing_a_multi_value_field_removes_the_row(): void {
 		update_post_meta( self::POST, 'services', array( 'food', 'clothing' ) );
 
-		$changed = gwcpp_save_fields( self::POST, array( 'services' => array() ) );
+		$changed = gwc_pp_save_fields( self::POST, array( 'services' => array() ) );
 
 		$this->assertTrue( $changed, 'Unticking every box is a change.' );
 		$this->assertSame( '', get_post_meta( self::POST, 'services', true ) );
@@ -78,13 +78,13 @@ final class SaveFieldsTest extends TestCase {
 		 */
 		update_post_meta( self::POST, 'services', array( 'food', 'clothing', 'advice' ) );
 
-		gwcpp_save_fields( self::POST, array( 'services' => array() ) );
+		gwc_pp_save_fields( self::POST, array( 'services' => array() ) );
 
 		$this->assertSame( '', get_post_meta( self::POST, 'services', true ) );
 	}
 
 	public function test_a_multi_value_field_that_was_already_empty_is_not_a_change(): void {
-		$this->assertFalse( gwcpp_save_fields( self::POST, array( 'services' => array() ) ) );
+		$this->assertFalse( gwc_pp_save_fields( self::POST, array( 'services' => array() ) ) );
 	}
 
 	/* ── The scalar cases, which always worked ───────────────────────────── */
@@ -92,16 +92,16 @@ final class SaveFieldsTest extends TestCase {
 	public function test_clearing_a_scalar_field_removes_the_row(): void {
 		update_post_meta( self::POST, 'phone', '205 555 0100' );
 
-		$this->assertTrue( gwcpp_save_fields( self::POST, array( 'phone' => '' ) ) );
+		$this->assertTrue( gwc_pp_save_fields( self::POST, array( 'phone' => '' ) ) );
 		$this->assertSame( '', get_post_meta( self::POST, 'phone', true ) );
 	}
 
 	public function test_a_scalar_field_that_was_already_empty_is_not_a_change(): void {
-		$this->assertFalse( gwcpp_save_fields( self::POST, array( 'phone' => '' ) ) );
+		$this->assertFalse( gwc_pp_save_fields( self::POST, array( 'phone' => '' ) ) );
 	}
 
 	public function test_setting_a_multi_value_field_stores_the_array(): void {
-		gwcpp_save_fields( self::POST, array( 'services' => array( 'food', 'advice' ) ) );
+		gwc_pp_save_fields( self::POST, array( 'services' => array( 'food', 'advice' ) ) );
 
 		$this->assertSame( array( 'food', 'advice' ), get_post_meta( self::POST, 'services', true ) );
 	}
@@ -109,8 +109,8 @@ final class SaveFieldsTest extends TestCase {
 	/* ── The allow-list is structural ────────────────────────────────────── */
 
 	public function test_a_key_outside_the_schema_is_never_written(): void {
-		gwcpp_save_fields( self::POST, array( '_gwcpp_internal_note' => 'nice try' ) );
+		gwc_pp_save_fields( self::POST, array( '_gwc_pp_internal_note' => 'nice try' ) );
 
-		$this->assertSame( '', get_post_meta( self::POST, '_gwcpp_internal_note', true ) );
+		$this->assertSame( '', get_post_meta( self::POST, '_gwc_pp_internal_note', true ) );
 	}
 }

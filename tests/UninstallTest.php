@@ -15,7 +15,7 @@
  * checks the four version numbers against each other.
  *
  * ── The bug it was written for ───────────────────────────────────────────────
- * _gwcpp_tokens holds the durable review tokens: seven days each, and every one
+ * _gwc_pp_tokens holds the durable review tokens: seven days each, and every one
  * signs its holder straight in when clicked. They live in user meta rather than
  * in a transient precisely so nothing sweeps them by accident — which meant
  * nothing swept them on purpose either, because the sweep listed the two
@@ -31,7 +31,7 @@ use PHPUnit\Framework\TestCase;
 final class UninstallTest extends TestCase {
 
 	private function uninstall(): string {
-		return (string) file_get_contents( GWCPP_DIR . 'uninstall.php' );
+		return (string) file_get_contents( GWC_PP_DIR . 'uninstall.php' );
 	}
 
 	/**
@@ -41,7 +41,7 @@ final class UninstallTest extends TestCase {
 	 */
 	private function swept_user_meta(): array {
 		preg_match(
-			'/foreach \(\s*array\(([^)]*)\) as \$gwcpp_user_meta \)/',
+			'/foreach \(\s*array\(([^)]*)\) as \$gwc_pp_user_meta \)/',
 			$this->uninstall(),
 			$m
 		);
@@ -65,7 +65,7 @@ final class UninstallTest extends TestCase {
 	 * @return string
 	 */
 	private function constant_in( string $file, string $name ): string {
-		$source = (string) file_get_contents( GWCPP_DIR . 'inc/' . $file );
+		$source = (string) file_get_contents( GWC_PP_DIR . 'inc/' . $file );
 
 		preg_match( '/const\s+' . preg_quote( $name, '/' ) . "\s*=\s*'([^']+)'/", $source, $m );
 
@@ -78,7 +78,7 @@ final class UninstallTest extends TestCase {
 
 	public function test_the_durable_sign_in_tokens_are_swept(): void {
 		$this->assertContains(
-			GWCPP_TOKENS_META,
+			GWC_PP_TOKENS_META,
 			$this->swept_user_meta(),
 			'Durable review tokens sign their holder in for seven days. Leaving them behind leaves live credentials on a site with nothing installed to expire them.'
 		);
@@ -90,10 +90,10 @@ final class UninstallTest extends TestCase {
 		$swept = $this->swept_user_meta();
 
 		$expected = array(
-			'GWCPP_TOKENS_META'   => GWCPP_TOKENS_META,
-			'GWCPP_COLOPHON_META' => GWCPP_COLOPHON_META,
+			'GWC_PP_TOKENS_META'   => GWC_PP_TOKENS_META,
+			'GWC_PP_COLOPHON_META' => GWC_PP_COLOPHON_META,
 			// Declared in inc/meta-box.php, which the bootstrap does not load.
-			'GWCPP_LAST_LOGIN_META' => $this->constant_in( 'meta-box.php', 'GWCPP_LAST_LOGIN_META' ),
+			'GWC_PP_LAST_LOGIN_META' => $this->constant_in( 'meta-box.php', 'GWC_PP_LAST_LOGIN_META' ),
 		);
 
 		foreach ( $expected as $name => $key ) {
@@ -114,7 +114,7 @@ final class UninstallTest extends TestCase {
 		 * Asserted so that a future tidy-up of the list above has to argue with
 		 * this comment rather than sweep it in by symmetry.
 		 */
-		$this->assertNotContains( GWCPP_USER_ORG_META, $this->swept_user_meta() );
+		$this->assertNotContains( GWC_PP_USER_ORG_META, $this->swept_user_meta() );
 	}
 
 	/* ── The standing promises at the top of the file ────────────────────── */
@@ -136,13 +136,13 @@ final class UninstallTest extends TestCase {
 
 		// The guard, and both destructive deletes below it.
 		$this->assertMatchesRegularExpression(
-			'/if \( ! get_option\( \'gwcpp_allow_destructive_uninstall\' \) \) \{\s*return;/',
+			'/if \( ! get_option\( \'gwc_pp_allow_destructive_uninstall\' \) \) \{\s*return;/',
 			$source
 		);
 
-		$guard = strpos( $source, "get_option( 'gwcpp_allow_destructive_uninstall' )" );
+		$guard = strpos( $source, "get_option( 'gwc_pp_allow_destructive_uninstall' )" );
 
-		foreach ( array( "delete_option( 'gwcpp_schema' )", "delete_option( 'gwcpp_settings' )" ) as $destructive ) {
+		foreach ( array( "delete_option( 'gwc_pp_schema' )", "delete_option( 'gwc_pp_settings' )" ) as $destructive ) {
 			$at = strpos( $source, $destructive );
 
 			$this->assertNotFalse( $at, $destructive . ' is gone from uninstall.php.' );

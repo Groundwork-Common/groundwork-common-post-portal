@@ -24,7 +24,7 @@ defined( 'ABSPATH' ) || exit;
  * core `post` type — which is exactly the "you must fork it" outcome this
  * plugin exists to avoid.
  *
- * So authorization is not capabilities. It is gwcpp_user_can_edit_post(), and
+ * So authorization is not capabilities. It is gwc_pp_user_can_edit_post(), and
  * the consequence to keep in mind while reading anything downstream: there is
  * nothing underneath these checks. A handler that forgets one is not caught by
  * a capability check further down, because there is no capability check further
@@ -33,18 +33,18 @@ defined( 'ABSPATH' ) || exit;
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-const GWCPP_ROLE = 'gwcpp_portal_user';
+const GWC_PP_ROLE = 'gwc_pp_portal_user';
 
 /** Held by the role, checked by nothing. It exists so `user_can( $u, … )` has a
  *  truthful answer for other plugins, and so the role is not capability-less in
  *  a way that some admin screens render as broken.
  */
-const GWCPP_MARKER_CAP = 'gwcpp_use_portal';
+const GWC_PP_MARKER_CAP = 'gwc_pp_use_portal';
 
 /** Non-persistent, and the comment below is the reason. */
-const GWCPP_CACHE_GROUP = 'gwcpp_access';
+const GWC_PP_CACHE_GROUP = 'gwc_pp_access';
 
-add_action( 'init', 'gwcpp_ensure_role', 5 );
+add_action( 'init', 'gwc_pp_ensure_role', 5 );
 
 /**
  * Create the portal role if it is missing.
@@ -56,17 +56,17 @@ add_action( 'init', 'gwcpp_ensure_role', 5 );
  * get_role() on an already-present role is an array lookup against an option
  * WordPress has loaded anyway.
  */
-function gwcpp_ensure_role(): void {
-	if ( get_role( GWCPP_ROLE ) ) {
+function gwc_pp_ensure_role(): void {
+	if ( get_role( GWC_PP_ROLE ) ) {
 		return;
 	}
 
 	add_role(
-		GWCPP_ROLE,
+		GWC_PP_ROLE,
 		__( 'Portal User', 'groundwork-common-post-portal' ),
 		array(
-			'read'           => true,
-			GWCPP_MARKER_CAP => true,
+			'read'            => true,
+			GWC_PP_MARKER_CAP => true,
 		)
 	);
 }
@@ -83,14 +83,14 @@ function gwcpp_ensure_role(): void {
  * @param int $user_id User ID, or 0 for the current user.
  * @return bool
  */
-function gwcpp_user_is_portal_user( int $user_id = 0 ): bool {
+function gwc_pp_user_is_portal_user( int $user_id = 0 ): bool {
 	$user = $user_id > 0 ? get_userdata( $user_id ) : wp_get_current_user();
 
 	if ( ! $user || ! $user->exists() ) {
 		return false;
 	}
 
-	return in_array( GWCPP_ROLE, (array) $user->roles, true );
+	return in_array( GWC_PP_ROLE, (array) $user->roles, true );
 }
 
 /**
@@ -107,7 +107,7 @@ function gwcpp_user_is_portal_user( int $user_id = 0 ): bool {
  * @param int $post_id Post ID.
  * @return bool
  */
-function gwcpp_user_can_edit_post( int $user_id, int $post_id ): bool {
+function gwc_pp_user_can_edit_post( int $user_id, int $post_id ): bool {
 	if ( $user_id <= 0 || $post_id <= 0 ) {
 		return false;
 	}
@@ -123,7 +123,7 @@ function gwcpp_user_can_edit_post( int $user_id, int $post_id ): bool {
 	 * a post type nobody switched on. A direct grant left on a post whose type
 	 * was later disabled must stop working the moment it was disabled.
 	 */
-	if ( ! gwcpp_type_enabled( $post->post_type ) ) {
+	if ( ! gwc_pp_type_enabled( $post->post_type ) ) {
 		return false;
 	}
 
@@ -137,16 +137,16 @@ function gwcpp_user_can_edit_post( int $user_id, int $post_id ): bool {
 		return false;
 	}
 
-	if ( in_array( $user_id, gwcpp_post_editors( $post_id ), true ) ) {
+	if ( in_array( $user_id, gwc_pp_post_editors( $post_id ), true ) ) {
 		return true;
 	}
 
-	$org = gwcpp_post_org( $post_id );
-	if ( $org > 0 && in_array( $org, gwcpp_user_orgs( $user_id ), true ) ) {
+	$org = gwc_pp_post_org( $post_id );
+	if ( $org > 0 && in_array( $org, gwc_pp_user_orgs( $user_id ), true ) ) {
 		return true;
 	}
 
-	if ( gwcpp_type_setting( $post->post_type, 'author_grant' ) && (int) $post->post_author === $user_id ) {
+	if ( gwc_pp_type_setting( $post->post_type, 'author_grant' ) && (int) $post->post_author === $user_id ) {
 		return true;
 	}
 
@@ -161,7 +161,7 @@ function gwcpp_user_can_edit_post( int $user_id, int $post_id ): bool {
  * always. Three indexed queries and an array merge is both simpler and faster
  * than the alternative of a posts_where filter injecting hand-written SQL.
  *
- * Every ID that comes back is run through gwcpp_user_can_edit_post() before
+ * Every ID that comes back is run through gwc_pp_user_can_edit_post() before
  * being returned. That is redundant by construction and is kept deliberately:
  * it means this function cannot grant anything the single choke-point would
  * refuse, even if a query above it is later widened by mistake or by a filter.
@@ -169,17 +169,17 @@ function gwcpp_user_can_edit_post( int $user_id, int $post_id ): bool {
  * @param int $user_id User ID.
  * @return int[]
  */
-function gwcpp_editable_post_ids( int $user_id ): array {
+function gwc_pp_editable_post_ids( int $user_id ): array {
 	if ( $user_id <= 0 ) {
 		return array();
 	}
 
-	$cached = wp_cache_get( 'editable_' . $user_id, GWCPP_CACHE_GROUP );
+	$cached = wp_cache_get( 'editable_' . $user_id, GWC_PP_CACHE_GROUP );
 	if ( is_array( $cached ) ) {
 		return $cached;
 	}
 
-	$types = gwcpp_post_types();
+	$types = gwc_pp_post_types();
 	if ( ! $types ) {
 		return array();
 	}
@@ -203,14 +203,14 @@ function gwcpp_editable_post_ids( int $user_id ): array {
 		$ids,
 		get_posts(
 			$base + array(
-				'meta_key'   => GWCPP_POST_EDITOR_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Exact match on an indexed meta row; see the note in org-cpt.php.
+				'meta_key'   => GWC_PP_POST_EDITOR_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Exact match on an indexed meta row; see the note in org-cpt.php.
 				'meta_value' => (string) $user_id,      // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- As above.
 			)
 		)
 	);
 
 	// Organisation membership.
-	$orgs = gwcpp_user_orgs( $user_id );
+	$orgs = gwc_pp_user_orgs( $user_id );
 	if ( $orgs ) {
 		$ids = array_merge(
 			$ids,
@@ -218,7 +218,7 @@ function gwcpp_editable_post_ids( int $user_id ): array {
 				$base + array(
 					'meta_query' => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- One IN() against an indexed meta row; the alternative is loading every post and filtering in PHP.
 						array(
-							'key'     => GWCPP_POST_ORG_META,
+							'key'     => GWC_PP_POST_ORG_META,
 							'value'   => array_map( 'strval', $orgs ),
 							'compare' => 'IN',
 						),
@@ -233,7 +233,7 @@ function gwcpp_editable_post_ids( int $user_id ): array {
 		array_filter(
 			$types,
 			static function ( $type ) {
-				return (bool) gwcpp_type_setting( $type, 'author_grant' );
+				return (bool) gwc_pp_type_setting( $type, 'author_grant' );
 			}
 		)
 	);
@@ -259,7 +259,7 @@ function gwcpp_editable_post_ids( int $user_id ): array {
 	 * ── Prime once, before the re-check walks the whole list ────────────────
 	 * The three queries above ask for `fields => 'ids'` with the meta cache
 	 * off, which is right for the queries and leaves nothing in the cache. The
-	 * re-check below then calls gwcpp_user_can_edit_post() per ID, and each of
+	 * re-check below then calls gwc_pp_user_can_edit_post() per ID, and each of
 	 * those does a get_post(), two get_post_meta() reads and a get_post_type()
 	 * on the organisation — so an organisation with three hundred entries meant
 	 * something like fifteen hundred individual round trips to render a list of
@@ -280,7 +280,7 @@ function gwcpp_editable_post_ids( int $user_id ): array {
 		array_filter(
 			$ids,
 			static function ( $post_id ) use ( $user_id ) {
-				return gwcpp_user_can_edit_post( $user_id, $post_id );
+				return gwc_pp_user_can_edit_post( $user_id, $post_id );
 			}
 		)
 	);
@@ -295,10 +295,10 @@ function gwcpp_editable_post_ids( int $user_id ): array {
 	 * @param int[] $ids     Post IDs.
 	 * @param int   $user_id User ID.
 	 */
-	$ids = (array) apply_filters( 'gwcpp_editable_posts', $ids, $user_id );
+	$ids = (array) apply_filters( 'gwc_pp_editable_posts', $ids, $user_id );
 	$ids = array_values( array_filter( array_map( 'intval', $ids ) ) );
 
-	wp_cache_set( 'editable_' . $user_id, $ids, GWCPP_CACHE_GROUP );
+	wp_cache_set( 'editable_' . $user_id, $ids, GWC_PP_CACHE_GROUP );
 
 	return $ids;
 }
@@ -322,18 +322,18 @@ function gwcpp_editable_post_ids( int $user_id ): array {
 add_action(
 	'init',
 	static function (): void {
-		wp_cache_add_non_persistent_groups( array( GWCPP_CACHE_GROUP ) );
+		wp_cache_add_non_persistent_groups( array( GWC_PP_CACHE_GROUP ) );
 	},
 	1
 );
 
-add_action( 'added_post_meta', 'gwcpp_flush_access_cache_meta', 10, 3 );
-add_action( 'updated_post_meta', 'gwcpp_flush_access_cache_meta', 10, 3 );
-add_action( 'deleted_post_meta', 'gwcpp_flush_access_cache_meta', 10, 3 );
-add_action( 'added_user_meta', 'gwcpp_flush_access_cache_user_meta', 10, 3 );
-add_action( 'deleted_user_meta', 'gwcpp_flush_access_cache_user_meta', 10, 3 );
-add_action( 'transition_post_status', 'gwcpp_flush_access_cache', 10, 0 );
-add_action( 'update_option_' . GWCPP_SETTINGS_OPTION, 'gwcpp_flush_access_cache' );
+add_action( 'added_post_meta', 'gwc_pp_flush_access_cache_meta', 10, 3 );
+add_action( 'updated_post_meta', 'gwc_pp_flush_access_cache_meta', 10, 3 );
+add_action( 'deleted_post_meta', 'gwc_pp_flush_access_cache_meta', 10, 3 );
+add_action( 'added_user_meta', 'gwc_pp_flush_access_cache_user_meta', 10, 3 );
+add_action( 'deleted_user_meta', 'gwc_pp_flush_access_cache_user_meta', 10, 3 );
+add_action( 'transition_post_status', 'gwc_pp_flush_access_cache', 10, 0 );
+add_action( 'update_option_' . GWC_PP_SETTINGS_OPTION, 'gwc_pp_flush_access_cache' );
 
 /**
  * Flush when one of the two post meta keys the model reads changes.
@@ -342,10 +342,10 @@ add_action( 'update_option_' . GWCPP_SETTINGS_OPTION, 'gwcpp_flush_access_cache'
  * @param int    $post_id  Post ID.
  * @param string $meta_key Meta key.
  */
-function gwcpp_flush_access_cache_meta( $meta_id, $post_id, $meta_key ): void {
+function gwc_pp_flush_access_cache_meta( $meta_id, $post_id, $meta_key ): void {
 	unset( $meta_id, $post_id );
-	if ( GWCPP_POST_ORG_META === $meta_key || GWCPP_POST_EDITOR_META === $meta_key ) {
-		gwcpp_flush_access_cache();
+	if ( GWC_PP_POST_ORG_META === $meta_key || GWC_PP_POST_EDITOR_META === $meta_key ) {
+		gwc_pp_flush_access_cache();
 	}
 }
 
@@ -356,10 +356,10 @@ function gwcpp_flush_access_cache_meta( $meta_id, $post_id, $meta_key ): void {
  * @param int    $user_id  User ID.
  * @param string $meta_key Meta key.
  */
-function gwcpp_flush_access_cache_user_meta( $meta_id, $user_id, $meta_key ): void {
+function gwc_pp_flush_access_cache_user_meta( $meta_id, $user_id, $meta_key ): void {
 	unset( $meta_id, $user_id );
-	if ( GWCPP_USER_ORG_META === $meta_key ) {
-		gwcpp_flush_access_cache();
+	if ( GWC_PP_USER_ORG_META === $meta_key ) {
+		gwc_pp_flush_access_cache();
 	}
 }
 
@@ -371,9 +371,9 @@ function gwcpp_flush_access_cache_user_meta( $meta_id, $user_id, $meta_key ): vo
  * member of that organisation may edit, and working out who they are costs a
  * query to save a cache that only lives for this request anyway.
  */
-function gwcpp_flush_access_cache(): void {
+function gwc_pp_flush_access_cache(): void {
 	if ( function_exists( 'wp_cache_flush_group' ) ) {
-		wp_cache_flush_group( GWCPP_CACHE_GROUP );
+		wp_cache_flush_group( GWC_PP_CACHE_GROUP );
 		return;
 	}
 
@@ -385,14 +385,14 @@ function gwcpp_flush_access_cache(): void {
 	 * this misses — a revoke and a re-read inside one request on WP 6.0 — is
 	 * narrow enough to accept rather than flush somebody's whole object cache.
 	 */
-	unset( $GLOBALS['gwcpp_noop'] );
+	unset( $GLOBALS['gwc_pp_noop'] );
 }
 
 /* ── wp-admin lockout ────────────────────────────────────────────────────── */
 
-add_action( 'admin_init', 'gwcpp_block_admin_access' );
-add_filter( 'show_admin_bar', 'gwcpp_hide_admin_bar' );
-add_filter( 'wp_is_application_passwords_available_for_user', 'gwcpp_no_application_passwords', 10, 2 );
+add_action( 'admin_init', 'gwc_pp_block_admin_access' );
+add_filter( 'show_admin_bar', 'gwc_pp_hide_admin_bar' );
+add_filter( 'wp_is_application_passwords_available_for_user', 'gwc_pp_no_application_passwords', 10, 2 );
 
 /**
  * Send portal users back to the portal if they reach wp-admin.
@@ -402,12 +402,12 @@ add_filter( 'wp_is_application_passwords_available_for_user', 'gwcpp_no_applicat
  * signed-in portal user, and admin-ajax.php actions do their own capability
  * checks.
  */
-function gwcpp_block_admin_access(): void {
-	if ( wp_doing_ajax() || ! gwcpp_user_is_portal_user() ) {
+function gwc_pp_block_admin_access(): void {
+	if ( wp_doing_ajax() || ! gwc_pp_user_is_portal_user() ) {
 		return;
 	}
 
-	wp_safe_redirect( gwcpp_portal_url() );
+	wp_safe_redirect( gwc_pp_portal_url() );
 	exit;
 }
 
@@ -417,8 +417,8 @@ function gwcpp_block_admin_access(): void {
  * @param bool $show Whether to show it.
  * @return bool
  */
-function gwcpp_hide_admin_bar( $show ) {
-	return gwcpp_user_is_portal_user() ? false : $show;
+function gwc_pp_hide_admin_bar( $show ) {
+	return gwc_pp_user_is_portal_user() ? false : $show;
 }
 
 /**
@@ -433,8 +433,8 @@ function gwcpp_hide_admin_bar( $show ) {
  * @param WP_User $user      The user.
  * @return bool
  */
-function gwcpp_no_application_passwords( $available, $user ) {
-	if ( $user instanceof WP_User && gwcpp_user_is_portal_user( $user->ID ) ) {
+function gwc_pp_no_application_passwords( $available, $user ) {
+	if ( $user instanceof WP_User && gwc_pp_user_is_portal_user( $user->ID ) ) {
 		return false;
 	}
 	return $available;

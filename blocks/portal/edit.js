@@ -14,7 +14,7 @@
 
 	blocks.registerBlockType( 'groundwork-common-post-portal/portal', {
 		edit: function ( props ) {
-			var settings = window.GWCPP_EDITOR || {};
+			var settings = window.GWC_PP_EDITOR || {};
 
 			var notice = null;
 			if ( ! settings.hasPortalPage ) {

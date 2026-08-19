@@ -27,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-add_filter( 'gwcpp_field_types', 'gwcpp_register_taxonomy_type' );
+add_filter( 'gwc_pp_field_types', 'gwc_pp_register_taxonomy_type' );
 
 /**
  * Register the type.
@@ -35,17 +35,17 @@ add_filter( 'gwcpp_field_types', 'gwcpp_register_taxonomy_type' );
  * @param array $types Registry.
  * @return array
  */
-function gwcpp_register_taxonomy_type( array $types ): array {
+function gwc_pp_register_taxonomy_type( array $types ): array {
 	$types['taxonomy'] = array(
 		'label'         => __( 'Categories or tags', 'groundwork-common-post-portal' ),
 		'group'         => 'choice',
-		'render_portal' => 'gwcpp_render_taxonomy',
-		'render_admin'  => 'gwcpp_render_taxonomy',
-		'sanitize'      => 'gwcpp_sanitize_taxonomy',
-		'validate'      => 'gwcpp_validate_taxonomy',
-		'is_empty'      => 'gwcpp_empty_array',
-		'to_display'    => 'gwcpp_display_taxonomy',
-		'schema_form'   => 'gwcpp_schema_form_taxonomy',
+		'render_portal' => 'gwc_pp_render_taxonomy',
+		'render_admin'  => 'gwc_pp_render_taxonomy',
+		'sanitize'      => 'gwc_pp_sanitize_taxonomy',
+		'validate'      => 'gwc_pp_validate_taxonomy',
+		'is_empty'      => 'gwc_pp_empty_array',
+		'to_display'    => 'gwc_pp_display_taxonomy',
+		'schema_form'   => 'gwc_pp_schema_form_taxonomy',
 		'needs_present' => true,
 		// Read by save.php and by current-values, so neither has to know the
 		// type slug. A third-party type wanting the same treatment sets this
@@ -65,7 +65,7 @@ function gwcpp_register_taxonomy_type( array $types ): array {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_field_taxonomy( array $field ): string {
+function gwc_pp_field_taxonomy( array $field ): string {
 	$taxonomy = (string) ( $field['key'] ?? '' );
 
 	return taxonomy_exists( $taxonomy ) ? $taxonomy : '';
@@ -77,8 +77,8 @@ function gwcpp_field_taxonomy( array $field ): string {
  * @param string $type Type slug.
  * @return bool
  */
-function gwcpp_type_is_taxonomy( string $type ): bool {
-	$def = gwcpp_field_type( $type );
+function gwc_pp_type_is_taxonomy( string $type ): bool {
+	$def = gwc_pp_field_type( $type );
 
 	return null !== $def && ! empty( $def['is_taxonomy'] );
 }
@@ -89,8 +89,8 @@ function gwcpp_type_is_taxonomy( string $type ): bool {
  * @param array $field Field definition.
  * @return WP_Term[]
  */
-function gwcpp_taxonomy_terms( array $field ): array {
-	$taxonomy = gwcpp_field_taxonomy( $field );
+function gwc_pp_taxonomy_terms( array $field ): array {
+	$taxonomy = gwc_pp_field_taxonomy( $field );
 	if ( '' === $taxonomy ) {
 		return array();
 	}
@@ -116,10 +116,10 @@ function gwcpp_taxonomy_terms( array $field ): array {
  * @param string $name  Form control name.
  * @param array  $ctx   Render context.
  */
-function gwcpp_render_taxonomy( array $field, $value, string $name, array $ctx = array() ): void {
-	gwcpp_render_present_marker( $name );
+function gwc_pp_render_taxonomy( array $field, $value, string $name, array $ctx = array() ): void {
+	gwc_pp_render_present_marker( $name );
 
-	$terms = gwcpp_taxonomy_terms( $field );
+	$terms = gwc_pp_taxonomy_terms( $field );
 
 	if ( ! $terms ) {
 		printf(
@@ -130,7 +130,7 @@ function gwcpp_render_taxonomy( array $field, $value, string $name, array $ctx =
 	}
 
 	$selected = is_array( $value ) ? array_map( 'intval', $value ) : array();
-	$base     = gwcpp_field_id( $name );
+	$base     = gwc_pp_field_id( $name );
 
 	printf(
 		'<div class="gwcpp-choices" role="group"%s>',
@@ -151,7 +151,7 @@ function gwcpp_render_taxonomy( array $field, $value, string $name, array $ctx =
 
 	echo '</div>';
 
-	if ( gwcpp_field_setting( $field, 'allow_new' ) ) {
+	if ( gwc_pp_field_setting( $field, 'allow_new' ) ) {
 		printf(
 			'<label class="gwcpp-label gwcpp-label--sub" for="%1$s-new">%2$s</label><input type="text" id="%1$s-new" name="%3$s" class="gwcpp-input" /><p class="gwcpp-field__hint">%4$s</p>',
 			esc_attr( $base ),
@@ -169,8 +169,8 @@ function gwcpp_render_taxonomy( array $field, $value, string $name, array $ctx =
  * @param array $field Field definition.
  * @return int[]
  */
-function gwcpp_sanitize_taxonomy( $raw, array $field = array() ): array {
-	$taxonomy = gwcpp_field_taxonomy( $field );
+function gwc_pp_sanitize_taxonomy( $raw, array $field = array() ): array {
+	$taxonomy = gwc_pp_field_taxonomy( $field );
 	if ( '' === $taxonomy || ! is_array( $raw ) ) {
 		return array();
 	}
@@ -196,8 +196,8 @@ function gwcpp_sanitize_taxonomy( $raw, array $field = array() ): array {
 		}
 	}
 
-	if ( ! empty( $raw['new'] ) && gwcpp_field_setting( $field, 'allow_new' ) ) {
-		foreach ( gwcpp_create_terms( (string) $raw['new'], $taxonomy ) as $term_id ) {
+	if ( ! empty( $raw['new'] ) && gwc_pp_field_setting( $field, 'allow_new' ) ) {
+		foreach ( gwc_pp_create_terms( (string) $raw['new'], $taxonomy ) as $term_id ) {
 			if ( ! in_array( $term_id, $out, true ) ) {
 				$out[] = $term_id;
 			}
@@ -220,7 +220,7 @@ function gwcpp_sanitize_taxonomy( $raw, array $field = array() ): array {
  * @param string $taxonomy Taxonomy slug.
  * @return int[]
  */
-function gwcpp_create_terms( string $raw, string $taxonomy ): array {
+function gwc_pp_create_terms( string $raw, string $taxonomy ): array {
 	$out = array();
 
 	foreach ( explode( ',', $raw ) as $name ) {
@@ -256,12 +256,12 @@ function gwcpp_create_terms( string $raw, string $taxonomy ): array {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_validate_taxonomy( $value, array $field = array() ): string {
-	if ( '' === gwcpp_field_taxonomy( $field ) ) {
+function gwc_pp_validate_taxonomy( $value, array $field = array() ): string {
+	if ( '' === gwc_pp_field_taxonomy( $field ) ) {
 		return __( 'This field is not set up properly. Please tell us and we will fix it.', 'groundwork-common-post-portal' );
 	}
 
-	$max = (int) gwcpp_field_setting( $field, 'max_choices', 0 );
+	$max = (int) gwc_pp_field_setting( $field, 'max_choices', 0 );
 	if ( $max > 0 && is_array( $value ) && count( $value ) > $max ) {
 		return sprintf(
 			/* translators: %d: the largest number of choices allowed. */
@@ -280,8 +280,8 @@ function gwcpp_validate_taxonomy( $value, array $field = array() ): string {
  * @param array $field Field definition.
  * @return string
  */
-function gwcpp_display_taxonomy( $value, array $field = array() ): string {
-	$taxonomy = gwcpp_field_taxonomy( $field );
+function gwc_pp_display_taxonomy( $value, array $field = array() ): string {
+	$taxonomy = gwc_pp_field_taxonomy( $field );
 	if ( '' === $taxonomy || ! is_array( $value ) || ! $value ) {
 		return '';
 	}
@@ -304,7 +304,7 @@ function gwcpp_display_taxonomy( $value, array $field = array() ): string {
  *
  * @param array $field Field definition.
  */
-function gwcpp_schema_form_taxonomy( array $field ): void {
+function gwc_pp_schema_form_taxonomy( array $field ): void {
 	$taxonomy = (string) ( $field['key'] ?? '' );
 
 	if ( '' !== $taxonomy && ! taxonomy_exists( $taxonomy ) ) {
@@ -327,15 +327,15 @@ function gwcpp_schema_form_taxonomy( array $field ): void {
 
 	printf(
 		'<p class="gwcpp-schema-setting"><label><input type="checkbox" name="%s" value="1"%s /> %s</label></p>',
-		esc_attr( 'gwcpp_field[settings][allow_new]' ),
-		checked( (bool) gwcpp_field_setting( $field, 'allow_new' ), true, false ),
+		esc_attr( 'gwc_pp_field[settings][allow_new]' ),
+		checked( (bool) gwc_pp_field_setting( $field, 'allow_new' ), true, false ),
 		esc_html__( 'Let portal users add new ones', 'groundwork-common-post-portal' )
 	);
 
-	gwcpp_schema_setting_input(
+	gwc_pp_schema_setting_input(
 		'max_choices',
 		__( 'Most that can be chosen', 'groundwork-common-post-portal' ),
-		gwcpp_field_setting( $field, 'max_choices' ),
+		gwc_pp_field_setting( $field, 'max_choices' ),
 		'number',
 		__( 'Leave blank for no limit.', 'groundwork-common-post-portal' )
 	);
