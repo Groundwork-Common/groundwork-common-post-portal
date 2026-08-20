@@ -118,14 +118,16 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      # phpcompat.xml.dist names what to check and carries the same floor as a
+      # default, so `composer compat` locally and this step check the same files.
+      # Only the floor is overridden here, from the header read above — the
+      # ruleset's copy is the fallback for a run with no arguments, not a second
+      # source of truth.
       - name: Check the source runs on it
         run: |
           vendor/bin/phpcs -p \
-            --standard=PHPCompatibilityWP \
-            --runtime-set testVersion "${{ steps.floor.outputs.version }}-" \
-            --extensions=php \
-            --ignore='*/vendor/*,*/node_modules/*,*/tests/*' \
-            .
+            --standard=phpcompat.xml.dist \
+            --runtime-set testVersion "${{ steps.floor.outputs.version }}-"
 
   standards:
     name: Coding standards

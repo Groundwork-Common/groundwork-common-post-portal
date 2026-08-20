@@ -23,7 +23,7 @@
 		"test": "phpunit",
 		"lint": "phpcs",
 		"lint:fix": "phpcbf",
-		"compat": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 7.4- --extensions=php --ignore=*/vendor/*,*/node_modules/*,*/tests/* .",
+		"compat": "phpcs --standard=phpcompat.xml.dist",
 		"check": [
 			"@lint",
 			"@compat",
@@ -34,7 +34,7 @@
 		"test": "Run the unit suite. Needs no database and no WordPress checkout.",
 		"lint": "Run PHPCS against phpcs.xml.dist, which is what a directory reviewer runs.",
 		"lint:fix": "Fix what PHPCS can fix on its own.",
-		"compat": "Check the source really does run on the PHP version the header claims.",
+		"compat": "Check the source really does run on the PHP version the header claims. Targets are named in phpcompat.xml.dist rather than found by scanning '.' and excluding — read the comment there.",
 		"check": "Everything, in the order a failure is cheapest to read."
 	}
 }

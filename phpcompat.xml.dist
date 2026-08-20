@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<ruleset name="Groundwork Common Post Portal — PHP compatibility">
+
+	<description>
+		Does the source actually run on the PHP version the plugin header
+		claims? That is a different question from "does it match the coding
+		standard", it fails for different reasons, and it is cheaper to read on
+		its own — so it stays a separate run with its own ruleset rather than
+		another `rule ref` inside phpcs.xml.dist.
+
+		The floor lives in the plugin header. It is repeated below as the
+		default so a local `composer compat` needs no arguments; CI overrides it
+		with `--runtime-set testVersion` from the header itself, because a floor
+		typed in two places is a floor that will disagree with itself.
+	</description>
+
+	<!--
+		Named, not found-by-scanning-and-excluded. This is the same list as
+		phpcs.xml.dist's, kept for the same reason, and tests/LintTargetsTest.php
+		fails if the two ever disagree — read the long comment there and in
+		phpcs.xml.dist before editing either.
+
+		The short version: scanning `.` and passing an ignore list matches
+		ABSOLUTE paths, which makes an exclusion a claim about the machine's
+		directory layout rather than about this repository. It has already
+		failed in both directions for the lint run: first by scanning the stale
+		plugin copies under `.claude/worktrees/`, then, once those were
+		excluded, by matching the whole repository whenever the checkout itself
+		sits under `.claude/worktrees/` and silently scanning nothing at all.
+
+		This run carried exactly the first of those bugs until now. Its ignore
+		list named vendor, node_modules and tests and nothing else, so from the
+		repo root it checked every worktree copy of the plugin as well as the
+		plugin, and `.dev/` besides.
+	-->
+	<file>groundwork-common-post-portal.php</file>
+	<file>uninstall.php</file>
+	<file>inc</file>
+	<file>blocks</file>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg name="basepath" value="."/>
+	<arg name="parallel" value="8"/>
+	<arg value="ps"/>
+
+	<rule ref="PHPCompatibilityWP"/>
+
+	<config name="testVersion" value="7.4-"/>
+
+</ruleset>

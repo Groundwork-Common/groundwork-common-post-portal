@@ -233,13 +233,27 @@ else put there.
 
 ## Tests
 
-Unit tests are pure logic with no database and no WordPress checkout —
-`tests/bootstrap.php` stubs the WordPress helpers they touch. PHPUnit is
-fetched rather than committed:
+Composer owns the tooling. One command installs it and runs everything CI runs,
+in the order a failure is cheapest to read — PHPCS against `phpcs.xml.dist`,
+then PHPCompatibilityWP against the 7.4 floor via `phpcompat.xml.dist`, then
+PHPUnit:
 
 ```bash
-curl -sLO https://phar.phpunit.de/phpunit-11.phar && php phpunit-11.phar
+composer install && composer run check
 ```
+
+For the unit suite on its own:
+
+```bash
+composer run test
+```
+
+Unit tests are pure logic with no database and no WordPress checkout —
+`tests/bootstrap.php` stubs the WordPress helpers they touch — so they finish in
+well under a second. PHPUnit is pinned in `composer.lock`, which is committed so
+that a CI run and a local run install the same versions of the same sniffs.
+Don't fetch a phar; a phar is unpinned, and a sniff version that differs from
+CI's turns a green local lint into a red pull request.
 
 `VersionTest` enforces that the plugin header, `GWC_PP_VERSION`, the
 `Stable tag` in `readme.txt`, and the changelog and upgrade-notice entries all
