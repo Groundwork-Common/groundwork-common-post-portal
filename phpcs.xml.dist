@@ -89,7 +89,13 @@
 		The cost is that this list is now load-bearing: a new top-level PHP file
 		or a new directory of them is linted by nobody until it is added here.
 		That is a deliberate trade of a silent false PASS for a visible one — a
-		file missing from this list is missing from `N / N` too.
+		file missing from this list is missing from the count phpcs prints too.
+
+		phpcompat.xml.dist names the same list, for the same reasons, having
+		carried the first of those two bugs until it was split out of the
+		`compat` command line. Change one and change the other:
+		tests/LintTargetsTest.php fails if they ever disagree, or if something
+		that ships is named by neither.
 
 		tests/ stays out on its own merits rather than by omission: it is in
 		.distignore, never reaches a user or a reviewer, and is written against
@@ -151,6 +157,8 @@
 		against rather than passing vacuously.
 	-->
 	<config name="minimum_wp_version" value="6.3"/>
+
+	<!-- Both floors are claims the plugin header makes; tests/VersionTest.php fails if they disagree with it. -->
 	<config name="testVersion" value="7.4-"/>
 
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">

@@ -16,6 +16,7 @@ phpunit-*.phar
 tests
 phpcs.xml.dist
 .phpcs.xml.dist
+phpcompat.xml.dist
 composer.json
 composer.lock
 

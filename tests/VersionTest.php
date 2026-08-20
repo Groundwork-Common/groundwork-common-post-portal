@@ -77,6 +77,80 @@ final class VersionTest extends TestCase {
 	}
 
 	/**
+	 * Both rulesets repeat the PHP floor, and the header is the one that means it.
+	 *
+	 * They carry it so a bare `composer lint` or `composer compat` needs no
+	 * arguments. CI passes the header value to the compat run explicitly, which
+	 * is the trap: CI would go on checking the right floor however far the
+	 * rulesets drifted, while every local run quietly checked the wrong one.
+	 */
+	public function test_the_php_floor_agrees_with_the_rulesets(): void {
+		foreach ( array( 'phpcs.xml.dist', 'phpcompat.xml.dist' ) as $file ) {
+			$this->assertSame(
+				$this->header( 'Requires PHP' ) . '-',
+				$this->ruleset_config( $file, 'testVersion' ),
+				$file . ' checks a different PHP floor than the plugin header claims.'
+			);
+		}
+	}
+
+	/**
+	 * The same again for WordPress, which only the lint ruleset needs.
+	 *
+	 * WPCS reads minimum_wp_version to decide whether a function is deprecated
+	 * or too new to call. Set below the header and it waves through calls the
+	 * plugin's own claim says are not available; set above it and it hides them.
+	 */
+	public function test_the_wordpress_floor_agrees_with_the_lint_ruleset(): void {
+		$this->assertSame(
+			$this->header( 'Requires at least' ),
+			$this->ruleset_config( 'phpcs.xml.dist', 'minimum_wp_version' ),
+			'phpcs.xml.dist sniffs against a different WordPress floor than the plugin header claims.'
+		);
+	}
+
+	/**
+	 * One value out of the plugin header.
+	 *
+	 * @param string $field Header field name.
+	 * @return string
+	 */
+	private function header( string $field ): string {
+		preg_match( '/^ \* ' . preg_quote( $field, '/' ) . ':\s*(\S+)/m', $this->plugin_file(), $match );
+
+		$this->assertNotEmpty( $match, $field . ' is missing from the plugin header.' );
+
+		return $match[1];
+	}
+
+	/**
+	 * One `config` value out of a PHPCS ruleset.
+	 *
+	 * @param string $file Ruleset filename, relative to the plugin root.
+	 * @param string $name The config name to read.
+	 * @return string
+	 */
+	private function ruleset_config( string $file, string $name ): string {
+		$ruleset = simplexml_load_file( GWC_PP_DIR . $file );
+
+		$this->assertNotFalse( $ruleset, $file . ' is not parseable XML.' );
+
+		$found = null;
+		foreach ( $ruleset->config as $config ) {
+			if ( $name === (string) $config['name'] ) {
+				$found = (string) $config['value'];
+			}
+		}
+
+		$this->assertNotNull(
+			$found,
+			$file . ' sets no ' . $name . ', so the sniffs that read it pass vacuously.'
+		);
+
+		return $found;
+	}
+
+	/**
 	 * The slug, the text domain, the main file's name and the .pot's name are
 	 * deliberately one string.
 	 *

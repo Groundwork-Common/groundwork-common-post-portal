@@ -62,12 +62,13 @@ failure is cheapest to read:
 composer install && composer run check
 ```
 
-That is `lint` (PHPCS against `phpcs.xml.dist`), then `compat` (PHPCompatibilityWP
-against the 7.4 floor), then `test` (PHPUnit). The unit suite needs no database
-and no WordPress checkout — `tests/bootstrap.php` stubs the WordPress surface —
-and finishes in well under a second. Do not download a PHPUnit phar; the pinned
-one comes from `composer.lock`, which is committed so a CI run and a local run
-install the same sniffs.
+That is `lint` (PHPCS against `phpcs.xml.dist`), then `compat`
+(PHPCompatibilityWP against the 7.4 floor, via `phpcompat.xml.dist`), then
+`test` (PHPUnit). The unit suite needs no database and no WordPress checkout —
+`tests/bootstrap.php` stubs the WordPress surface — and finishes in well under a
+second. Do not download a PHPUnit phar; the pinned one comes from
+`composer.lock`, which is committed so a CI run and a local run install the same
+sniffs.
 
 The integration scripts need a running WordPress, and there are **four**, not
 three:
@@ -120,6 +121,16 @@ alike. `tests/integration/phase3.php` now captures mail on `pre_wp_mail`
 instead: it short-circuits before PHPMailer is involved, so the From address
 never matters and the rendered body is readable in process. Do not reintroduce a
 sink to make a test pass — if a check needs the message, capture it.
+
+**Both rulesets name what to lint rather than scanning `.` and excluding.** An
+exclude-pattern matches the absolute path, so it is a claim about the machine's
+directory layout, and it has failed in both directions — first linting the stale
+copies under `.claude/worktrees/`, then, once those were excluded, matching the
+whole repository whenever the checkout itself sits there and scanning nothing at
+all, silently. `phpcompat.xml.dist` carried the first of those bugs until it was
+split out of the `compat` command line. The cost is two lists that can drift, and
+`tests/LintTargetsTest.php` is what stops them: it fails if the two rulesets
+disagree, or if anything shipped is named by neither.
 
 `phpcs.xml.dist` is `WordPress` plus WordPress-Docs, which is what a directory
 reviewer runs. Exactly one rule is off wholesale, at the bottom, with its reason;
