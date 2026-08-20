@@ -276,4 +276,12 @@ hashed token.
 
 ## Where work is tracked
 
-GitHub Issues on this repo. Run `gh issue list` before starting.
+Nowhere formal. Issues are disabled on this repository deliberately, so
+`gh issue list` failing with "the repository has disabled issues" is the
+intended state and not a misconfiguration to fix — do not enable them to make a
+command work.
+
+Work is scoped in the pull request that does it. Anything that needs to outlive
+its PR belongs in this file or in `README.md`, which is why both carry as much
+normative prose as they do: with no backlog to hold it, a decision that is not
+written down here is not written down anywhere.
