@@ -60,13 +60,48 @@
 	</description>
 
 	<!--
-		The shipped plugin, and only that. tests/ is in .distignore, never
-		reaches a user or a reviewer, and is written against a different set of
-		constraints — its whole job is to declare functions named after core's
-		and echo "PASS" to a terminal, both of which this standard rightly
-		objects to in a plugin and wrongly objects to in a test.
+		The shipped plugin, and only that — named, rather than found by scanning
+		`.` and excluding whatever should not have been found.
+
+		`<file>.</file>` plus an exclusion is the obvious spelling, and it has
+		now failed twice in opposite directions. The reason both times is that
+		an exclude-pattern is matched against the file's ABSOLUTE path, which
+		makes it a claim about the machine's directory layout rather than about
+		this repository:
+
+		1. From the repo root, `.` descends into `.claude/worktrees/`, where
+		   Claude Code keeps a whole second copy of this plugin per worktree.
+		   This repository is where that was first noticed, at 1,854 findings,
+		   every one a phantom out of a stale copy. Excluding `/.claude/` fixed
+		   it.
+		2. That exclusion then matched the absolute path — so when the checkout
+		   ITSELF sits under `.claude/worktrees/`, which is precisely where a
+		   worktree session does its work, it matched every file in the
+		   repository. `composer lint` scanned zero files and exited 0, with no
+		   dots and no `N / N` line, which reads exactly like a clean pass.
+		   Silent, and so worse than the 1,854: that one announced itself.
+
+		Naming the shipping paths has neither failure. A worktree is not listed,
+		so it is never descended into; and nothing is excluded for where the
+		checkout happens to sit, so from inside a worktree the ruleset lints
+		that worktree's own copy — the answer that was wanted both times.
+
+		The cost is that this list is now load-bearing: a new top-level PHP file
+		or a new directory of them is linted by nobody until it is added here.
+		That is a deliberate trade of a silent false PASS for a visible one — a
+		file missing from this list is missing from `N / N` too.
+
+		tests/ stays out on its own merits rather than by omission: it is in
+		.distignore, never reaches a user or a reviewer, and is written against
+		a different set of constraints — its whole job is to declare functions
+		named after core's and echo "PASS" to a terminal, both of which this
+		standard rightly objects to in a plugin and wrongly objects to in a
+		test.
 	-->
-	<file>.</file>
+	<file>groundwork-common-post-portal.php</file>
+	<file>uninstall.php</file>
+	<file>inc</file>
+	<file>blocks</file>
 
 	<exclude-pattern>/vendor/</exclude-pattern>
 	<exclude-pattern>/node_modules/</exclude-pattern>
@@ -89,16 +124,6 @@
 		this only affects a local run.
 	-->
 	<exclude-pattern>/.dev/</exclude-pattern>
-
-	<!--
-		Claude Code keeps its worktrees under .claude/, and each one is a whole
-		second copy of this plugin. Without this, `composer lint` from the repo
-		root reports every stale copy alongside the real source — Post Portal
-		once showed 1,854 findings this way, all of them phantom. CI never sees
-		it, because a fresh checkout has no worktrees, so the local run looks
-		catastrophic while main is green.
-	-->
-	<exclude-pattern>/.claude/</exclude-pattern>
 
 	<!--
 		`edit.asset.php` is the filename @wordpress/scripts generates and the one
