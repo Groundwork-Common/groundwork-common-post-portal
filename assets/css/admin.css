@@ -131,6 +131,16 @@
 	margin: 12px 0 24px;
 	padding: 20px 24px;
 	border-left: 4px solid #2271b1;
+	/* Background and text colour are both set here, and both are opaque. This
+	   panel is the one thing on the screen that has to stay legible without
+	   knowing what is underneath it: a dark-mode admin plugin repaints the page
+	   around it and there is no signal a stylesheet can read to find that out. A
+	   translucent tint would take its colour from that unknown, and `color:
+	   inherit` below would take the admin's text colour — light text on a light
+	   tint. Stating both makes the panel a card that supplies its own contrast:
+	   under a darkened admin it reads as a deliberately light card, which is what
+	   a card is, rather than as an illegible one. */
+	color: #1d2327;
 	background: #f6f7f7;
 }
 
@@ -191,7 +201,28 @@
 }
 
 /* The wordmark. Sized by height with width following the 958 x 173 viewBox, so
-   it scales with the box rather than being pinned to a pixel width. */
+   it scales with the box rather than being pinned to a pixel width.
+
+   Always the light-background file, with no colour-scheme swap, because the
+   panel above paints its own background and that background is light. The ink
+   only has to contrast with the panel, and the panel is a known quantity.
+
+   There used to be a `prefers-color-scheme: dark` swap to the white-ink file
+   here, and it produced a white wordmark on a near-white panel on any stock
+   WordPress whose *operating system* was set to dark. That media query reports
+   the OS preference; it says nothing about what colour wp-admin is painted, and
+   core wp-admin has no dark mode to follow it — so it fired on exactly the
+   installs where it was wrong. Do not reintroduce one. Nothing in CSS can see
+   that a third-party plugin has darkened the admin, so anything sitting on that
+   admin's background is guessing; the fix is to stop sitting on it.
+
+   `gwc-logo-horizontal-dark.svg` is the white-ink half of the brand pair and is
+   deliberately kept, unreferenced, for whenever something here does have a dark
+   surface of its own to sit on.
+
+   Falls back to the heading text alone if the file is ever missing — the
+   screen-reader span is real text, not a replacement trick, so nothing is lost
+   beyond the picture. */
 .gwcpp-colophon__logo {
 	display: block;
 	width: 156px;
@@ -200,15 +231,6 @@
 	background-repeat: no-repeat;
 	background-position: left center;
 	background-size: contain;
-}
-
-/* Falls back to the heading text alone if the file is ever missing — the
-   screen-reader span is real text, not a replacement trick, so nothing is lost
-   beyond the picture. */
-@media ( prefers-color-scheme: dark ) {
-	.gwcpp-colophon__logo {
-		background-image: url( '../img/gwc-logo-horizontal-dark.svg' );
-	}
 }
 
 /* The measure is capped on the paragraphs, not the panel. A 46em box floating
@@ -225,19 +247,6 @@
 .gwcpp-colophon p:last-child {
 	margin-bottom: 0;
 	color: inherit;
-}
-
-@media ( prefers-color-scheme: dark ) {
-	/* wp-admin is light by default, but plugins and extensions darken it and
-	   #f6f7f7 becomes a white slab under one. */
-	.gwcpp-colophon {
-		background: rgb( 34 113 177 / .08 );
-	}
-
-	.gwcpp-colophon p {
-		color: inherit;
-		opacity: .85;
-	}
 }
 
 /* ─── Colophon: collapsed ───────────────────────────────────────────────────

@@ -916,10 +916,14 @@ function gwc_pp_render_colophon(): void {
 				 * Common"> immediately after a heading saying the same words is
 				 * read out twice.
 				 *
-				 * Two files, swapped by colour scheme in the stylesheet: the logo
-				 * is ink on transparent, so one version or the other disappears
-				 * depending on what it is sitting on. Naming is by BACKGROUND, not
-				 * by ink — "-light" is the one for light backgrounds.
+				 * The logo is ink on transparent, so it disappears against the
+				 * wrong background. There are two files and the naming is by
+				 * BACKGROUND, not by ink — "-light" is the one for light
+				 * backgrounds — but only that one is used, and the stylesheet does
+				 * not swap them by colour scheme. The panel paints its own opaque
+				 * light background precisely so that the question of which file to
+				 * use has a fixed answer; see the note on .gwcpp-colophon__logo in
+				 * assets/css/admin.css for what the swap got wrong.
 				 */
 				?>
 				<a href="<?php echo esc_url( GWC_PP_GWC_URL ); ?>" target="_blank" rel="noopener noreferrer">
