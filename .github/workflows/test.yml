@@ -54,7 +54,8 @@ name: Test
 #
 # setup-node v6 narrowed automatic caching to npm. No `cache` input is set
 # below, so there is nothing to narrow. The `node-version` pinned there is a
-# separate question from the version of the action reading it.
+# separate question from the version of the action reading it, and carries its
+# own note at the step.
 
 on:
   push:
@@ -214,9 +215,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # ── The Node that runs wp-env ──────────────────────────────────────────
+      # Not the same question as the version of setup-node above: that one is
+      # the runtime GitHub executes the action on, this one is what `npx
+      # @wordpress/env` runs under. It was 20, which is past end of life.
+      #
+      # 22 rather than 24 because it is the active LTS, and this is the job that
+      # stands between a tag and WordPress.org — the place to be a release
+      # behind rather than a release ahead. @wordpress/env asks only for
+      # >=18.12.0, so it is the EOL date that decides this, not a dependency.
+      #
+      # Nothing else in the repository pins a Node version: there is no
+      # package.json and no .nvmrc, and blocks/portal/edit.js is hand-written
+      # with no build step. This line is the only claim about Node here.
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'
 
       # ── The WordPress version under test ───────────────────────────────────
       # `core` pins it. wp-env takes null to mean latest, which is what the
