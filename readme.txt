@@ -241,6 +241,10 @@ directly. The "author may edit their own" path is off by default.
   everybody else.
 * Unpublishing and republishing re-check that the feature is still switched on,
   and only an entry a portal user took down can be put back by one.
+* An entry with a change waiting for approval now says so in the portal list,
+  beside its status rather than instead of it: the entry is still published, and
+  what was sent has not landed yet. Previously the only way to tell was to open
+  the entry.
 * Much faster portal list on organisations with many entries, and the pending
   count no longer runs a query on every wp-admin page.
 * The review sweep cannot run twice at once, so nobody gets a reminder twice.
