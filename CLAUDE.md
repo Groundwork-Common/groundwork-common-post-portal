@@ -160,16 +160,26 @@ Two things follow for `phpcs:ignore` comments here, both learned the hard way:
 
 ## Check your branch
 
-`phase-2-approval-and-rich-fields` and `phase-3-lifecycle` are both fully merged
-into `main` now and carry nothing unmerged, but both branches still exist locally
-and on the remote. Confirm the intended branch before committing anything.
+Every merged branch has been deleted, locally and on the remote —
+`phase-2-approval-and-rich-fields`, `phase-3-lifecycle` and a dozen `claude/*`
+branches, all of them carrying nothing `main` did not already have. That is the
+standing convention rather than a one-off tidy: merge, then delete, so the branch
+list is a list of work in flight and not an archive. Everything deleted is still
+reachable from `main`, which is what made it safe.
 
-**And before deploying.** This has now cost time once: a working tree left on
-`phase-3-lifecycle` was deployed to the beta site and seeded from `.dev/seed.php`,
-a path that no longer exists on `main` — 69 files and some nine thousand lines
-behind, with no complaint from anything, because the deploy script deliberately
-ships whatever is checked out. A stale branch here looks exactly like a working
-one until somebody notices the demo is missing a feature they merged weeks ago.
+Confirm the intended branch before committing anyway. Deleting the stale ones
+narrows the hazard but does not remove it: this repository is worked in
+worktrees, each holding its own independent checkout, so "the branch I am on" is
+a property of the directory rather than of the repository.
+
+**And before deploying.** This has now cost time once. A working tree left on
+`phase-3-lifecycle` — since deleted, though the trap it demonstrates is about
+stale checkouts and not about that name — was deployed to the beta site and
+seeded from `.dev/seed.php`, a path that no longer exists on `main`: 69 files and
+some nine thousand lines behind, with no complaint from anything, because the
+deploy script deliberately ships whatever is checked out. A stale checkout looks
+exactly like a working one until somebody notices the demo is missing a feature
+they merged weeks ago.
 
 ## The beta site
 
