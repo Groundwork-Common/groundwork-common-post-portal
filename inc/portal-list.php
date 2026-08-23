@@ -49,6 +49,23 @@ function gwc_pp_render_post_list( int $user_id ): void {
 
 	$posts = array_slice( $posts, ( $page - 1 ) * GWC_PP_PER_PAGE, GWC_PP_PER_PAGE );
 
+	/*
+	 * One query for the whole page's meta, because every row is about to ask
+	 * whether its post has a changeset waiting. Without this that is a query per
+	 * row — twenty on a full page — and this list was made fast on purpose for
+	 * organisations with many entries. Only the page's posts, not all of $ids:
+	 * the rows that were sliced away are not going to be asked.
+	 */
+	update_meta_cache(
+		'post',
+		array_map(
+			static function ( $post ) {
+				return (int) $post->ID;
+			},
+			$posts
+		)
+	);
+
 	echo '<ul class="gwcpp-list">';
 	foreach ( $posts as $post ) {
 		gwc_pp_render_list_row( $post );
@@ -96,13 +113,55 @@ function gwc_pp_render_list_row( WP_Post $post ): void {
 		);
 	}
 
-	printf(
-		'<span class="gwcpp-badge gwcpp-badge--%s">%s</span>',
-		esc_attr( $post->post_status ),
-		esc_html( gwc_pp_status_label( $post->post_status ) )
-	);
+	foreach ( gwc_pp_list_badges( $post ) as $badge ) {
+		printf(
+			'<span class="gwcpp-badge gwcpp-badge--%s">%s</span>',
+			esc_attr( $badge['slug'] ),
+			esc_html( $badge['label'] )
+		);
+	}
 
 	echo '</span></li>';
+}
+
+/**
+ * The badges one row carries, in the order they are read.
+ *
+ * Split out of the renderer so the decision can be tested without the markup,
+ * which is the interesting half — see gwc_pp_colophon_snoozed() for the same
+ * shape.
+ *
+ * Status first, then the waiting badge: what the entry IS, then what is
+ * happening to it. Somebody scanning for "what have I sent that has not landed
+ * yet" is looking for the second one, and it sits in the same column on every
+ * row whether or not the first is there.
+ *
+ * The label is deliberately NOT "Waiting for review". That string is already
+ * taken: it is what gwc_pp_status_labels() calls WordPress's own `pending` post
+ * status, which means the entry itself has never been published. A changeset
+ * means something else — the entry is live and an edit to it is waiting — and a
+ * post that is `pending` AND carries a changeset would otherwise show the same
+ * two words twice, meaning two different things.
+ *
+ * @param WP_Post $post The post.
+ * @return array<int, array{slug:string,label:string}>
+ */
+function gwc_pp_list_badges( WP_Post $post ): array {
+	$badges = array(
+		array(
+			'slug'  => (string) $post->post_status,
+			'label' => gwc_pp_status_label( (string) $post->post_status ),
+		),
+	);
+
+	if ( gwc_pp_has_changeset( (int) $post->ID ) ) {
+		$badges[] = array(
+			'slug'  => 'waiting',
+			'label' => __( 'Changes waiting', 'groundwork-common-post-portal' ),
+		);
+	}
+
+	return $badges;
 }
 
 /**

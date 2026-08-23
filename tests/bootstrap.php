@@ -842,6 +842,13 @@ require GWC_PP_DIR . 'inc/review.php';
 require GWC_PP_DIR . 'inc/handoff.php';
 require GWC_PP_DIR . 'inc/blocked-words.php';
 
+/*
+ * The list a portal user lands on. Loaded for gwc_pp_list_badges(), which is the
+ * badge decision split out of the row markup — the file declares functions and
+ * one const and hooks nothing, so requiring it costs nothing but the parse.
+ */
+require GWC_PP_DIR . 'inc/portal-list.php';
+
 /* admin-screen.php declares gwc_pp_colophon_snoozed(), which is pure and worth a
  * test. It also declares gwc_pp_require_admin_caps(), which calls wp_die() — the
  * stub below exists so requiring the file cannot fatal, not because anything

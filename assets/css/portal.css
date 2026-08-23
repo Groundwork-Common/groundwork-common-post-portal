@@ -21,6 +21,11 @@
 	--gwcpp-line: #cbd2d9;
 	--gwcpp-error: #b42318;
 	--gwcpp-ok: #027a48;
+	/* The waiting-for-approval amber. Worn by the badge on the list and by the
+	   notice on the entry itself, which are the same state seen from two
+	   distances — so it is one value, named, rather than the same hex written
+	   down twice. */
+	--gwcpp-pending: #b7791f;
 	--gwcpp-radius: 8px;
 	--gwcpp-gap: 20px;
 	--gwcpp-max-width: 42rem;
@@ -163,6 +168,13 @@
 .gwcpp-badge--publish {
 	background: color-mix(in srgb, var(--gwcpp-ok) 14%, var(--gwcpp-surface));
 	color: var(--gwcpp-ok);
+}
+
+/* Sits beside the status badge rather than replacing it: the entry is still
+   published, and saying so is the point — what is waiting has not landed. */
+.gwcpp-badge--waiting {
+	background: color-mix(in srgb, var(--gwcpp-pending) 14%, var(--gwcpp-surface));
+	color: var(--gwcpp-pending);
 }
 
 .gwcpp-empty {
@@ -392,8 +404,8 @@
 /* ── Pending review ─────────────────────────────────────────────────────── */
 
 .gwcpp-notice--pending {
-	border-left-color: #b7791f;
-	background: color-mix(in srgb, #b7791f 8%, var(--gwcpp-surface));
+	border-left-color: var(--gwcpp-pending);
+	background: color-mix(in srgb, var(--gwcpp-pending) 8%, var(--gwcpp-surface));
 }
 
 .gwcpp-notice--pending p + p {
