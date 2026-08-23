@@ -33,6 +33,28 @@ name: Test
 #
 # If that split ever stops being true, the failure is loud: `compat` reads the
 # floor from the plugin header.
+#
+# ── Action versions ──────────────────────────────────────────────────────────
+# Pinned to floating majors, and deliberately current. GitHub retires the Node
+# runtime an action declares, and for a while before it does it forces the
+# action onto the newer one and annotates every job saying so. That warning is
+# the whole notice period. It costs nothing here — but deploy.yml's `deploy` job
+# `needs` this workflow, so the day forcing turns into failing, the thing that
+# breaks is not a test run, it is the ability to publish to WordPress.org, and
+# the release that discovers it is one already tagged.
+#
+# So these move together with the ones in deploy.yml, which carries a checkout
+# of its own. Two files, one decision.
+#
+# checkout v5.1/v6.1/v7 changed fork-PR checkout under `pull_request_target` and
+# `workflow_run`. Neither is used here — this file triggers on `pull_request`,
+# which is the safe one — so that break does not reach us. Read it again anyway
+# before the next bump: it is exactly the sort of change that is harmless right
+# up until somebody adds a trigger.
+#
+# setup-node v6 narrowed automatic caching to npm. No `cache` input is set
+# below, so there is nothing to narrow. The `node-version` pinned there is a
+# separate question from the version of the action reading it.
 
 on:
   push:
@@ -73,7 +95,7 @@ jobs:
         php: [ '8.2', '8.3', '8.4' ]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -93,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -134,7 +156,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -163,7 +185,7 @@ jobs:
     outputs:
       list: ${{ steps.read.outputs.list }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: read
         run: |
           min=$(grep -m1 -oE '^Requires at least:[[:space:]]*\S+' readme.txt | awk '{print $NF}')
@@ -190,9 +212,9 @@ jobs:
         wp: ${{ fromJSON(needs.versions.outputs.list) }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
 

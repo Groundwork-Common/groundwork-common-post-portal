@@ -113,7 +113,9 @@ jobs:
     needs: test
 
     steps:
-      - uses: actions/checkout@v4
+      # Kept in step with the checkouts in test.yml on purpose; the note on
+      # action versions in that file's header explains what is riding on it.
+      - uses: actions/checkout@v7
 
       # The four values that must agree, checked before anything is published
       # rather than discovered afterwards by somebody reading a plugin page.
