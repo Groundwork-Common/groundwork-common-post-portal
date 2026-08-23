@@ -70,7 +70,9 @@ maintained.
 == Installation ==
 
 1. Install and activate the plugin.
-2. Create a page for the portal and add the **Post Portal** block to it.
+2. Create a page for the portal and add the **Post Portal** block to it. On a
+   classic-editor site, or in a page builder or a theme template, use the
+   `[gwc_pp_portal]` shortcode instead.
 3. Go to **Portal → Settings**, choose which post types the portal covers, and
    select the page you just made.
 4. Open the **Fields** tab on that same screen, pick a post type, and map the
@@ -86,6 +88,25 @@ maintained.
 No, and this is not configurable. The strongest thing a portal user can do is
 unpublish a post back to draft, which you can reverse in one click. Deleting
 stays a staff action in wp-admin.
+
+= Can I use a shortcode instead of the block? =
+
+Yes. `[gwc_pp_portal]` renders the same portal and takes no attributes. It is
+not a deprecation path and is not going away: the block is the right default,
+and a block is unreachable from a widget, a page builder, a theme template, or
+a site still on the classic editor — all of which exist on the kind of site
+this plugin is for.
+
+Either way, it has to be on the page you chose under **Portal → Settings**.
+That setting pins the portal to one page ID, and everything that reaches
+somebody from outside the site is a URL pointing at it: a sign-in link, a review
+reminder, a handover invitation. On any other page the portal still draws, but
+nothing works — no sign-in, no saving, and a link somebody clicks in their email
+is not recognised.
+
+The page must also be published, and it must be a page rather than a post. The
+block shows a warning in the editor while no portal page has been chosen yet.
+The shortcode cannot show you anything, which is the one real cost of using it.
 
 = What happens if somebody's magic link expires? =
 
