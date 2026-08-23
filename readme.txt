@@ -178,6 +178,11 @@ directly. The "author may edit their own" path is off by default.
 == Changelog ==
 
 = 0.3.1 =
+* The shortcode is now [gwc_pp_portal]. It was [post_portal], which carried no
+  prefix of its own and could collide with any other plugin's.
+* Everything the plugin registers is now prefixed gwc_pp_ rather than gwcpp_ —
+  the portal role and its capability, meta keys, options and hooks included. A
+  portal user created by an earlier build must be granted the role again.
 * Fixed: a file waiting for approval could be deleted while somebody was still
   waiting for it. Past 200 waiting changes the oldest fell off the list the
   cleanup consulted, and those are exactly the ones whose uploads had aged past
@@ -216,10 +221,16 @@ directly. The "author may edit their own" path is off by default.
 * The review sweep cannot run twice at once, so nobody gets a reminder twice.
 * Fixed: the block's stylesheet was not loaded in the editor, so the preview
   appeared unstyled.
+* Fixed: on the Settings screen the Groundwork Common wordmark was invisible to
+  anyone whose computer is set to dark mode. It chose the light-on-dark version
+  by reading the operating system's preference, which says nothing about what
+  colour wp-admin actually is — and wp-admin is light.
 * Fixed: deactivating left a scheduled task behind in some cases, and on a
   network only cleared the site you were on.
 * Fixed: one message shown when a form had been left open too long was not
   translatable.
+* Plugin URI now points at a page that resolves, rather than at an address that
+  timed out.
 
 = 0.3.0 =
 * Entries can be put on a review cycle: owners are reminded to confirm their
@@ -251,11 +262,12 @@ directly. The "author may edit their own" path is off by default.
 == Upgrade Notice ==
 
 = 0.3.1 =
-Fixes a case where a file waiting for approval could be deleted, and one where a
-review reminder reached staff instead of the owner. Security and performance
-fixes throughout, and two deliberate tightenings: handing an entry over now
-requires belonging to its organisation, and assigning a post to an organisation
-now requires an administrator.
+The shortcode is now [gwc_pp_portal], and a portal user created by an earlier
+build must be granted the role again. Fixes a case where a file waiting for
+approval could be deleted, and one where a review reminder reached staff instead
+of the owner. Security and performance fixes throughout, and two deliberate
+tightenings: handing an entry over now requires belonging to its organisation,
+and assigning a post to an organisation now requires an administrator.
 
 = 0.3.0 =
 Adds the review cycle, handover, and blocked-word screening. The review cycle is
