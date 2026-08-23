@@ -208,6 +208,10 @@ directly. The "author may edit their own" path is off by default.
   waiting for it. Past 200 waiting changes the oldest fell off the list the
   cleanup consulted, and those are exactly the ones whose uploads had aged past
   the thirty-day threshold.
+* Fixed: a submission that was refused — a required field left blank, a file the
+  upload control would not take — came back with every row of a repeating field
+  missing, and saving from that form stored the loss without a word about it.
+  Repeating fields now survive a refused save intact.
 * Fixed: at short review cadences the reminder ladder could deliver the staff
   warning first and count it as the owner's, leaving somebody whose only notice
   arrived a fortnight before their entry came off the site.
