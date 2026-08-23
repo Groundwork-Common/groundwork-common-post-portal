@@ -568,6 +568,18 @@ function gwc_pp_republish_post( int $post_id ): bool {
 /** The longest a single repopulated value may be. */
 const GWC_PP_PENDING_MAX = 4000;
 
+/** The most entries a repopulated array value may carry. */
+const GWC_PP_STASH_ENTRIES = 100;
+
+/**
+ * The most cells one repeater row may carry into the stash.
+ *
+ * A row cannot legitimately have more cells than the field has columns, and
+ * that is bounded by the schema — but the stash reads what was submitted, not
+ * what the schema allows, so it does its own counting.
+ */
+const GWC_PP_STASH_CELLS = 50;
+
 /**
  * Stash a rejected submission.
  *
@@ -599,9 +611,7 @@ function gwc_pp_stash_submission( int $user_id, int $post_id, array $values, arr
 			continue;
 		}
 		if ( is_array( $value ) ) {
-			// Bounded in both directions: a crafted submission should not be
-			// able to store a thousand-element array under a real field key.
-			$kept[ $key ] = array_slice( array_filter( $value, 'is_scalar' ), 0, 100 );
+			$kept[ $key ] = gwc_pp_stash_bounded( $value );
 		}
 	}
 
@@ -613,6 +623,53 @@ function gwc_pp_stash_submission( int $user_id, int $post_id, array $values, arr
 		),
 		15 * MINUTE_IN_SECONDS
 	);
+}
+
+/**
+ * One array value, bounded, for the stash.
+ *
+ * Bounded in both directions: a crafted submission should not be able to store
+ * a thousand-element array under a real field key.
+ *
+ * It goes two levels deep, and that is the whole point of it. This used to be
+ * `array_filter( $value, 'is_scalar' )`, which is correct for a checkbox group
+ * — a list of scalars — and silently emptied a repeater, whose value is a list
+ * of ROWS and whose rows are arrays. Every row failed `is_scalar` and was
+ * dropped, so a portal user who tripped any validation error got the form back
+ * with their repeating rows gone, and saving from that form stored the loss.
+ * Nothing announced it. See `test_a_repeater_survives_the_stash()`.
+ *
+ * Two levels, not recursion. Nothing this plugin renders nests deeper, and a
+ * bound that recurses is a depth a crafted submission gets to choose.
+ *
+ * @param array $value Sanitized array value.
+ * @return array
+ */
+function gwc_pp_stash_bounded( array $value ): array {
+	$out = array();
+
+	foreach ( array_slice( $value, 0, GWC_PP_STASH_ENTRIES, true ) as $key => $item ) {
+		if ( is_scalar( $item ) ) {
+			$out[ $key ] = substr( (string) $item, 0, GWC_PP_PENDING_MAX );
+			continue;
+		}
+
+		if ( ! is_array( $item ) ) {
+			continue;
+		}
+
+		$row = array();
+
+		foreach ( array_slice( $item, 0, GWC_PP_STASH_CELLS, true ) as $cell_key => $cell ) {
+			if ( is_scalar( $cell ) ) {
+				$row[ $cell_key ] = substr( (string) $cell, 0, GWC_PP_PENDING_MAX );
+			}
+		}
+
+		$out[ $key ] = $row;
+	}
+
+	return $out;
 }
 
 /**
