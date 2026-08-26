@@ -80,16 +80,19 @@ npx @wordpress/env run tests-cli wp eval-file \
 # also phase2.php, phase3.php and queue-scale.php
 ```
 
-**There is test CI, and it is green.** `.github/workflows/test.yml` runs on every
-push to `main`, every pull request, and on demand: `unit` across PHP 8.2/8.3/8.4,
-`compat` reading the floor out of the plugin header, `standards` running PHPCS,
-and `integration` under wp-env against both WordPress versions read out of
-`readme.txt` — so "Requires at least" and "Tested up to" are claims CI enforces
-rather than numbers somebody typed once. Read that file's header comments before
-changing it; they explain why the unit matrix does not start at 7.4.
+**There is a test workflow, and it no longer runs itself.**
+`.github/workflows/test.yml` still carries the whole suite: `unit` across PHP
+8.2/8.3/8.4, `compat` reading the floor out of the plugin header, `standards`
+running PHPCS, and `integration` under wp-env against both WordPress versions
+read out of `readme.txt` — so "Requires at least" and "Tested up to" stay claims
+something checks rather than numbers somebody typed once. Read that file's header
+comments before changing it; they explain why the unit matrix does not start at
+7.4.
 
-Integration is skipped on pushes to branches other than `main` — minutes rather
-than milliseconds — so a green check on a work-in-progress branch has not run it.
+But its `push` and `pull_request` triggers were removed: **nothing checks a
+branch or a pull request for you.** What remains is a manual run from the Actions
+tab and the call from `deploy.yml` below. Run `composer check` locally before you
+push — that is now the only thing standing between a mistake and `main`.
 
 **`deploy.yml` is gated on it.** `test.yml` also carries a `workflow_call`
 trigger, and `deploy.yml`'s `deploy` job `needs` a `test` job that calls it, so

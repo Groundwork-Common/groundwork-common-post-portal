@@ -29,8 +29,8 @@ WordPress 6.3, PHP 7.4. No build step, no Composer, no npm for anything that
 ships. The block's `edit.js` is hand-written ES5 against `wp.element`, and its
 `edit.asset.php` is hand-written to match.
 
-Both WordPress numbers are claims CI enforces rather than numbers somebody
-typed. The `versions` job reads **Requires at least** and **Tested up to** out
+Both WordPress numbers are claims the test suite enforces rather than numbers
+somebody typed. The `versions` job reads **Requires at least** and **Tested up to** out
 of `readme.txt` and the integration suite runs against each, so bumping either
 header changes what is tested. A pinned core that fails to download would
 otherwise fall back to latest silently, turning "we tested 6.3" into "we tested
@@ -253,7 +253,7 @@ Unit tests are pure logic with no database and no WordPress checkout —
 well under a second. PHPUnit is pinned in `composer.lock`, which is committed so
 that a CI run and a local run install the same versions of the same sniffs.
 Don't fetch a phar; a phar is unpinned, and a sniff version that differs from
-CI's turns a green local lint into a red pull request.
+the locked one turns a green local lint into a red hosted run.
 
 `VersionTest` enforces that the plugin header, `GWC_PP_VERSION`, the
 `Stable tag` in `readme.txt`, and the changelog and upgrade-notice entries all
