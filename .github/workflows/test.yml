@@ -8,15 +8,13 @@ name: Test
 # documentation with a misleading file extension.
 #
 # ── What runs here, and what deliberately does not ───────────────────────────
-# The unit suite, on every push and pull request, across the PHP versions the
-# plugin claims to support. tests/bootstrap.php stubs the WordPress surface the
+# The unit suite, across the PHP versions the plugin claims to support. tests/bootstrap.php stubs the WordPress surface the
 # pure logic touches, so this needs no database and no WordPress checkout, and
 # the whole thing finishes in well under a second.
 #
 # The integration scripts under tests/integration/ need a running WordPress and
-# are run separately below, under wp-env, only on pull requests and pushes to
-# main — they take minutes rather than milliseconds, and the unit suite is what
-# should fail fast on a work-in-progress branch.
+# are run separately below, under wp-env — they take minutes rather than
+# milliseconds, where the unit suite finishes in under a second.
 #
 # ── Why the unit matrix does not start at 7.4 ────────────────────────────────
 # The plugin supports PHP 7.4. PHPUnit 11 requires 8.2, and the suite uses
@@ -58,9 +56,10 @@ name: Test
 # own note at the step.
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
+  # CI runs locally now, not here. The `push` and `pull_request` triggers were
+  # removed deliberately — every check below still exists and still works, it is
+  # just started by hand from the Actions tab (or with `gh workflow run`) rather
+  # than by a commit. The local recipes are in CLAUDE.md and README.md.
   workflow_dispatch:
 
   # ── Called by deploy.yml before it publishes ────────────────────────────────
@@ -204,7 +203,10 @@ jobs:
     name: Integration (WP ${{ matrix.wp }})
     runs-on: ubuntu-latest
     needs: versions
-    # Minutes rather than milliseconds, so not on every push to every branch.
+    # Minutes rather than milliseconds. The condition is what kept this off
+    # work-in-progress branches back when this file ran on push; nothing pushes
+    # it now, and both remaining triggers — a manual run and deploy.yml's call
+    # before a release — are exactly the cases it was written to let through.
     if: github.event_name != 'push' || github.ref == 'refs/heads/main'
 
     strategy:
